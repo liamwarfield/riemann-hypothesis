@@ -1,0 +1,389 @@
+module
+
+public import GroundTheory.HeightsAndTheta.Heights.HilbertSamuel.StatementsHilbert
+public import GroundTheory.HeightsAndTheta.Heights.HilbertSamuel.PFiniteSeparatingModel
+
+@[expose] public section
+
+section -- merged from GroundTheory.HeightsAndTheta.Heights.HilbertSamuel.LengthLocalizedQuotientEqZero
+set_option maxSynthPendingDepth 1
+
+namespace GroundTheory.Heights₂.Heights.IndefiniteRowSideFullHecke.HilbertSamuel
+
+open MvPolynomial GroundTheory.Heights₂.Heights.NumbersDVR
+
+noncomputable section
+
+universe u
+
+section Length
+
+variable {R : Type*} [CommRing R]
+
+theorem telescope_enat : ∀ (n : ℕ) (f : Fin (n + 1) → ℕ∞) (c : Fin n → ℕ∞),
+    (∀ j : Fin n, f j.castSucc = c j + f j.succ) → f 0 = (∑ j, c j) + f (Fin.last n)
+  | 0, f, c, _ => by simp
+  | n + 1, f, c, h => by
+    have ih : f (Fin.succ 0) = (∑ j : Fin n, c j.succ) + f (Fin.last n).succ :=
+      telescope_enat n (fun k => f k.succ) (fun j => c j.succ) (fun j => h j.succ)
+    have h0 : f 0 = c 0 + f (Fin.succ 0) := by
+      simpa only [Fin.castSucc_zero] using h 0
+    rw [h0, ih, Fin.succ_last, Fin.sum_univ_succ c, add_assoc]
+
+theorem localizedModule_map_coe (P : Submonoid R) {M₀ M₁ : Type*} [AddCommGroup M₀] [Module R M₀]
+    [AddCommGroup M₁] [Module R M₁] (f : M₀ →ₗ[R] M₁) :
+    ⇑(LocalizedModule.map P f) = ⇑(IsLocalizedModule.map P (LocalizedModule.mkLinearMap P M₀)
+      (LocalizedModule.mkLinearMap P M₁) f) := by
+  funext y
+  induction y using LocalizedModule.induction_on with
+  | h m s => rw [LocalizedModule.map_mk, IsLocalizedModule.map_LocalizedModules]
+
+theorem length_localized_eq_add (p : Ideal R) [p.IsPrime] {M₀ M₁ M₂ : Type*}
+    [AddCommGroup M₀] [Module R M₀] [AddCommGroup M₁] [Module R M₁] [AddCommGroup M₂] [Module R M₂]
+    (f : M₀ →ₗ[R] M₁) (g : M₁ →ₗ[R] M₂) (hf : Function.Injective f)
+    (hg : Function.Surjective g) (h : Function.Exact f g) :
+    Module.length (Localization.AtPrime p) (LocalizedModule p.primeCompl M₁) =
+      Module.length (Localization.AtPrime p) (LocalizedModule p.primeCompl M₀) +
+      Module.length (Localization.AtPrime p) (LocalizedModule p.primeCompl M₂) := by
+  refine Module.length_eq_add_of_exact (LocalizedModule.map p.primeCompl f)
+    (LocalizedModule.map p.primeCompl g) (LocalizedModule.map_injective _ f hf)
+    (LocalizedModule.map_surjective _ g hg) ?_
+  rw [localizedModule_map_coe, localizedModule_map_coe]
+  exact LocalizedModule.map_exact p.primeCompl f g h
+
+theorem length_localized_quotient_eq_zero (p q : Ideal R) [p.IsPrime] (h : ¬ q ≤ p) :
+    Module.length (Localization.AtPrime p) (LocalizedModule p.primeCompl (R ⧸ q)) = 0 := by
+  obtain ⟨t, htq, htp⟩ := Set.not_subset.mp h
+  have key : ∀ y : LocalizedModule p.primeCompl (R ⧸ q), y = 0 := by
+    intro y
+    induction y using LocalizedModule.induction_on with
+    | h m s =>
+      obtain ⟨r, rfl⟩ := Ideal.Quotient.mk_surjective m
+      rw [← LocalizedModule.zero_mk 1, LocalizedModule.mk_eq]
+      refine ⟨⟨t, htp⟩, ?_⟩
+      rw [one_smul, smul_zero, smul_zero, Submonoid.smul_def, Algebra.smul_def,
+        Ideal.Quotient.algebraMap_eq, ← map_mul, Ideal.Quotient.eq_zero_iff_mem]
+      exact q.mul_mem_right r htq
+  have : Subsingleton (LocalizedModule p.primeCompl (R ⧸ q)) :=
+    ⟨fun a b => by rw [key a, key b]⟩
+  exact Module.length_eq_zero
+
+theorem length_localized_quotient_self (p : Ideal R) [hp : p.IsPrime] :
+    Module.length (Localization.AtPrime p) (LocalizedModule p.primeCompl (R ⧸ p)) = 1 := by
+  rw [Module.length_eq_one_iff, isSimpleModule_iff_toSpanSingleton_surjective]
+  have hne : ∀ (r : R) (s : p.primeCompl),
+      LocalizedModule.mk (Ideal.Quotient.mk p r) s = 0 → r ∈ p := by
+    intro r s h
+    rw [← LocalizedModule.zero_mk 1, LocalizedModule.mk_eq] at h
+    obtain ⟨u, hu⟩ := h
+    rw [one_smul, smul_zero, smul_zero, Submonoid.smul_def, Algebra.smul_def,
+      Ideal.Quotient.algebraMap_eq, ← map_mul, Ideal.Quotient.eq_zero_iff_mem] at hu
+    exact (hp.mem_or_mem hu).resolve_left u.2
+  refine ⟨⟨LocalizedModule.mk (Ideal.Quotient.mk p 1) 1, 0,
+    fun h => hp.ne_top ((Ideal.eq_top_iff_one p).mpr (hne 1 1 h))⟩, ?_⟩
+  intro x hx y
+  induction x using LocalizedModule.induction_on with
+  | h m s =>
+  induction y using LocalizedModule.induction_on with
+  | h m' t =>
+  obtain ⟨r, rfl⟩ := Ideal.Quotient.mk_surjective m
+  obtain ⟨r', rfl⟩ := Ideal.Quotient.mk_surjective m'
+  have hr : r ∉ p := fun hr => hx (by
+    rw [Ideal.Quotient.eq_zero_iff_mem.mpr hr, LocalizedModule.zero_mk])
+  refine ⟨Localization.mk (r' * s) ⟨r * t, p.primeCompl.mul_mem hr t.2⟩, ?_⟩
+  rw [LinearMap.toSpanSingleton_apply, LocalizedModule.mk_smul_mk, LocalizedModule.mk_eq]
+  refine ⟨1, ?_⟩
+  simp only [one_smul, Submonoid.smul_def, Submonoid.coe_mul, Algebra.smul_def,
+    Ideal.Quotient.algebraMap_eq, ← map_mul]
+  congr 1
+  ring
+
+theorem length_localized_step (p : Ideal R) [p.IsPrime] {M : Type*} [AddCommGroup M] [Module R M]
+    (A B : Submodule R M) (x : M) (q : Ideal R) (hB : B = A ⊔ Submodule.span R {x})
+    (hq : ∀ s : R, s • x ∈ A ↔ s ∈ q) :
+    Module.length (Localization.AtPrime p) (LocalizedModule p.primeCompl (M ⧸ A)) =
+      Module.length (Localization.AtPrime p) (LocalizedModule p.primeCompl (R ⧸ q)) +
+      Module.length (Localization.AtPrime p) (LocalizedModule p.primeCompl (M ⧸ B)) := by
+  have hAB : A ≤ B := hB ▸ le_sup_left
+  let f : (R ⧸ q) →ₗ[R] M ⧸ A := Submodule.liftQ q (A.mkQ ∘ₗ LinearMap.toSpanSingleton R M x) (by
+    intro s hs
+    rw [LinearMap.mem_ker, LinearMap.comp_apply, LinearMap.toSpanSingleton_apply, Submodule.mkQ_apply,
+      Submodule.Quotient.mk_eq_zero]
+    exact (hq s).mpr hs)
+  let g : M ⧸ A →ₗ[R] M ⧸ B := A.mapQ B LinearMap.id hAB
+  have hf_mk : ∀ s : R, f (Submodule.Quotient.mk s) = Submodule.Quotient.mk (s • x) := fun s => rfl
+  refine length_localized_eq_add p f g ?_ ?_ ?_
+  · rw [← LinearMap.ker_eq_bot, Submodule.eq_bot_iff]
+    intro y hy
+    obtain ⟨s, rfl⟩ := Submodule.Quotient.mk_surjective q y
+    rw [LinearMap.mem_ker, hf_mk, Submodule.Quotient.mk_eq_zero] at hy
+    exact (Submodule.Quotient.mk_eq_zero q).mpr ((hq s).mp hy)
+  · intro y
+    obtain ⟨m, rfl⟩ := Submodule.Quotient.mk_surjective B y
+    exact ⟨Submodule.Quotient.mk m, rfl⟩
+  · intro y
+    obtain ⟨m, rfl⟩ := Submodule.Quotient.mk_surjective A y
+    simp only [g, Submodule.mapQ_apply, LinearMap.id_apply, Submodule.Quotient.mk_eq_zero, hB,
+      Set.mem_range]
+    rw [Submodule.mem_sup]
+    constructor
+    · rintro ⟨a, ha, z, hz, rfl⟩
+      obtain ⟨s, rfl⟩ := Submodule.mem_span_singleton.mp hz
+      refine ⟨Submodule.Quotient.mk s, ?_⟩
+      rw [hf_mk, Submodule.Quotient.eq]
+      simpa using A.neg_mem ha
+    · rintro ⟨y, hy⟩
+      obtain ⟨s, rfl⟩ := Submodule.Quotient.mk_surjective q y
+      rw [hf_mk, Submodule.Quotient.eq] at hy
+      refine ⟨m - s • x, ?_, s • x, Submodule.mem_span_singleton.mpr ⟨s, rfl⟩, sub_add_cancel _ _⟩
+      simpa using A.neg_mem hy
+
+theorem card_eq_length_of_filtration {M : Type*} [AddCommGroup M] [Module R M] {n : ℕ}
+    (N : Fin (n + 1) → Submodule R M) (x : Fin n → M) (q : Fin n → Ideal R)
+    (hN0 : N 0 = ⊥) (hNl : N (Fin.last n) = ⊤)
+    (hsucc : ∀ j : Fin n, N j.succ = N j.castSucc ⊔ Submodule.span R {x j})
+    (hprime : ∀ j, (q j).IsPrime) (hann : ∀ j (s : R), s • x j ∈ N j.castSucc ↔ s ∈ q j)
+    (W : Ideal R) (hW : W ∈ (Module.annihilator R M).minimalPrimes) [W.IsPrime]
+    [DecidablePred fun j => q j = W] :
+    (((Finset.univ.filter fun j => q j = W).card : ℕ) : ℕ∞) =
+      Module.length (Localization.AtPrime W) (LocalizedModule W.primeCompl M) := by
+  let L : Fin (n + 1) → ℕ∞ := fun k =>
+    Module.length (Localization.AtPrime W) (LocalizedModule W.primeCompl (M ⧸ N k))
+  have hstep : ∀ j : Fin n, L j.castSucc = (if q j = W then 1 else 0) + L j.succ := by
+    intro j
+    simp only [L]
+    rw [length_localized_step W (N j.castSucc) (N j.succ) (x j) (q j) (hsucc j) (hann j)]
+    congr 1
+    split_ifs with h
+    · rw [h]
+      exact length_localized_quotient_self W
+    · apply length_localized_quotient_eq_zero
+      intro hle
+      apply h
+      have hannq : Module.annihilator R M ≤ q j := by
+        intro s hs
+        rw [← hann j, Module.mem_annihilator.mp hs (x j)]
+        exact zero_mem _
+      exact le_antisymm hle (hW.2 ⟨hprime j, hannq⟩ hle)
+  have h0 : L 0 = Module.length (Localization.AtPrime W) (LocalizedModule W.primeCompl M) := by
+    simp only [L]
+    rw [hN0]
+    exact (IsLocalizedModule.mapEquiv W.primeCompl (LocalizedModule.mkLinearMap W.primeCompl _)
+      (LocalizedModule.mkLinearMap W.primeCompl M) (Localization.AtPrime W)
+      (Submodule.quotEquivOfEqBot ⊥ rfl)).length_eq
+  have hl : L (Fin.last n) = 0 := by
+    simp only [L]
+    rw [hNl]
+    have key : ∀ y : LocalizedModule W.primeCompl (M ⧸ (⊤ : Submodule R M)), y = 0 := by
+      intro y
+      induction y using LocalizedModule.induction_on with
+      | h m s =>
+        obtain ⟨m, rfl⟩ := Submodule.Quotient.mk_surjective _ m
+        rw [(Submodule.Quotient.mk_eq_zero _).mpr Submodule.mem_top, LocalizedModule.zero_mk]
+    have : Subsingleton (LocalizedModule W.primeCompl (M ⧸ (⊤ : Submodule R M))) :=
+      ⟨fun a b => by rw [key a, key b]⟩
+    exact Module.length_eq_zero
+  rw [← h0, telescope_enat n L _ hstep, hl, add_zero, Finset.sum_boole]
+
+end Length
+
+section Spans
+
+end Spans
+
+end
+
+end GroundTheory.Heights₂.Heights.IndefiniteRowSideFullHecke.HilbertSamuel
+end
+
+section -- merged from GroundTheory.HeightsAndTheta.Heights.HilbertSamuel.PLeviFSInvariant
+set_option maxSynthPendingDepth 1
+
+namespace GroundTheory.Heights₂.Heights.HilbertSamuel
+
+open ReciprocityTheory.ChartRestriction.G.Geo Filter Topology ComplexConjugate
+
+noncomputable section
+
+namespace LeviFSInvariant
+
+variable {J : Type} [Fintype J]
+
+def sqSum (z : J → ℂ) : ℝ := ∑ p, ‖z p‖ ^ 2
+
+def reInner (a : J → ℂ) : (J → ℂ) →L[ℝ] ℝ :=
+  ∑ p, ((a p).re • (Complex.reCLM.comp (ContinuousLinearMap.proj p)) +
+    (a p).im • (Complex.imCLM.comp (ContinuousLinearMap.proj p)))
+
+theorem reInner_apply (a b : J → ℂ) :
+    reInner a b = ∑ p, ((a p).re * (b p).re + (a p).im * (b p).im) := by
+  simp [reInner]
+
+theorem reInner_comm (a b : J → ℂ) : reInner a b = reInner b a := by
+  simp only [reInner_apply]
+  exact Finset.sum_congr rfl fun p _ => by ring
+
+theorem reInner_self (a : J → ℂ) : reInner a a = sqSum a := by
+  simp only [reInner_apply, sqSum]
+  refine Finset.sum_congr rfl fun p _ => ?_
+  rw [Complex.sq_norm, Complex.normSq_apply]
+
+theorem continuous_sqSum : Continuous (sqSum : (J → ℂ) → ℝ) := by
+  unfold sqSum
+  fun_prop
+
+theorem hasFDerivAt_sqSum (z : J → ℂ) : HasFDerivAt sqSum ((2 : ℝ) • reInner z) z := by
+  have h := HasFDerivAt.sum (u := Finset.univ) (A := fun p (x : J → ℂ) => ‖x p‖ ^ 2)
+    fun p _ => (hasFDerivAt_apply p z).norm_sq
+  rw [show (∑ p ∈ Finset.univ, fun x : J → ℂ => ‖x p‖ ^ 2) = sqSum from by
+    funext x; simp [sqSum, Finset.sum_apply]] at h
+  refine h.congr_fderiv ?_
+  refine ContinuousLinearMap.ext fun v => ?_
+  simp only [ContinuousLinearMap.coe_sum', Finset.sum_apply, ContinuousLinearMap.coe_smul',
+    Pi.smul_apply, ContinuousLinearMap.coe_comp', Function.comp_apply, innerSL_apply_apply,
+    ContinuousLinearMap.proj_apply, smul_eq_mul, reInner_apply, Complex.inner, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun p _ => ?_
+  simp only [Complex.mul_re, Complex.conj_re, Complex.conj_im]
+  ring
+
+def phi (z : J → ℂ) : ℝ := Real.log (sqSum z) * (1 / 2)
+
+theorem hasFDerivAt_phi {z : J → ℂ} (hz : sqSum z ≠ 0) :
+    HasFDerivAt phi ((sqSum z)⁻¹ • reInner z) z := by
+  have h := ((hasFDerivAt_sqSum z).log hz).mul_const (1 / 2 : ℝ)
+  refine h.congr_fderiv ?_
+  refine ContinuousLinearMap.ext fun v => ?_
+  simp only [ContinuousLinearMap.coe_smul', Pi.smul_apply, smul_eq_mul]
+  ring
+
+theorem contDiffAt_phi {z : J → ℂ} (hz : sqSum z ≠ 0) {n : WithTop ℕ∞} :
+    ContDiffAt ℝ n phi z := by
+  have hs : ContDiff ℝ n (sqSum : (J → ℂ) → ℝ) :=
+    ContDiff.sum fun p _ => (contDiff_norm_sq ℝ).comp (contDiff_apply ℝ (fun _ => ℂ) p)
+  exact (hs.contDiffAt.log hz).mul contDiffAt_const
+
+theorem fderiv_fderiv_phi {z : J → ℂ} (hz : sqSum z ≠ 0) (u : J → ℂ) :
+    fderiv ℝ (fderiv ℝ phi) z u u =
+      sqSum u / sqSum z - 2 * reInner z u ^ 2 / sqSum z ^ 2 := by
+  have hd : DifferentiableAt ℝ (fderiv ℝ phi) z :=
+    ((contDiffAt_phi hz (n := 2)).fderiv_right (m := 1) (by norm_num)).differentiableAt
+      (by norm_num)
+  have h1 : fderiv ℝ (fderiv ℝ phi) z u u = fderiv ℝ (fun z' => fderiv ℝ phi z' u) z u := by
+    rw [fderiv_clm_apply hd (differentiableAt_const u)]
+    simp
+  have hopen : IsOpen {z' : J → ℂ | sqSum z' ≠ 0} := isOpen_ne_fun continuous_sqSum continuous_const
+  have heq : (fun z' => fderiv ℝ phi z' u) =ᶠ[𝓝 z]
+      fun z' => reInner u z' * ((fun x : ℝ => x⁻¹) ∘ sqSum) z' := by
+    filter_upwards [hopen.mem_nhds hz] with z' hz'
+    rw [(hasFDerivAt_phi hz').fderiv]
+    simp only [ContinuousLinearMap.coe_smul', Pi.smul_apply, smul_eq_mul, Function.comp_apply,
+      reInner_comm z' u]
+    ring
+  have hinv := (hasFDerivAt_inv hz).comp z (hasFDerivAt_sqSum z)
+  have hG := (reInner u).hasFDerivAt.mul hinv
+  rw [h1, heq.fderiv_eq]
+  rw [show (fun z' => reInner u z' * ((fun x : ℝ => x⁻¹) ∘ sqSum) z') =
+    (⇑(reInner u) * ((fun x : ℝ => x⁻¹) ∘ sqSum)) from rfl, hG.fderiv]
+  simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.coe_smul', Pi.smul_apply,
+    smul_eq_mul, ContinuousLinearMap.coe_comp', Function.comp_apply,
+    ContinuousLinearMap.toSpanSingleton_apply, reInner_self, reInner_comm u z]
+  field_simp
+  ring
+
+theorem leviForm_phi {z : J → ℂ} (hz : sqSum z ≠ 0) (w : J → ℂ) :
+    leviForm phi z w = (sqSum z * sqSum w - (reInner z w ^ 2 + reInner z (Complex.I • w) ^ 2)) /
+      (2 * sqSum z ^ 2) := by
+  have hw : sqSum (Complex.I • w) = sqSum w := by
+    simp [sqSum]
+  unfold leviForm
+  rw [fderiv_fderiv_phi hz, fderiv_fderiv_phi hz, hw]
+  field_simp
+  ring
+
+def herm (a b : J → ℂ) : ℂ := ∑ p, conj (a p) * b p
+
+theorem herm_self (a : J → ℂ) : herm a a = (sqSum a : ℂ) := by
+  simp only [herm, sqSum, Complex.ofReal_sum, Complex.ofReal_pow]
+  exact Finset.sum_congr rfl fun p _ => Complex.conj_mul' (a p)
+
+theorem herm_swap (a b : J → ℂ) : herm b a = conj (herm a b) := by
+  set_option synthInstance.maxHeartbeats 100000 in
+    simp only [herm, map_sum, map_mul, Complex.conj_conj]
+  exact Finset.sum_congr rfl fun p _ => mul_comm _ _
+
+theorem reInner_sq_add (a b : J → ℂ) :
+    ((reInner a b ^ 2 + reInner a (Complex.I • b) ^ 2 : ℝ) : ℂ) = herm a b * herm b a := by
+  have hre : (herm a b).re = reInner a b := by
+    simp only [herm, Complex.re_sum, reInner_apply, Complex.mul_re, Complex.conj_re, Complex.conj_im]
+    exact Finset.sum_congr rfl fun p _ => by ring
+  have him : (herm a b).im = -reInner a (Complex.I • b) := by
+    simp only [herm, Complex.im_sum, reInner_apply, Complex.mul_im, Complex.conj_re, Complex.conj_im,
+      Pi.smul_apply, smul_eq_mul, Complex.mul_re, Complex.I_re, Complex.I_im,
+      ← Finset.sum_neg_distrib]
+    exact Finset.sum_congr rfl fun p _ => by ring
+  rw [herm_swap a b, Complex.mul_conj, Complex.normSq_apply, hre, him]
+  push_cast
+  ring
+
+theorem herm_smul_left (c : ℂ) (a b : J → ℂ) : herm (c • a) b = conj c * herm a b := by
+  simp only [herm, Finset.mul_sum, Pi.smul_apply, smul_eq_mul, map_mul]
+  exact Finset.sum_congr rfl fun p _ => by ring
+
+theorem herm_add_right (a b b' : J → ℂ) : herm a (b + b') = herm a b + herm a b' := by
+  simp only [herm, Pi.add_apply, mul_add, Finset.sum_add_distrib]
+
+theorem herm_add_left (a a' b : J → ℂ) : herm (a + a') b = herm a b + herm a' b := by
+  simp only [herm, Pi.add_apply, map_add (f := _), add_mul, Finset.sum_add_distrib]
+
+theorem herm_smul_right (c : ℂ) (a b : J → ℂ) : herm a (c • b) = c * herm a b := by
+  simp only [herm, Finset.mul_sum, Pi.smul_apply, smul_eq_mul]
+  exact Finset.sum_congr rfl fun p _ => by ring
+
+theorem sqSum_ne_zero {a : J → ℂ} (ha : a ≠ 0) : sqSum a ≠ 0 := by
+  obtain ⟨i, hi⟩ := Function.ne_iff.mp ha
+  refine ne_of_gt (lt_of_lt_of_le (pow_pos (norm_pos_iff.mpr hi) 2) ?_)
+  exact Finset.single_le_sum (f := fun p => ‖a p‖ ^ 2) (fun _ _ => sq_nonneg _) (Finset.mem_univ i)
+
+end LeviFSInvariant
+
+
+open LeviFSInvariant in
+theorem LeviFSInvariant.proof : LeviFSInvariant.Statement := by
+  intro M _ a b c μ ha hc
+  have hf : (fun u : M → ℂ => Real.log (∑ j, ‖u j‖ ^ 2) / 2) = phi := by
+    funext u
+    simp only [phi, sqSum]
+    ring
+  have hca : c • a ≠ 0 := smul_ne_zero hc ha
+  rw [hf, leviForm_phi (sqSum_ne_zero hca), leviForm_phi (sqSum_ne_zero ha)]
+  have hS : sqSum (c • a) = ‖c‖ ^ 2 * sqSum a := by
+    apply Complex.ofReal_injective
+    rw [← herm_self, herm_smul_left, herm_smul_right, herm_self]
+    push_cast
+    rw [← Complex.conj_mul']
+    ring
+  have key : ∀ a b : M → ℂ,
+      ((sqSum a * sqSum b - (reInner a b ^ 2 + reInner a (Complex.I • b) ^ 2) : ℝ) : ℂ) =
+        herm a a * herm b b - herm a b * herm b a := by
+    intro a b
+    rw [Complex.ofReal_sub, Complex.ofReal_mul, reInner_sq_add, herm_self, herm_self]
+  have hN' : herm (c • a) (c • a) * herm (c • b + μ • a) (c • b + μ • a) -
+      herm (c • a) (c • b + μ • a) * herm (c • b + μ • a) (c • a) =
+      (((‖c‖ ^ 2) ^ 2 : ℝ) : ℂ) * (herm a a * herm b b - herm a b * herm b a) := by
+    simp only [herm_add_left, herm_add_right, herm_smul_left, herm_smul_right]
+    push_cast
+    rw [← Complex.conj_mul']
+    ring
+  have hN : sqSum (c • a) * sqSum (c • b + μ • a) -
+      (reInner (c • a) (c • b + μ • a) ^ 2 + reInner (c • a) (Complex.I • (c • b + μ • a)) ^ 2) =
+      (‖c‖ ^ 2) ^ 2 * (sqSum a * sqSum b - (reInner a b ^ 2 + reInner a (Complex.I • b) ^ 2)) := by
+    apply Complex.ofReal_injective
+    rw [key, Complex.ofReal_mul, key, hN']
+  rw [hN, hS]
+  have hc2 : ‖c‖ ^ 2 ≠ 0 := pow_ne_zero 2 (norm_ne_zero_iff.mpr hc)
+  field_simp
+
+end
+
+end GroundTheory.Heights₂.Heights.HilbertSamuel
+end

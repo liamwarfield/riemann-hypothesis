@@ -1,0 +1,873 @@
+module
+
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.AdditiveStrongApproximationAvoidingFinset
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsExtensionEtaleCompletionToCompleteLocal
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.DerivAtZeroReindexEqTaylorCoefficient
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.EventuallyExistsQuaternionNormOneReEq
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenAdeles
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.SquaringOpenAtOneAdicCompletionNumberField
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.SquaringOpenAtOneAdicCompletionNumberField
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+
+noncomputable section
+
+namespace GlobalTheory.QSA
+
+theorem sqOpen_and_nhdsNE_zero_neBot_adicCompletion :
+    ∀ (F : Type) [Field F] [NumberField F] (v : HeightOneSpectrum (𝓞 F)),
+      SqOpen (v.adicCompletion F) ∧ (𝓝[≠] (0 : v.adicCompletion F)).NeBot := by
+  intro F _ _ v
+  letI : NontriviallyNormedField (v.adicCompletion F) := Valued.toNontriviallyNormedField _ _
+  have h2 : (2 : v.adicCompletion F) ≠ 0 := by
+    intro h
+    have h' : algebraMap F (v.adicCompletion F) 2 = algebraMap F (v.adicCompletion F) 0 := by
+      rw [map_ofNat, map_zero]; exact h
+    exact two_ne_zero ((algebraMap F (v.adicCompletion F)).injective h')
+  refine ⟨GlobalTheory.T.squaringOpenAtOne_of_complete_two_ne_zero (v.adicCompletion F) h2, ?_⟩
+  infer_instance
+
+end GlobalTheory.QSA
+
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.SquaringOpenAtOneAdicCompletionNumberFieldStatement
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.squaringOpenAtOne_adicCompletion_numberField : ∀ (F : Type) [Field F] [NumberField F] (v : HeightOneSpectrum (𝓞 F)), SqOpen (v.adicCompletion F) ∧ (𝓝[≠] (0 : v.adicCompletion F)).NeBot := by
+  first | exact @GlobalTheory.QSA.sqOpen_and_nhdsNE_zero_neBot_adicCompletion | exact GlobalTheory.QSA.sqOpen_and_nhdsNE_zero_neBot_adicCompletion | (intros; apply GlobalTheory.QSA.sqOpen_and_nhdsNE_zero_neBot_adicCompletion <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsQuaternionNormOneNearReSqNeOne
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsQuaternionNormOneNearReSqNeOne
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+open Filter
+
+namespace GlobalTheory.QSA
+
+theorem exists_nrm_one_re_sq_ne_one : ∀ (K : Type) [Field K] [TopologicalSpace K] [IsTopologicalDivisionRing K] [T2Space K], (2 : K) ≠ 0 → (𝓝[≠] (0 : K)).NeBot → ∀ a b : K, a ≠ 0 → ∀ g : ℍ[K, a, b], nrm g = 1 → ∀ W : Set ℍ[K, a, b], W ∈ 𝓝 g → ∃ g' : ℍ[K, a, b], nrm g' = 1 ∧ g'.re ^ 2 ≠ 1 ∧ W ∈ 𝓝 g' := by
+  intro K _ _ _ _ h2 hne a b ha g hg W hW
+  by_cases hre : g.re ^ 2 = 1
+  swap
+  · exact ⟨g, hg, hre, hW⟩
+  have hs0 : g.re ≠ 0 := by
+    intro h
+    rw [h] at hre
+    simp at hre
+  let X0 : K → K := fun τ => (1 + a * τ ^ 2) / (1 - a * τ ^ 2)
+  let X1 : K → K := fun τ => 2 * τ / (1 - a * τ ^ 2)
+  let x : K → ℍ[K, a, b] := fun τ => ⟨X0 τ, X1 τ, 0, 0⟩
+  have hD : Tendsto (fun τ : K => 1 - a * τ ^ 2) (𝓝 0) (𝓝 1) := by
+    have : Continuous (fun τ : K => 1 - a * τ ^ 2) := by fun_prop
+    simpa using this.tendsto 0
+  have hx0 : Tendsto X0 (𝓝 0) (𝓝 1) := by
+    have h1 : Continuous (fun τ : K => 1 + a * τ ^ 2) := by fun_prop
+    have := (h1.tendsto 0).div hD one_ne_zero
+    simpa [Pi.div_def] using this
+  have hx1 : Tendsto X1 (𝓝 0) (𝓝 0) := by
+    have h1 : Continuous (fun τ : K => 2 * τ) := by fun_prop
+    have := (h1.tendsto 0).div hD one_ne_zero
+    simpa [Pi.div_def] using this
+  have key : ∀ c d : K, Tendsto (fun τ => c * X0 τ + d * X1 τ) (𝓝 0) (𝓝 c) := by
+    intro c d
+    simpa using (hx0.const_mul c).add (hx1.const_mul d)
+  have hf : Tendsto (fun τ => g * x τ) (𝓝 0) (𝓝 g) := by
+    rw [(Topology.IsInducing.induced coords).tendsto_nhds_iff, tendsto_pi_nhds]
+    intro i
+    fin_cases i
+    · refine (key g.re (a * g.imI)).congr fun τ => ?_
+      simp [coords, x]
+    · refine (key g.imI g.re).congr fun τ => ?_
+      simp [coords, x, add_comm]
+    · refine (key g.imJ (-(a * g.imK))).congr fun τ => ?_
+      simp [coords, x, sub_eq_add_neg]
+    · refine (key g.imK (-g.imJ)).congr fun τ => ?_
+      simp [coords, x, add_comm]
+  have e1 : ∀ᶠ τ in 𝓝[≠] (0 : K), τ ≠ 0 := self_mem_nhdsWithin
+  have e2 : ∀ᶠ τ in 𝓝[≠] (0 : K), 1 - a * τ ^ 2 ≠ 0 :=
+    (hD.eventually_ne one_ne_zero).filter_mono nhdsWithin_le_nhds
+  have e3 : ∀ᶠ τ in 𝓝[≠] (0 : K), g.re + a * τ * g.imI ≠ 0 := by
+    have h1 : Continuous (fun τ : K => g.re + a * τ * g.imI) := by fun_prop
+    exact ((h1.tendsto 0).eventually_ne (by simpa using hs0)).filter_mono nhdsWithin_le_nhds
+  have e4 : ∀ᶠ τ in 𝓝[≠] (0 : K), g.re * τ + g.imI ≠ 0 := by
+    by_cases hI : g.imI = 0
+    · filter_upwards [e1] with τ hτ
+      simpa [hI] using ⟨hs0, hτ⟩
+    · have h1 : Continuous (fun τ : K => g.re * τ + g.imI) := by fun_prop
+      exact ((h1.tendsto 0).eventually_ne (by simpa using hI)).filter_mono nhdsWithin_le_nhds
+  have e5 : ∀ᶠ τ in 𝓝[≠] (0 : K), g * x τ ∈ interior W :=
+    (hf.eventually (interior_mem_nhds.2 hW)).filter_mono nhdsWithin_le_nhds
+  obtain ⟨τ, h1, h2', h3, h4, h5⟩ := (e1.and (e2.and (e3.and (e4.and e5)))).exists
+  refine ⟨g * x τ, ?_, ?_, mem_interior_iff_mem_nhds.1 h5⟩
+  · rw [nrm_mul, hg, one_mul]
+    simp only [nrm, x, X0, X1]
+    field_simp
+    ring
+  · have hr : (g * x τ).re = g.re * X0 τ + a * g.imI * X1 τ := by simp [x]
+    rw [hr]
+    intro h
+    have hm : g.re * X0 τ + a * g.imI * X1 τ - g.re
+        = 2 * a * τ * (g.re * τ + g.imI) / (1 - a * τ ^ 2) := by
+      simp only [X0, X1]
+      field_simp
+      ring
+    have hp : g.re * X0 τ + a * g.imI * X1 τ + g.re
+        = 2 * (g.re + a * τ * g.imI) / (1 - a * τ ^ 2) := by
+      simp only [X0, X1]
+      field_simp
+      ring
+    have hz : (g.re * X0 τ + a * g.imI * X1 τ - g.re) * (g.re * X0 τ + a * g.imI * X1 τ + g.re) = 0 := by
+      linear_combination h - hre
+    rw [hm, hp] at hz
+    exact mul_ne_zero (div_ne_zero (mul_ne_zero (mul_ne_zero (mul_ne_zero h2 ha) h1) h4) h2')
+      (div_ne_zero (mul_ne_zero h2 h3) h2') hz
+
+end GlobalTheory.QSA
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsQuaternionNormOneNearReSqNeOneStatement
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_quaternion_normOne_near_re_sq_ne_one : ∀ (K : Type) [Field K] [TopologicalSpace K] [IsTopologicalDivisionRing K] [T2Space K], (2 : K) ≠ 0 → (𝓝[≠] (0 : K)).NeBot → ∀ a b : K, a ≠ 0 → ∀ g : ℍ[K, a, b], nrm g = 1 → ∀ W : Set ℍ[K, a, b], W ∈ 𝓝 g → ∃ g' : ℍ[K, a, b], nrm g' = 1 ∧ g'.re ^ 2 ≠ 1 ∧ W ∈ 𝓝 g' := by
+  first | exact @GlobalTheory.QSA.exists_nrm_one_re_sq_ne_one | exact GlobalTheory.QSA.exists_nrm_one_re_sq_ne_one | (intros; apply GlobalTheory.QSA.exists_nrm_one_re_sq_ne_one <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneReOpenNearOfIsUnit
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneReOpenNearOfIsUnit
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+
+namespace GlobalTheory
+
+theorem traceOpen_near_of_isUnit : ∀ (R : Type) [CommRing R] [TopologicalSpace R] [IsTopologicalRing R] (a b : R), SqOpen R → ∀ g : ℍ[R, a, b], nrm g = 1 → IsUnit (1 - g.re ^ 2) → ∀ W : Set ℍ[R, a, b], W ∈ 𝓝 g → ∃ O : Set R, IsOpen O ∧ g.re ∈ O ∧ ∀ t ∈ O, ∃ u ∈ W, nrm u = 1 ∧ u.re = t := by
+  intro R _ _ _ a b hsq g hg hu W hW
+  set s := g.re with hs
+  let φ : R × R → ℍ[R, a, b] := fun p => ⟨p.1, p.2 * g.imI, p.2 * g.imJ, p.2 * g.imK⟩
+  have hφ : Continuous φ := by
+    apply continuous_induced_rng.2
+    refine continuous_pi fun i => ?_
+    fin_cases i
+    · simpa [coords, φ] using continuous_fst
+    · simp only [coords, φ]; exact (continuous_snd.mul continuous_const : Continuous fun p : R × R => p.2 * _)
+    · simp only [coords, φ]; exact (continuous_snd.mul continuous_const : Continuous fun p : R × R => p.2 * _)
+    · simp only [coords, φ]; exact (continuous_snd.mul continuous_const : Continuous fun p : R × R => p.2 * _)
+  have hφs : φ (s, 1) = g := by ext <;> simp [φ, s]
+  have hpre : φ ⁻¹' W ∈ 𝓝 (s, (1 : R)) := hφ.continuousAt.preimage_mem_nhds (by rw [hφs]; exact hW)
+  obtain ⟨O₀, hO₀, V, hV, hOV⟩ := mem_nhds_prod_iff.1 hpre
+  obtain ⟨U, hU, hUV⟩ := hsq V hV
+  set c : R := ((hu.unit⁻¹ : Rˣ) : R) with hc_def
+  have hc : c * (1 - s ^ 2) = 1 := by
+    rw [hc_def]
+    have := hu.unit.inv_mul
+    simpa using this
+  let r : R → R := fun t => (1 - t ^ 2) * c
+  have hr : Continuous r := (continuous_const.sub (continuous_id.pow 2)).mul continuous_const
+  have hrs : r s = 1 := by simp only [r]; rw [mul_comm]; exact hc
+  refine ⟨interior (O₀ ∩ r ⁻¹' U), isOpen_interior, ?_, ?_⟩
+  · rw [mem_interior_iff_mem_nhds]
+    refine Filter.inter_mem hO₀ ?_
+    exact hr.continuousAt.preimage_mem_nhds (by rw [hrs]; exact hU)
+  · intro t ht
+    have ht' := interior_subset ht
+    obtain ⟨μ, hμV, hμ⟩ := hUV (r t) ht'.2
+    refine ⟨φ (t, μ), hOV (Set.mk_mem_prod ht'.1 hμV), ?_, rfl⟩
+    have hμ' : μ ^ 2 = (1 - t ^ 2) * c := hμ
+    simp only [nrm, φ] at hg ⊢
+    linear_combination μ ^ 2 * hg + (1 - s ^ 2) * hμ' + (1 - t ^ 2) * hc
+
+end GlobalTheory
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneReOpenNearOfIsUnitStatement
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.quaternion_normOne_re_open_near_of_isUnit : ∀ (R : Type) [CommRing R] [TopologicalSpace R] [IsTopologicalRing R] (a b : R), SqOpen R → ∀ g : ℍ[R, a, b], nrm g = 1 → IsUnit (1 - g.re ^ 2) → ∀ W : Set ℍ[R, a, b], W ∈ 𝓝 g → ∃ O : Set R, IsOpen O ∧ g.re ∈ O ∧ ∀ t ∈ O, ∃ u ∈ W, nrm u = 1 ∧ u.re = t := by
+  first | exact @GlobalTheory.traceOpen_near_of_isUnit | exact GlobalTheory.traceOpen_near_of_isUnit | (intros; apply GlobalTheory.traceOpen_near_of_isUnit <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenPi
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenPi
+noncomputable section
+
+open scoped Quaternion Topology
+
+namespace GlobalTheory.QSA
+
+namespace TraceOpenPi
+
+variable {ι : Type} {R : ι → Type} [∀ i, CommRing (R i)] {a b : ∀ i, R i}
+
+def comp (i : ι) (x : ℍ[∀ i, R i, a, b]) : ℍ[R i, a i, b i] :=
+  ⟨x.re i, x.imI i, x.imJ i, x.imK i⟩
+
+def glue (u : ∀ i, ℍ[R i, a i, b i]) : ℍ[∀ i, R i, a, b] :=
+  ⟨fun i => (u i).re, fun i => (u i).imI, fun i => (u i).imJ, fun i => (u i).imK⟩
+
+theorem glue_comp (x : ℍ[∀ i, R i, a, b]) : glue (fun i => comp i x) = x := by
+  ext <;> rfl
+
+theorem nrm_comp (i : ι) (x : ℍ[∀ i, R i, a, b]) : nrm (comp i x) = nrm x i := by
+  simp [nrm, comp]
+
+theorem nrm_glue (u : ∀ i, ℍ[R i, a i, b i]) : nrm (glue u) = fun i => nrm (u i) := by
+  funext i
+  simp [nrm, glue]
+
+theorem coords_glue (u : ∀ i, ℍ[R i, a i, b i]) : coords (glue u) = fun k i => coords (u i) k := by
+  funext k i
+  fin_cases k <;> rfl
+
+theorem continuous_glue [∀ i, TopologicalSpace (R i)] :
+    Continuous (glue : (∀ i, ℍ[R i, a i, b i]) → ℍ[∀ i, R i, a, b]) := by
+  refine continuous_induced_rng.2 ?_
+  have : (coords ∘ (glue : (∀ i, ℍ[R i, a i, b i]) → ℍ[∀ i, R i, a, b])) =
+      fun u k i => coords (u i) k := by
+    funext u
+    exact coords_glue u
+  rw [this]
+  refine continuous_pi fun k => continuous_pi fun i => ?_
+  have hc : Continuous (coords : ℍ[R i, a i, b i] → Fin 4 → R i) := continuous_induced_dom
+  exact ((continuous_apply k).comp hc).comp (continuous_apply i)
+
+end TraceOpenPi
+
+
+open TraceOpenPi in
+theorem traceOpen_pi : ∀ (ι : Type) [Fintype ι] (R : ι → Type) [∀ i, CommRing (R i)]
+    [∀ i, TopologicalSpace (R i)] (a b : ∀ i, R i),
+    (∀ i, TraceOpen (R i) (a i) (b i)) → TraceOpen (∀ i, R i) a b := by
+  intro ι _ R _ _ a b h g hg W hW
+  have hgi : ∀ i, nrm (comp i g) = 1 := fun i => by
+    rw [nrm_comp, hg]; rfl
+  have hW' : glue ⁻¹' W ∈ 𝓝 (fun i => comp i g) := by
+    refine continuous_glue.continuousAt.preimage_mem_nhds ?_
+    rw [glue_comp]; exact hW
+  rw [nhds_pi, Filter.mem_pi] at hW'
+  obtain ⟨I, -, V, hV, hVW⟩ := hW'
+  have hO := fun i => h i (comp i g) (hgi i) (V i) (hV i)
+  choose O hOo hOn hOt using hO
+  refine ⟨Set.univ.pi O, isOpen_set_pi Set.finite_univ fun i _ => hOo i,
+    Set.univ_pi_nonempty_iff.2 hOn, fun t ht => ?_⟩
+  have ht' := fun i => hOt i (t i) (ht i (Set.mem_univ i))
+  choose u huV hun hur using ht'
+  refine ⟨glue u, hVW fun i _ => huV i, ?_, ?_⟩
+  · rw [nrm_glue]; funext i; exact hun i
+  · funext i; exact hur i
+
+end GlobalTheory.QSA
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenPiStatement
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.quaternionNormOneTraceOpen_pi : ∀ (ι : Type) [Fintype ι] (R : ι → Type) [∀ i, CommRing (R i)] [∀ i, TopologicalSpace (R i)] (a b : ∀ i, R i), (∀ i, TraceOpen (R i) (a i) (b i)) → TraceOpen (∀ i, R i) a b := by
+  first | exact @GlobalTheory.QSA.traceOpen_pi | exact GlobalTheory.QSA.traceOpen_pi | (intros; apply GlobalTheory.QSA.traceOpen_pi <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.InfinitePlaceCompletionNhdsNEZeroNeBot
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.InfinitePlaceCompletionNhdsNEZeroNeBot
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+
+namespace GlobalTheory.QSA
+
+theorem infinitePlace_completion_nhdsNE_neBot : ∀ (F : Type) [Field F] [NumberField F] (w : InfinitePlace F), (𝓝[≠] (0 : w.Completion)).NeBot := by
+  intro F _ _ w
+  have hiso := InfinitePlace.Completion.isometry_extensionEmbedding w
+  have h2 : ‖(2 : w.Completion)‖ = 2 := by
+    have := (AddMonoidHomClass.isometry_iff_norm _).1 hiso (2 : w.Completion)
+    rw [← this, map_ofNat]; simp
+  letI : NontriviallyNormedField w.Completion :=
+    { (inferInstance : NormedField w.Completion) with
+      non_trivial := ⟨2, by rw [h2]; norm_num⟩ }
+  exact NormedField.nhdsNE_neBot (0 : w.Completion)
+end GlobalTheory.QSA
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.InfinitePlaceCompletionNhdsNEZeroNeBotStatement
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.infinitePlace_completion_nhdsNE_zero_neBot : ∀ (F : Type) [Field F] [NumberField F] (w : InfinitePlace F), (𝓝[≠] (0 : w.Completion)).NeBot := by
+  first | exact @GlobalTheory.QSA.infinitePlace_completion_nhdsNE_neBot | exact GlobalTheory.QSA.infinitePlace_completion_nhdsNE_neBot | (intros; apply GlobalTheory.QSA.infinitePlace_completion_nhdsNE_neBot <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenProd
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenProd
+noncomputable section
+
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+
+namespace GlobalTheory.QSA.TraceOpenProd
+
+variable {R₁ R₂ : Type} [CommRing R₁] [TopologicalSpace R₁] [CommRing R₂] [TopologicalSpace R₂]
+  {a₁ b₁ : R₁} {a₂ b₂ : R₂}
+
+def glue (p : ℍ[R₁, a₁, b₁] × ℍ[R₂, a₂, b₂]) : ℍ[R₁ × R₂, (a₁, a₂), (b₁, b₂)] :=
+  ⟨(p.1.re, p.2.re), (p.1.imI, p.2.imI), (p.1.imJ, p.2.imJ), (p.1.imK, p.2.imK)⟩
+
+def fst (x : ℍ[R₁ × R₂, (a₁, a₂), (b₁, b₂)]) : ℍ[R₁, a₁, b₁] :=
+  ⟨x.re.1, x.imI.1, x.imJ.1, x.imK.1⟩
+
+def snd (x : ℍ[R₁ × R₂, (a₁, a₂), (b₁, b₂)]) : ℍ[R₂, a₂, b₂] :=
+  ⟨x.re.2, x.imI.2, x.imJ.2, x.imK.2⟩
+
+theorem glue_fst_snd (x : ℍ[R₁ × R₂, (a₁, a₂), (b₁, b₂)]) : glue (fst x, snd x) = x := by
+  ext <;> rfl
+
+theorem nrm_glue (p : ℍ[R₁, a₁, b₁] × ℍ[R₂, a₂, b₂]) : nrm (glue p) = (nrm p.1, nrm p.2) := by
+  ext <;> simp [nrm, glue]
+
+theorem nrm_fst (x : ℍ[R₁ × R₂, (a₁, a₂), (b₁, b₂)]) : nrm (fst x) = (nrm x).1 := by
+  simp [nrm, fst]
+
+theorem nrm_snd (x : ℍ[R₁ × R₂, (a₁, a₂), (b₁, b₂)]) : nrm (snd x) = (nrm x).2 := by
+  simp [nrm, snd]
+
+theorem continuous_coord {R : Type} [CommRing R] [TopologicalSpace R] {a b : R} (i : Fin 4) :
+    Continuous (fun x : ℍ[R, a, b] => coords x i) :=
+  (continuous_apply i).comp continuous_induced_dom
+
+theorem continuous_glue : Continuous (glue : ℍ[R₁, a₁, b₁] × ℍ[R₂, a₂, b₂] → _) := by
+  apply continuous_induced_rng.2
+  apply continuous_pi
+  intro i
+  have h1 : Continuous (fun p : ℍ[R₁, a₁, b₁] × ℍ[R₂, a₂, b₂] => coords p.1 i) :=
+    (continuous_coord i).comp continuous_fst
+  have h2 : Continuous (fun p : ℍ[R₁, a₁, b₁] × ℍ[R₂, a₂, b₂] => coords p.2 i) :=
+    (continuous_coord i).comp continuous_snd
+  have : (fun p => coords (glue p) i) =
+      fun p : ℍ[R₁, a₁, b₁] × ℍ[R₂, a₂, b₂] => (coords p.1 i, coords p.2 i) := by
+    funext p
+    fin_cases i <;> rfl
+  show Continuous (fun p : ℍ[R₁, a₁, b₁] × ℍ[R₂, a₂, b₂] => coords (glue p) i)
+  rw [this]
+  exact h1.prodMk h2
+
+end GlobalTheory.QSA.TraceOpenProd
+
+namespace GlobalTheory.QSA
+
+
+open TraceOpenProd in
+theorem traceOpen_prod : ∀ (R₁ R₂ : Type) [CommRing R₁] [TopologicalSpace R₁] [CommRing R₂] [TopologicalSpace R₂]
+    (a₁ b₁ : R₁) (a₂ b₂ : R₂), TraceOpen R₁ a₁ b₁ → TraceOpen R₂ a₂ b₂ → TraceOpen (R₁ × R₂) (a₁, a₂) (b₁, b₂) := by
+  intro R₁ R₂ _ _ _ _ a₁ b₁ a₂ b₂ h₁ h₂ g hg W hW
+  have hW' : glue ⁻¹' W ∈ 𝓝 (fst g, snd g) := by
+    apply continuous_glue.continuousAt.preimage_mem_nhds
+    rw [glue_fst_snd]; exact hW
+  obtain ⟨W₁, hW₁, W₂, hW₂, hsub⟩ := mem_nhds_prod_iff.1 hW'
+  have hg₁ : nrm (fst g) = 1 := by rw [nrm_fst, hg]; rfl
+  have hg₂ : nrm (snd g) = 1 := by rw [nrm_snd, hg]; rfl
+  obtain ⟨O₁, hO₁, hne₁, hO₁t⟩ := h₁ _ hg₁ W₁ hW₁
+  obtain ⟨O₂, hO₂, hne₂, hO₂t⟩ := h₂ _ hg₂ W₂ hW₂
+  refine ⟨O₁ ×ˢ O₂, hO₁.prod hO₂, hne₁.prod hne₂, ?_⟩
+  rintro ⟨t₁, t₂⟩ ⟨ht₁, ht₂⟩
+  obtain ⟨u₁, hu₁W, hu₁n, hu₁r⟩ := hO₁t t₁ ht₁
+  obtain ⟨u₂, hu₂W, hu₂n, hu₂r⟩ := hO₂t t₂ ht₂
+  refine ⟨glue (u₁, u₂), hsub ⟨hu₁W, hu₂W⟩, ?_, ?_⟩
+  · rw [nrm_glue, hu₁n, hu₂n]; rfl
+  · simp [glue, hu₁r, hu₂r]
+
+end GlobalTheory.QSA
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenProdStatement
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.quaternionNormOneTraceOpen_prod : ∀ (R₁ R₂ : Type) [CommRing R₁] [TopologicalSpace R₁] [CommRing R₂] [TopologicalSpace R₂] (a₁ b₁ : R₁) (a₂ b₂ : R₂), TraceOpen R₁ a₁ b₁ → TraceOpen R₂ a₂ b₂ → TraceOpen (R₁ × R₂) (a₁, a₂) (b₁, b₂) := by
+  first | exact @GlobalTheory.QSA.traceOpen_prod | exact GlobalTheory.QSA.traceOpen_prod | (intros; apply GlobalTheory.QSA.traceOpen_prod <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenFiniteAdeleRing
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenFiniteAdeleRing
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology RestrictedProduct
+
+noncomputable section
+
+namespace GlobalTheory.QSA.FinAdele
+
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)}
+
+variable {F : Type} [Field F] [NumberField F]
+
+def loc {a b : F} (v : HeightOneSpectrum (𝓞 F))
+    (x : ℍ[FiniteAdeleRing (𝓞 F) F, algebraMap F (FiniteAdeleRing (𝓞 F) F) a,
+      algebraMap F (FiniteAdeleRing (𝓞 F) F) b]) :
+    ℍ[v.adicCompletion F, algebraMap F (v.adicCompletion F) a, algebraMap F (v.adicCompletion F) b] :=
+  ⟨x.re v, x.imI v, x.imJ v, x.imK v⟩
+
+open NumberField IsDedekindDomain in
+open scoped Quaternion Topology RestrictedProduct in
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)} in
+variable {F : Type} [Field F] [NumberField F] in
+private lemma quaternionAlgebra_exists_coord_nhds_subset_of_mem_nhds {k : Type} [CommRing k] [TopologicalSpace k] {a b : k}
+    {g : ℍ[k, a, b]} {W : Set ℍ[k, a, b]} (hW : W ∈ 𝓝 g) :
+    ∃ N₁ ∈ 𝓝 g.re, ∃ N₂ ∈ 𝓝 g.imI, ∃ N₃ ∈ 𝓝 g.imJ, ∃ N₄ ∈ 𝓝 g.imK,
+      ∀ y : ℍ[k, a, b], y.re ∈ N₁ → y.imI ∈ N₂ → y.imJ ∈ N₃ → y.imK ∈ N₄ → y ∈ W := by
+  have h : W ∈ Filter.comap _root_.GlobalTheory.QSA.coords (𝓝 (_root_.GlobalTheory.QSA.coords g)) := by
+    rw [← nhds_induced]
+    exact hW
+  obtain ⟨P, hP, hPW⟩ := h
+  rw [nhds_pi, Filter.mem_pi] at hP
+  obtain ⟨I, -, t, ht, hIt⟩ := hP
+  refine ⟨t 0, ht 0, t 1, ht 1, t 2, ht 2, t 3, ht 3, fun y h₁ h₂ h₃ h₄ => hPW (hIt ?_)⟩
+  rw [Set.mem_pi]
+  intro i _
+  fin_cases i
+  · exact h₁
+  · exact h₂
+  · exact h₃
+  · exact h₄
+
+open NumberField IsDedekindDomain in
+open scoped Quaternion Topology RestrictedProduct in
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)} in
+variable {F : Type} [Field F] [NumberField F] in
+private lemma restrictedProduct_exists_finite_box_subset_of_mem_nhds (hA : ∀ i, IsOpen (A i)) {S : Set ι}
+    (hS : Filter.cofinite ≤ Filter.principal S) (x : Πʳ i, [R i, A i]) (hx : ∀ i ∈ S, x i ∈ A i)
+    {N : Set (Πʳ i, [R i, A i])} (hN : N ∈ 𝓝 x) :
+    ∃ I : Set ι, I.Finite ∧ ∃ U : (i : ι) → Set (R i), (∀ i, U i ∈ 𝓝 (x i)) ∧
+      (∀ i ∈ S, U i ⊆ A i) ∧
+      ∀ y : Πʳ i, [R i, A i], (∀ i ∈ I, y i ∈ U i) → (∀ i ∈ S, y i ∈ A i) → y ∈ N := by
+  let x' : Πʳ i, [R i, A i]_[Filter.principal S] :=
+    RestrictedProduct.mk (fun i => x i) (Filter.eventually_principal.2 hx)
+  have hxx : RestrictedProduct.inclusion R A hS x' = x := RestrictedProduct.ext R A fun i => rfl
+  rw [← hxx, RestrictedProduct.nhds_eq_map_inclusion hA hS, Filter.mem_map,
+    (RestrictedProduct.isEmbedding_coe_of_principal (R := R) (A := A) (S := S)).isInducing.nhds_eq_comap,
+    Filter.mem_comap] at hN
+  obtain ⟨M, hM, hMN⟩ := hN
+  rw [nhds_pi, Filter.mem_pi] at hM
+  obtain ⟨I, hI, t, ht, hIt⟩ := hM
+  refine ⟨I, hI, fun i => t i ∩ {z | i ∈ S → z ∈ A i}, fun i => Filter.inter_mem (ht i) ?_,
+    fun i hi z hz => hz.2 hi, fun y hyI hyS => ?_⟩
+  · by_cases hi : i ∈ S
+    · exact Filter.mem_of_superset ((hA i).mem_nhds (hx i hi)) fun z hz _ => hz
+    · exact Filter.univ_mem' fun z h => absurd h hi
+  · let y' : Πʳ i, [R i, A i]_[Filter.principal S] :=
+      RestrictedProduct.mk (fun i => y i) (Filter.eventually_principal.2 hyS)
+    have hy : (⇑y') ∈ I.pi t := Set.mem_pi.2 fun i hi => (hyI i hi).1
+    have hyN := hMN (hIt hy)
+    have e : RestrictedProduct.inclusion R A hS y' = y := RestrictedProduct.ext R A fun i => rfl
+    rw [Set.mem_preimage, e] at hyN
+    exact hyN
+
+open NumberField IsDedekindDomain in
+open scoped Quaternion Topology RestrictedProduct in
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)} in
+variable {F : Type} [Field F] [NumberField F] in
+private lemma continuous_quaternionAlgebra_re {k : Type} [CommRing k] [TopologicalSpace k] {a b : k} :
+    Continuous fun w : ℍ[k, a, b] => w.re :=
+  (continuous_apply (0 : Fin 4)).comp (continuous_induced_dom (f := _root_.GlobalTheory.QSA.coords))
+
+open NumberField IsDedekindDomain in
+open scoped Quaternion Topology RestrictedProduct in
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)} in
+variable {F : Type} [Field F] [NumberField F] in
+private lemma continuous_quaternionAlgebra_imI {k : Type} [CommRing k] [TopologicalSpace k] {a b : k} :
+    Continuous fun w : ℍ[k, a, b] => w.imI :=
+  (continuous_apply (1 : Fin 4)).comp (continuous_induced_dom (f := _root_.GlobalTheory.QSA.coords))
+
+open NumberField IsDedekindDomain in
+open scoped Quaternion Topology RestrictedProduct in
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)} in
+variable {F : Type} [Field F] [NumberField F] in
+private lemma continuous_quaternionAlgebra_imJ {k : Type} [CommRing k] [TopologicalSpace k] {a b : k} :
+    Continuous fun w : ℍ[k, a, b] => w.imJ :=
+  (continuous_apply (2 : Fin 4)).comp (continuous_induced_dom (f := _root_.GlobalTheory.QSA.coords))
+
+open NumberField IsDedekindDomain in
+open scoped Quaternion Topology RestrictedProduct in
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)} in
+variable {F : Type} [Field F] [NumberField F] in
+private lemma continuous_quaternionAlgebra_imK {k : Type} [CommRing k] [TopologicalSpace k] {a b : k} :
+    Continuous fun w : ℍ[k, a, b] => w.imK :=
+  (continuous_apply (3 : Fin 4)).comp (continuous_induced_dom (f := _root_.GlobalTheory.QSA.coords))
+
+open NumberField IsDedekindDomain in
+open scoped Quaternion Topology RestrictedProduct in
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)} in
+variable {F : Type} [Field F] [NumberField F] in
+private lemma nrm_apply_eq_nrm_finAdele_loc {a b : F}
+    (x : ℍ[FiniteAdeleRing (𝓞 F) F, algebraMap F (FiniteAdeleRing (𝓞 F) F) a,
+      algebraMap F (FiniteAdeleRing (𝓞 F) F) b]) (v : HeightOneSpectrum (𝓞 F)) :
+    _root_.GlobalTheory.QSA.nrm x v =
+      _root_.GlobalTheory.QSA.nrm (_root_.GlobalTheory.QSA.FinAdele.loc v x) := by
+  let φ := RestrictedProduct.evalRingHom (fun v : HeightOneSpectrum (𝓞 F) => v.adicCompletion F)
+    (B := fun v => v.adicCompletionIntegers F) (𝓕 := Filter.cofinite) v
+  change φ (_root_.GlobalTheory.QSA.nrm x) = _
+  simp only [_root_.GlobalTheory.QSA.nrm, map_sub, map_add (f := _), map_mul, map_pow]
+  rfl
+
+
+open NumberField IsDedekindDomain in
+open scoped Quaternion Topology RestrictedProduct in
+variable {ι : Type*} {R : ι → Type*} [∀ i, TopologicalSpace (R i)] {A : (i : ι) → Set (R i)} in
+variable {F : Type} [Field F] [NumberField F] in
+theorem _root_.GlobalTheory.QSA.FinAdele.traceOpen_finiteAdele : ∀ (F : Type) [Field F] [NumberField F] (a b : F), (∀ v : HeightOneSpectrum (𝓞 F), _root_.GlobalTheory.QSA.TraceOpen (v.adicCompletion F) (algebraMap F (v.adicCompletion F) a) (algebraMap F (v.adicCompletion F) b)) → (∀ᶠ v in (Filter.cofinite : Filter (HeightOneSpectrum (𝓞 F))), ∀ t ∈ v.adicCompletionIntegers F, ∃ u : ℍ[v.adicCompletion F, algebraMap F (v.adicCompletion F) a, algebraMap F (v.adicCompletion F) b], _root_.GlobalTheory.QSA.nrm u = 1 ∧ u.re = t ∧ u.imI ∈ v.adicCompletionIntegers F ∧ u.imJ ∈ v.adicCompletionIntegers F ∧ u.imK ∈ v.adicCompletionIntegers F) → _root_.GlobalTheory.QSA.TraceOpen (FiniteAdeleRing (𝓞 F) F) (algebraMap F (FiniteAdeleRing (𝓞 F) F) a) (algebraMap F (FiniteAdeleRing (𝓞 F) F) b) := by
+  intro F _ _ a b hloc hint
+  unfold _root_.GlobalTheory.QSA.TraceOpen
+  intro g hg W hW
+  classical
+  have hAopen : ∀ v : HeightOneSpectrum (𝓞 F),
+      IsOpen (v.adicCompletionIntegers F : Set (v.adicCompletion F)) :=
+    fun v => Valued.isOpen_valuationSubring _
+  obtain ⟨N₁, hN₁, N₂, hN₂, N₃, hN₃, N₄, hN₄, hNW⟩ := quaternionAlgebra_exists_coord_nhds_subset_of_mem_nhds hW
+  obtain ⟨S, hS, hSP⟩ := Filter.eventually_iff_exists_mem.1
+    (g.re.2.and (g.imI.2.and (g.imJ.2.and (g.imK.2.and hint))))
+  have hS' : Filter.cofinite ≤ Filter.principal S := Filter.le_principal_iff.2 hS
+  obtain ⟨I₁, hI₁, U₁, hU₁, hU₁A, h₁⟩ := restrictedProduct_exists_finite_box_subset_of_mem_nhds
+    (R := fun v : HeightOneSpectrum (𝓞 F) => v.adicCompletion F)
+    (A := fun v => (v.adicCompletionIntegers F : Set (v.adicCompletion F)))
+    hAopen hS' g.re (fun v hv => (hSP v hv).1) hN₁
+  obtain ⟨I₂, hI₂, U₂, hU₂, hU₂A, h₂⟩ := restrictedProduct_exists_finite_box_subset_of_mem_nhds
+    (R := fun v : HeightOneSpectrum (𝓞 F) => v.adicCompletion F)
+    (A := fun v => (v.adicCompletionIntegers F : Set (v.adicCompletion F)))
+    hAopen hS' g.imI (fun v hv => (hSP v hv).2.1) hN₂
+  obtain ⟨I₃, hI₃, U₃, hU₃, hU₃A, h₃⟩ := restrictedProduct_exists_finite_box_subset_of_mem_nhds
+    (R := fun v : HeightOneSpectrum (𝓞 F) => v.adicCompletion F)
+    (A := fun v => (v.adicCompletionIntegers F : Set (v.adicCompletion F)))
+    hAopen hS' g.imJ (fun v hv => (hSP v hv).2.2.1) hN₃
+  obtain ⟨I₄, hI₄, U₄, hU₄, hU₄A, h₄⟩ := restrictedProduct_exists_finite_box_subset_of_mem_nhds
+    (R := fun v : HeightOneSpectrum (𝓞 F) => v.adicCompletion F)
+    (A := fun v => (v.adicCompletionIntegers F : Set (v.adicCompletion F)))
+    hAopen hS' g.imK (fun v hv => (hSP v hv).2.2.2.1) hN₄
+  let J : Set (HeightOneSpectrum (𝓞 F)) := I₁ ∪ I₂ ∪ I₃ ∪ I₄ ∪ Sᶜ
+  have hJ : J.Finite :=
+    (((hI₁.union hI₂).union hI₃).union hI₄).union (Filter.mem_cofinite.1 hS)
+  have hWv : ∀ v : HeightOneSpectrum (𝓞 F),
+      (fun w : ℍ[v.adicCompletion F, algebraMap F (v.adicCompletion F) a,
+        algebraMap F (v.adicCompletion F) b] => w.re) ⁻¹' U₁ v ∩
+      ((fun w : ℍ[v.adicCompletion F, algebraMap F (v.adicCompletion F) a,
+        algebraMap F (v.adicCompletion F) b] => w.imI) ⁻¹' U₂ v ∩
+      ((fun w : ℍ[v.adicCompletion F, algebraMap F (v.adicCompletion F) a,
+        algebraMap F (v.adicCompletion F) b] => w.imJ) ⁻¹' U₃ v ∩
+      (fun w : ℍ[v.adicCompletion F, algebraMap F (v.adicCompletion F) a,
+        algebraMap F (v.adicCompletion F) b] => w.imK) ⁻¹' U₄ v)) ∈
+        𝓝 (_root_.GlobalTheory.QSA.FinAdele.loc v g) := fun v =>
+    Filter.inter_mem (continuous_quaternionAlgebra_re.continuousAt.preimage_mem_nhds (hU₁ v))
+      (Filter.inter_mem (continuous_quaternionAlgebra_imI.continuousAt.preimage_mem_nhds (hU₂ v))
+        (Filter.inter_mem (continuous_quaternionAlgebra_imJ.continuousAt.preimage_mem_nhds (hU₃ v))
+          (continuous_quaternionAlgebra_imK.continuousAt.preimage_mem_nhds (hU₄ v))))
+  have hgv : ∀ v : HeightOneSpectrum (𝓞 F),
+      _root_.GlobalTheory.QSA.nrm (_root_.GlobalTheory.QSA.FinAdele.loc v g) = 1 := by
+    intro v
+    rw [← nrm_apply_eq_nrm_finAdele_loc, hg]
+    rfl
+  choose O hOopen hOne hOu using fun v => hloc v _ (hgv v) _ (hWv v)
+  refine ⟨(⋂ v ∈ J, (fun t : FiniteAdeleRing (𝓞 F) F => t v) ⁻¹' O v) ∩
+    {t | ∀ v, v ∉ J → t v ∈ v.adicCompletionIntegers F}, ?_, ?_, ?_⟩
+  · refine IsOpen.inter (hJ.isOpen_biInter fun v _ =>
+      (hOopen v).preimage (RestrictedProduct.continuous_eval v)) ?_
+    exact RestrictedProduct.isOpen_forall_imp_mem hAopen (p := fun v => v ∉ J)
+  · let t₀ : Πʳ v : HeightOneSpectrum (𝓞 F),
+        [v.adicCompletion F, (v.adicCompletionIntegers F : Set (v.adicCompletion F))] :=
+      ⟨fun v => if v ∈ J then (hOne v).some else 0, Filter.eventually_cofinite.2 (hJ.subset
+        fun v hv => by
+          by_contra hvJ
+          exact hv (by simp only [if_neg hvJ]; exact zero_mem _))⟩
+    refine ⟨t₀, Set.mem_iInter₂.2 fun v hv => ?_, fun v hv => ?_⟩
+    · show (if v ∈ J then (hOne v).some else 0) ∈ O v
+      rw [if_pos hv]
+      exact (hOne v).some_mem
+    · show (if v ∈ J then (hOne v).some else 0) ∈ v.adicCompletionIntegers F
+      rw [if_neg hv]
+      exact zero_mem _
+  · rintro t ⟨htJ, htA⟩
+    rw [Set.mem_iInter₂] at htJ
+    have hu : ∀ v : HeightOneSpectrum (𝓞 F), ∃ u : ℍ[v.adicCompletion F,
+        algebraMap F (v.adicCompletion F) a, algebraMap F (v.adicCompletion F) b],
+        _root_.GlobalTheory.QSA.nrm u = 1 ∧ u.re = t v ∧
+        (v ∈ J → u.re ∈ U₁ v ∧ u.imI ∈ U₂ v ∧ u.imJ ∈ U₃ v ∧ u.imK ∈ U₄ v) ∧
+        (v ∈ S → u.imI ∈ v.adicCompletionIntegers F ∧ u.imJ ∈ v.adicCompletionIntegers F ∧
+          u.imK ∈ v.adicCompletionIntegers F) := by
+      intro v
+      by_cases hv : v ∈ J
+      · obtain ⟨u, ⟨k₁, k₂, k₃, k₄⟩, hn, hre⟩ := hOu v (t v) (htJ v hv)
+        exact ⟨u, hn, hre, fun _ => ⟨k₁, k₂, k₃, k₄⟩,
+          fun hvS => ⟨hU₂A v hvS k₂, hU₃A v hvS k₃, hU₄A v hvS k₄⟩⟩
+      · have hvS : v ∈ S := by
+          by_contra h
+          exact hv (Set.mem_union_right _ h)
+        obtain ⟨u, hn, hre, k₂, k₃, k₄⟩ := (hSP v hvS).2.2.2.2 (t v) (htA v hv)
+        exact ⟨u, hn, hre, fun h => absurd h hv, fun _ => ⟨k₂, k₃, k₄⟩⟩
+    choose u hun hure huJ huS using hu
+    have htS : ∀ v ∈ S, t v ∈ (v.adicCompletionIntegers F : Set (v.adicCompletion F)) := by
+      intro v hv
+      by_cases hvJ : v ∈ J
+      · rw [← hure v]
+        exact hU₁A v hv (huJ v hvJ).1
+      · exact htA v hvJ
+    have hevS : ∀ᶠ v in (Filter.cofinite : Filter (HeightOneSpectrum (𝓞 F))), v ∈ S := hS
+    let yI : Πʳ v : HeightOneSpectrum (𝓞 F),
+        [v.adicCompletion F, (v.adicCompletionIntegers F : Set (v.adicCompletion F))] :=
+      ⟨fun v => (u v).imI, hevS.mono fun v hv => (huS v hv).1⟩
+    let yJ : Πʳ v : HeightOneSpectrum (𝓞 F),
+        [v.adicCompletion F, (v.adicCompletionIntegers F : Set (v.adicCompletion F))] :=
+      ⟨fun v => (u v).imJ, hevS.mono fun v hv => (huS v hv).2.1⟩
+    let yK : Πʳ v : HeightOneSpectrum (𝓞 F),
+        [v.adicCompletion F, (v.adicCompletionIntegers F : Set (v.adicCompletion F))] :=
+      ⟨fun v => (u v).imK, hevS.mono fun v hv => (huS v hv).2.2⟩
+    let y : ℍ[FiniteAdeleRing (𝓞 F) F, algebraMap F (FiniteAdeleRing (𝓞 F) F) a,
+        algebraMap F (FiniteAdeleRing (𝓞 F) F) b] := ⟨t, yI, yJ, yK⟩
+    refine ⟨y, hNW y ?_ ?_ ?_ ?_, ?_, rfl⟩
+    · refine h₁ t (fun v hv => ?_) htS
+      have k := (huJ v (Or.inl (Or.inl (Or.inl (Or.inl hv))))).1
+      rw [hure v] at k
+      exact k
+    · exact h₂ yI (fun v hv => (huJ v (Or.inl (Or.inl (Or.inl (Or.inr hv))))).2.1)
+        (fun v hv => (huS v hv).1)
+    · exact h₃ yJ (fun v hv => (huJ v (Or.inl (Or.inl (Or.inr hv)))).2.2.1)
+        (fun v hv => (huS v hv).2.1)
+    · exact h₄ yK (fun v hv => (huJ v (Or.inl (Or.inr hv))).2.2.2)
+        (fun v hv => (huS v hv).2.2)
+    · refine RestrictedProduct.ext _ _ fun v => ?_
+      have hloc_y : _root_.GlobalTheory.QSA.FinAdele.loc v y = u v :=
+        QuaternionAlgebra.ext (hure v).symm rfl rfl rfl
+      refine (nrm_apply_eq_nrm_finAdele_loc y v).trans ?_
+      rw [hloc_y, hun v]
+      rfl
+
+end GlobalTheory.QSA.FinAdele
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenFiniteAdeleRingStatement
+open NumberField IsDedekindDomain GlobalTheory.QSA
+open scoped Quaternion Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.quaternionNormOneTraceOpen_finiteAdeleRing : ∀ (F : Type) [Field F] [NumberField F] (a b : F), (∀ v : HeightOneSpectrum (𝓞 F), TraceOpen (v.adicCompletion F) (algebraMap F (v.adicCompletion F) a) (algebraMap F (v.adicCompletion F) b)) → (∀ᶠ v in (Filter.cofinite : Filter (HeightOneSpectrum (𝓞 F))), ∀ t ∈ v.adicCompletionIntegers F, ∃ u : ℍ[v.adicCompletion F, algebraMap F (v.adicCompletion F) a, algebraMap F (v.adicCompletion F) b], nrm u = 1 ∧ u.re = t ∧ u.imI ∈ v.adicCompletionIntegers F ∧ u.imJ ∈ v.adicCompletionIntegers F ∧ u.imK ∈ v.adicCompletionIntegers F) → TraceOpen (FiniteAdeleRing (𝓞 F) F) (algebraMap F (FiniteAdeleRing (𝓞 F) F) a) (algebraMap F (FiniteAdeleRing (𝓞 F) F) b) := by
+  first | exact @GlobalTheory.QSA.FinAdele.traceOpen_finiteAdele | exact GlobalTheory.QSA.FinAdele.traceOpen_finiteAdele | (intros; apply GlobalTheory.QSA.FinAdele.traceOpen_finiteAdele <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenAdeles
+open NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.QSA GlobalTheory.Published
+open Matrix
+open scoped Quaternion Topology TensorProduct
+
+namespace GlobalTheory.QSA
+
+theorem traceOpen_field (K : Type) [Field K] [TopologicalSpace K] [IsTopologicalDivisionRing K] [T2Space K]
+    (h2 : (2 : K) ≠ 0) (hnb : (𝓝[≠] (0 : K)).NeBot) (hsq : SqOpen K) (a b : K) (ha : a ≠ 0) : TraceOpen K a b := by
+  intro g hg W hW
+  obtain ⟨g', hg'1, hg're, hW'⟩ := GlobalTheory.T.exists_quaternion_normOne_near_re_sq_ne_one K h2 hnb a b ha g hg W hW
+  have hu : IsUnit (1 - g'.re ^ 2) := IsUnit.mk0 _ (sub_ne_zero.2 (Ne.symm hg're))
+  obtain ⟨O, hO, hmem, hO'⟩ := GlobalTheory.T.quaternion_normOne_re_open_near_of_isUnit K a b hsq g' hg'1 hu W hW'
+  exact ⟨O, hO, ⟨_, hmem⟩, hO'⟩
+
+theorem traceOpen_inf (F : Type) [Field F] [NumberField F] (a b : F) (ha : a ≠ 0) :
+    TraceOpen (InfiniteAdeleRing F) (algebraMap F (InfiniteAdeleRing F) a) (algebraMap F (InfiniteAdeleRing F) b) := by
+  refine GlobalTheory.T.quaternionNormOneTraceOpen_pi (InfinitePlace F) (fun w => w.Completion) _ _ (fun w => ?_)
+  have h2 : (2 : w.Completion) ≠ 0 := by
+    have := (map_ne_zero (algebraMap F w.Completion)).2 (two_ne_zero : (2 : F) ≠ 0)
+    rwa [map_ofNat] at this
+  exact traceOpen_field _ h2 (GlobalTheory.T.infinitePlace_completion_nhdsNE_zero_neBot F w) (GlobalTheory.T.squaringOpenAtOne_of_complete_two_ne_zero _ h2) _ _ ((map_ne_zero (algebraMap F w.Completion)).2 ha)
+
+theorem traceOpen_fin (F : Type) [Field F] [NumberField F] (a b : F) (ha : a ≠ 0) (hb : b ≠ 0) :
+    TraceOpen (FiniteAdeleRing (𝓞 F) F) (algebraMap F (FiniteAdeleRing (𝓞 F) F) a)
+      (algebraMap F (FiniteAdeleRing (𝓞 F) F) b) := by
+  refine GlobalTheory.T.quaternionNormOneTraceOpen_finiteAdeleRing F a b (fun v => ?_) (GlobalTheory.T.eventually_exists_quaternion_norm_one_re_eq F a b ha hb)
+  have h2 : (2 : v.adicCompletion F) ≠ 0 := by
+    have := (map_ne_zero (algebraMap F (v.adicCompletion F))).2 (two_ne_zero : (2 : F) ≠ 0)
+    rwa [map_ofNat] at this
+  exact traceOpen_field _ h2 (GlobalTheory.T.squaringOpenAtOne_adicCompletion_numberField F v).2 (GlobalTheory.T.squaringOpenAtOne_adicCompletion_numberField F v).1 _ _ ((map_ne_zero (algebraMap F _)).2 ha)
+
+theorem traceOpen_adele : ∀ (F : Type) [Field F] [NumberField F] (a b : F), a ≠ 0 → b ≠ 0 → ∀ g : DA F a b, nrm g = 1 → ∀ W : Set (DA F a b), W ∈ 𝓝 g → ∃ O : Set (AF F), IsOpen O ∧ O.Nonempty ∧ ∀ t ∈ O, ∃ u ∈ W, nrm u = 1 ∧ u.re = t := by
+  intro F _ _ a b ha hb g hg W hW
+  have H : TraceOpen (AF F) (algebraMap F (AF F) a) (algebraMap F (AF F) b) :=
+    GlobalTheory.T.quaternionNormOneTraceOpen_prod _ _ _ _ _ _ (traceOpen_inf F a b ha) (traceOpen_fin F a b ha hb)
+  exact H g hg W hW
+end GlobalTheory.QSA
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.QuaternionNormOneTraceOpenAdelesStatement
+open NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.QSA GlobalTheory.Published
+open Matrix
+open scoped Quaternion Topology TensorProduct
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.quaternion_norm_one_trace_open_adeles : ∀ (F : Type) [Field F] [NumberField F] (a b : F), a ≠ 0 → b ≠ 0 → ∀ g : DA F a b, nrm g = 1 → ∀ W : Set (DA F a b), W ∈ 𝓝 g → ∃ O : Set (AF F), IsOpen O ∧ O.Nonempty ∧ ∀ t ∈ O, ∃ u ∈ W, nrm u = 1 ∧ u.re = t := by
+  first | exact @GlobalTheory.QSA.traceOpen_adele | exact GlobalTheory.QSA.traceOpen_adele | (intros; apply GlobalTheory.QSA.traceOpen_adele <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.NormOneQuaternionNearConjRationalTimesSupported
+open NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.QSA GlobalTheory.Published
+open Matrix
+open scoped Quaternion Topology TensorProduct
+
+noncomputable section
+
+namespace GlobalTheory.QSAStep
+
+theorem idem_of_isPlacesIdem {F : Type} [Field F] [NumberField F] {S₁ : Finset (InfinitePlace F)}
+    {S₂ : Finset (HeightOneSpectrum (𝓞 F))} {ε : AF F} (h : IsPlacesIdem S₁ S₂ ε) : ε * ε = ε := by
+  obtain ⟨h1, h2, h3, h4⟩ := h
+  refine Prod.ext ?_ ?_
+  · funext w
+    change fstA F ε w * fstA F ε w = fstA F ε w
+    by_cases hw : w ∈ S₁
+    · rw [h1 w hw, one_mul]
+    · rw [h2 w hw, zero_mul]
+  · apply RestrictedProduct.ext
+    intro v
+    change evalV F v (sndA F ε) * evalV F v (sndA F ε) = evalV F v (sndA F ε)
+    by_cases hv : v ∈ S₂
+    · rw [h3 v hv, one_mul]
+    · rw [h4 v hv, zero_mul]
+
+variable {R : Type*} [CommRing R] {a b : R}
+
+theorem nrm_split (x y : ℍ[R, a, b]) (e : R) (he : e * e = e) :
+    nrm ((1 - e) • x + e • y) = (1 - e) * nrm x + e * nrm y := by
+  simp only [nrm, QuaternionAlgebra.re_add, QuaternionAlgebra.imI_add, QuaternionAlgebra.imJ_add,
+    QuaternionAlgebra.imK_add, QuaternionAlgebra.re_smul, QuaternionAlgebra.imI_smul, QuaternionAlgebra.imJ_smul,
+    QuaternionAlgebra.imK_smul, smul_eq_mul]
+  linear_combination ((x.re - y.re) ^ 2 - a * (x.imI - y.imI) ^ 2 - b * (x.imJ - y.imJ) ^ 2 +
+    a * b * (x.imK - y.imK) ^ 2) * he
+
+theorem nrm_star (x : ℍ[R, a, b]) : nrm (star x) = nrm x := by
+  simp [nrm]
+
+theorem nrm_one : nrm (1 : ℍ[R, a, b]) = 1 := by simp [nrm]
+
+theorem pure_sq (u : ℍ[R, a, b]) (t : R) (hn : nrm u = 1) (hr : u.re = t) :
+    (u - algebraMap R ℍ[R, a, b] t).re = 0 ∧
+      (u - algebraMap R ℍ[R, a, b] t) * (u - algebraMap R ℍ[R, a, b] t) = algebraMap R ℍ[R, a, b] (t ^ 2 - 1) := by
+  unfold nrm at hn
+  refine ⟨by simp [hr], ?_⟩
+  ext <;> simp [QuaternionAlgebra.algebraMap_eq, hr]
+  · linear_combination (-1 : R) * hn + (u.re + t) * hr
+  all_goals ring
+
+end GlobalTheory.QSAStep
+
+namespace GlobalTheory.QSAStep
+
+variable {F : Type} [Field F] [NumberField F] {a b : F}
+
+theorem rat_mul (x y : ℍ[F, a, b]) : rat (x * y) = rat x * rat y := by
+  ext <;> simp [rat]
+
+theorem rat_add (x y : ℍ[F, a, b]) : rat (x + y) = rat x + rat y := by
+  ext <;> simp [rat]
+
+theorem rat_algebraMap (c : F) :
+    rat (algebraMap F ℍ[F, a, b] c) = algebraMap (AF F) (DA F a b) (algebraMap F (AF F) c) := by
+  ext <;> simp [rat, QuaternionAlgebra.algebraMap_eq]
+
+theorem continuous_affine (ε : AF F) :
+    Continuous fun x : DA F a b => (1 - ε) • x + ε • (1 : DA F a b) := by
+  apply continuous_induced_rng.2
+  have e : (coords ∘ fun x : DA F a b => (1 - ε) • x + ε • (1 : DA F a b)) =
+      fun x => (1 - ε) • coords x + coords (ε • (1 : DA F a b)) := by
+    funext x i
+    fin_cases i <;> simp [coords]
+  rw [e]
+  have hc : Continuous (coords : DA F a b → Fin 4 → AF F) := continuous_induced_dom
+  exact ((continuous_const (y := (1 - ε : AF F))).smul hc).add continuous_const
+
+end GlobalTheory.QSAStep
+
+namespace GlobalTheory.QSAStep
+
+theorem key_step : ∀ (F : Type) [Field F] [NumberField F] (a b : F), a ≠ 0 → b ≠ 0 → ∀ (S₁ : Finset (InfinitePlace F)) (S₂ : Finset (HeightOneSpectrum (𝓞 F))) (ε : AF F), IsPlacesIdem S₁ S₂ ε → (S₁.Nonempty ∨ S₂.Nonempty) → (∀ t : AF F, ∃ h : DA F a b, nrm h = 1 ∧ ε * h.re = ε * t) → ∀ g : DA F a b, nrm g = 1 → ε • (g - 1) = 0 → ∀ W : Set (DA F a b), W ∈ 𝓝 g → ∃ w ∈ W, ∃ y : DA F a b, IsUnit (nrm y) ∧ ∃ γ : ℍ[F, a, b], nrm γ = 1 ∧ ∃ h : DA F a b, nrm h = 1 ∧ ε • (h - 1) = h - 1 ∧ y * w = rat γ * y * h := by
+  classical
+  intro F _ _ a b ha hb S₁ S₂ ε hε hS hsplit g hg hg1 W hW
+  have hee : ε * ε = ε := idem_of_isPlacesIdem hε
+  have h11 : (1 - ε) * (1 - ε) = 1 - ε := by linear_combination hee
+  have h10 : (1 - ε) * ε = 0 := by linear_combination -hee
+  have h01 : ε * (1 - ε) = 0 := by linear_combination -hee
+  set ι := algebraMap F (AF F) with hι
+  set φ : DA F a b → DA F a b := fun x => (1 - ε) • x + ε • (1 : DA F a b) with hφ
+  have hφg : φ g = g := by
+    have : φ g = g - ε • (g - 1) := by
+      simp only [hφ, sub_smul, one_smul, smul_sub]; abel
+    rw [this, hg1, sub_zero]
+  have hW' : φ ⁻¹' W ∈ 𝓝 g :=
+    (continuous_affine ε).continuousAt.preimage_mem_nhds (by change W ∈ 𝓝 (φ g); rw [hφg]; exact hW)
+  obtain ⟨O, hO, ⟨x, hx⟩, hOu⟩ := GlobalTheory.T.quaternion_norm_one_trace_open_adeles F a b ha hb g hg _ hW'
+  obtain ⟨t, htZ, s, hts⟩ := GlobalTheory.T.additive_strongApproximation_avoiding_finset F S₁ S₂ ε hε hS x O (hO.mem_nhds hx) {1, -1}
+  obtain ⟨u₀, hu₀W, hu₀n, hu₀r⟩ := hOu _ hts
+  obtain ⟨h₁, hh₁n, hh₁r⟩ := hsplit (ι t)
+  have hc : t ^ 2 - 1 ≠ 0 := by
+    have h1 : t ≠ 1 := fun h => htZ (by simp [h])
+    have h2 : t ≠ -1 := fun h => htZ (by simp [h])
+    have : t ^ 2 - 1 = (t - 1) * (t + 1) := by ring
+    rw [this]
+    exact mul_ne_zero (sub_ne_zero.2 h1) (fun h => h2 (eq_neg_of_add_eq_zero_left h))
+  obtain ⟨u, hu⟩ : ∃ u : DA F a b, u = (1 - ε) • u₀ + ε • h₁ := ⟨_, rfl⟩
+  have hun : nrm u = 1 := by
+    rw [hu, nrm_split _ _ _ hee, hu₀n, hh₁n]; ring
+  have hur : u.re = ι t := by
+    rw [hu]
+    simp only [QuaternionAlgebra.re_add, QuaternionAlgebra.re_smul, smul_eq_mul, hu₀r]
+    linear_combination hh₁r - s * hee
+  obtain ⟨hq0, hqq⟩ := pure_sq u (ι t) hun hur
+  set q := u - algebraMap (AF F) (DA F a b) (ι t) with hq
+  have hqq' : q * q = algebraMap (AF F) (DA F a b) (ι (t ^ 2 - 1)) := by
+    rw [hqq]; simp [hι]
+  obtain ⟨p, hp0, hpp⟩ := GlobalTheory.T.exists_rational_pure_quaternion_sq_of_adelic F a b ha hb _ hc q hq0 hqq'
+  have hrp0 : (rat p).re = 0 := by simp [rat, hp0]
+  have hrpp : rat p * rat p = algebraMap (AF F) (DA F a b) (ι (t ^ 2 - 1)) := by
+    rw [← rat_mul, hpp, rat_algebraMap]
+  obtain ⟨y, hy, hyq⟩ := GlobalTheory.T.exists_unit_intertwiner_adelicQuaternion F a b ha hb _ hc (rat p) q hrp0 hq0 hrpp hqq'
+  set γ : ℍ[F, a, b] := algebraMap F ℍ[F, a, b] t + p with hγ
+  have hγn : nrm γ = 1 := by
+    have hre := congrArg QuaternionAlgebra.re hpp
+    simp [QuaternionAlgebra.algebraMap_eq, hp0] at hre
+    simp [hγ, nrm, QuaternionAlgebra.algebraMap_eq, hp0]
+    linear_combination -hre
+  have hyu : y * u = rat γ * y := by
+    have : u = q + algebraMap (AF F) (DA F a b) (ι t) := by rw [hq]; abel
+    rw [this, mul_add, hyq, hγ, rat_add, rat_algebraMap, add_mul, ← Algebra.commutes, add_comm]
+  set h' : DA F a b := (1 - ε) • (1 : DA F a b) + ε • h₁ with hh'
+  set h'' : DA F a b := (1 - ε) • (1 : DA F a b) + ε • star h₁ with hh''
+  have hwh : φ u₀ * h' = u := by
+    simp only [hφ, hh', hu, add_mul, mul_add, smul_mul_smul_comm, h11, h10, h01, hee, zero_smul, mul_one, one_mul,
+      add_zero, zero_add]
+  have hhh : h' * h'' = 1 := by
+    simp only [hh', hh'', add_mul, mul_add, smul_mul_smul_comm, h11, h10, h01, hee, zero_smul, mul_one, one_mul,
+      add_zero, zero_add, mul_star_eq, hh₁n, map_one]
+    rw [← add_smul, sub_add_cancel, one_smul]
+  refine ⟨φ u₀, hu₀W, y, hy, γ, hγn, h'', ?_, ?_, ?_⟩
+  · rw [hh'', nrm_split _ _ _ hee, nrm_one, nrm_star, hh₁n]; ring
+  · have e1 : h'' - 1 = ε • (star h₁ - 1) := by
+      simp only [hh'', sub_smul, one_smul, smul_sub]; abel
+    rw [e1, smul_smul, hee]
+  · calc y * φ u₀ = y * φ u₀ * (h' * h'') := by rw [hhh, mul_one]
+      _ = y * (φ u₀ * h') * h'' := by simp only [mul_assoc]
+      _ = rat γ * y * h'' := by rw [hwh, hyu]
+
+end GlobalTheory.QSAStep
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.NormOneQuaternionNearConjRationalTimesSupportedStatement
+open NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.QSA GlobalTheory.Published
+open Matrix
+open scoped Quaternion Topology TensorProduct
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.normOneQuaternion_near_conj_rational_times_supported : ∀ (F : Type) [Field F] [NumberField F] (a b : F), a ≠ 0 → b ≠ 0 → ∀ (S₁ : Finset (InfinitePlace F)) (S₂ : Finset (HeightOneSpectrum (𝓞 F))) (ε : AF F), IsPlacesIdem S₁ S₂ ε → (S₁.Nonempty ∨ S₂.Nonempty) → (∀ t : AF F, ∃ h : DA F a b, nrm h = 1 ∧ ε * h.re = ε * t) → ∀ g : DA F a b, nrm g = 1 → ε • (g - 1) = 0 → ∀ W : Set (DA F a b), W ∈ 𝓝 g → ∃ w ∈ W, ∃ y : DA F a b, IsUnit (nrm y) ∧ ∃ γ : ℍ[F, a, b], nrm γ = 1 ∧ ∃ h : DA F a b, nrm h = 1 ∧ ε • (h - 1) = h - 1 ∧ y * w = rat γ * y * h := by
+  first | exact @GlobalTheory.QSAStep.key_step | exact GlobalTheory.QSAStep.key_step | (intros; apply GlobalTheory.QSAStep.key_step <;> assumption)
+end

@@ -1,0 +1,232 @@
+module
+
+public import Development.AutomorphicArithmetic.FrobeniusLocalisation.LogRdSum
+public import Formalism.SharpRestriction.RamificationFrobenius.TotientGaloisClasses.InertiaGaloisSymmetry.DvdDiscrOfInertia
+
+@[expose] public section
+
+section -- merged from Development.AutomorphicArithmetic.FrobeniusLocalisation.LayerBot
+open UpperTheory.HF
+
+open NumberField Ideal Formalism.HC Formalism.FrobeniusOrbits
+open scoped Pointwise
+
+private theorem layer_dvd {N l j : ℕ} (hj : j ≤ N.factorization l) : ordCompl[l] N * l ^ j ∣ N := by
+  have h := Nat.ordProj_mul_ordCompl_eq_self N l
+  conv_rhs => rw [← h, mul_comm]
+  exact mul_dvd_mul_left _ (pow_dvd_pow l hj)
+
+private theorem dvd_layer_iff {N c l j : ℕ} (hl : l.Prime) (hN : N ≠ 0) (hc : c ∣ N) :
+    c ∣ ordCompl[l] N * l ^ j ↔ c.factorization l ≤ j := by
+  have hc0 : c ≠ 0 := by
+    rintro rfl
+    exact hN (zero_dvd_iff.1 hc)
+  have hM : 0 < ordCompl[l] N := Nat.ordCompl_pos l hN
+  have hM0 : ordCompl[l] N * l ^ j ≠ 0 := Nat.mul_ne_zero hM.ne' (pow_ne_zero _ hl.ne_zero)
+  have hfM : (ordCompl[l] N * l ^ j).factorization = N.factorization.erase l + Finsupp.single l j := by
+    rw [Nat.factorization_mul hM.ne' (pow_ne_zero _ hl.ne_zero), Nat.factorization_ordCompl,
+      hl.factorization_pow]
+  have hcN := (Nat.factorization_le_iff_dvd hc0 hN).2 hc
+  rw [← Nat.factorization_le_iff_dvd hc0 hM0, hfM]
+  constructor
+  · intro h
+    have := h l
+    simpa using this
+  · intro h q
+    by_cases hq : q = l
+    · subst hq
+      simpa using h
+    · rw [Finsupp.add_apply, Finsupp.erase_ne hq]
+      exact le_add_right (hcN q)
+
+theorem UpperTheory.HF.layer_bot :
+    ∀ {φ : Frame} (H : HostRaw φ) {l j : ℕ}, l.Prime → j ≤ H.condN.factorization l → (H.imgOne (ordCompl[l] H.condN * l ^ j) = ⊥ ↔ H.condE.factorization l ≤ j) ∧ (j ≤ H.condE.factorization l → Nat.card (H.imgOne (ordCompl[l] H.condN * l ^ j)) ∣ (l ^ H.condE.factorization l).totient / (l ^ j).totient) ∧ H.condE.factorization l ≤ H.condN.factorization l := by
+  intro φ H l j hl hj
+  have hN : H.condN ≠ 0 := H.condN_ne_zero
+  obtain ⟨hE, hEpos, hspec⟩ := condE_spec H
+  have hEN : H.condE.factorization l ≤ H.condN.factorization l :=
+    (Nat.factorization_le_iff_dvd hEpos.ne' hN).2 hE l
+  have part1 : ∀ k, k ≤ H.condN.factorization l →
+      (H.imgOne (ordCompl[l] H.condN * l ^ k) = ⊥ ↔ H.condE.factorization l ≤ k) := by
+    intro k hk
+    rw [hspec _ (layer_dvd hk)]
+    exact dvd_layer_iff hl hN hE
+  refine ⟨part1 j hj, fun hje => ?_, hEN⟩
+  set e := H.condE.factorization l with he
+  have hdiv : ordCompl[l] H.condN * l ^ j ∣ ordCompl[l] H.condN * l ^ e :=
+    mul_dvd_mul_left _ (pow_dvd_pow l hje)
+  have hc := card_imgOne_dvd H hdiv (layer_dvd hEN)
+  rw [(part1 e hEN).2 le_rfl, Subgroup.card_bot, one_mul] at hc
+  have hcop : ∀ k, (ordCompl[l] H.condN).Coprime (l ^ k) := fun k =>
+    ((Nat.coprime_ordCompl hl hN).pow_left k).symm
+  have hM : 0 < ordCompl[l] H.condN := Nat.ordCompl_pos l hN
+  rw [Nat.totient_mul (hcop e), Nat.totient_mul (hcop j),
+    Nat.mul_div_mul_left _ _ (Nat.totient_pos.2 hM)] at hc
+  exact hc
+end
+
+section -- merged from Development.AutomorphicArithmetic.FrobeniusLocalisation.VdFormula
+section -- merged from Development.AutomorphicArithmetic.FrobeniusLocalisation.LogPrimeIndep
+open UpperTheory.HF
+
+open NumberField Ideal Formalism.HC Formalism.FrobeniusOrbits
+open scoped Pointwise
+
+private theorem UpperTheory.HF.log_prime_indep_fact (S : Finset ℕ) (u : ℕ → ℕ) (hS : ∀ l ∈ S, l.Prime)
+    (p : ℕ) (hp : p ∈ S) : (∏ l ∈ S, l ^ u l).factorization p = u p := by
+  rw [Nat.factorization_prod (fun l hl => pow_ne_zero _ (hS l hl).ne_zero), Finsupp.finsetSum_apply,
+    Finset.sum_eq_single p]
+  · rw [(hS p hp).factorization_pow]; simp
+  · intro l hl hne
+    rw [(hS l hl).factorization_pow]; simp [Finsupp.single_apply, hne]
+  · intro h; exact absurd hp h
+
+private theorem UpperTheory.HF.log_prime_indep_nat (S : Finset ℕ) (u v : ℕ → ℕ) (hS : ∀ l ∈ S, l.Prime)
+    (h : ∑ l ∈ S, (u l : ℝ) * Real.log l = ∑ l ∈ S, (v l : ℝ) * Real.log l) :
+    ∀ l ∈ S, u l = v l := by
+  have key : ∀ w : ℕ → ℕ, ∑ l ∈ S, (w l : ℝ) * Real.log l
+      = Real.log ((∏ l ∈ S, l ^ w l : ℕ) : ℝ) := by
+    intro w
+    push_cast
+    rw [Real.log_prod (fun l hl => pow_ne_zero _ (by exact_mod_cast (hS l hl).ne_zero))]
+    exact Finset.sum_congr rfl (fun l _ => (Real.log_pow _ _).symm)
+  have pos : ∀ w : ℕ → ℕ, (0 : ℝ) < ((∏ l ∈ S, l ^ w l : ℕ) : ℝ) := by
+    intro w
+    exact_mod_cast Finset.prod_pos (fun l hl => pow_pos (hS l hl).pos _)
+  rw [key u, key v] at h
+  have h2 := Real.log_injOn_pos (Set.mem_Ioi.2 (pos u)) (Set.mem_Ioi.2 (pos v)) h
+  have h3 : (∏ l ∈ S, l ^ u l) = ∏ l ∈ S, l ^ v l := by exact_mod_cast h2
+  intro p hp
+  rw [← UpperTheory.HF.log_prime_indep_fact S u hS p hp, ← UpperTheory.HF.log_prime_indep_fact S v hS p hp, h3]
+
+private theorem UpperTheory.HF.log_prime_indep_int (S : Finset ℕ) (m : ℕ → ℤ) (hS : ∀ l ∈ S, l.Prime)
+    (h : ∑ l ∈ S, (m l : ℝ) * Real.log l = 0) : ∀ l ∈ S, m l = 0 := by
+  have h1 := UpperTheory.HF.log_prime_indep_nat S (fun l => (m l).toNat) (fun l => (-m l).toNat) hS (by
+    rw [← sub_eq_zero, ← Finset.sum_sub_distrib, ← h]
+    refine Finset.sum_congr rfl (fun l _ => ?_)
+    rw [← sub_mul]
+    congr 1
+    have : (((m l).toNat : ℤ)) - ((-m l).toNat : ℤ) = m l := Int.toNat_sub_toNat_neg _
+    exact_mod_cast this)
+  intro l hl
+  have := h1 l hl
+  omega
+
+theorem UpperTheory.HF.log_prime_indep :
+    ∀ (S : Finset ℕ) (a b : ℕ → ℚ), (∀ l ∈ S, l.Prime) → ∑ l ∈ S, (a l : ℝ) * Real.log l = ∑ l ∈ S, (b l : ℝ) * Real.log l → ∀ l ∈ S, a l = b l := by
+  intro S a b hS h
+  set D : ℕ := ∏ l ∈ S, (a l - b l).den with hD
+  have hD0 : D ≠ 0 := Finset.prod_ne_zero_iff.2 (fun l _ => (a l - b l).den_nz)
+  have hex : ∀ l, ∃ z : ℤ, l ∈ S → (z : ℚ) = (a l - b l) * D := by
+    intro l
+    by_cases hl : l ∈ S
+    · obtain ⟨k, hk⟩ : (a l - b l).den ∣ D := Finset.dvd_prod_of_mem (fun l => (a l - b l).den) hl
+      refine ⟨(a l - b l).num * k, fun _ => ?_⟩
+      rw [hk]; push_cast
+      rw [← mul_assoc, Rat.mul_den_eq_num]
+    · exact ⟨0, fun h => absurd h hl⟩
+  choose m hm using hex
+  have h0 := UpperTheory.HF.log_prime_indep_int S m hS (by
+    have : ∑ l ∈ S, (m l : ℝ) * Real.log l
+        = (∑ l ∈ S, (a l : ℝ) * Real.log l - ∑ l ∈ S, (b l : ℝ) * Real.log l) * D := by
+      rw [← Finset.sum_sub_distrib, Finset.sum_mul]
+      refine Finset.sum_congr rfl (fun l hl => ?_)
+      have h1 : ((m l : ℚ) : ℝ) = (((a l - b l) * D : ℚ) : ℝ) := by rw [hm l hl]
+      push_cast at h1
+      rw [h1]; ring
+    rw [this, h, sub_self, zero_mul])
+  intro l hl
+  have h1 := hm l hl
+  rw [h0 l hl] at h1
+  have hDq : (D : ℚ) ≠ 0 := by exact_mod_cast hD0
+  have : a l - b l = 0 := by
+    rcases mul_eq_zero.1 (by simpa using h1.symm : (a l - b l) * (D : ℚ) = 0) with h | h
+    · exact h
+    · exact absurd h hDq
+  exact sub_eq_zero.1 this
+end
+
+open UpperTheory.HF
+
+open NumberField Ideal Formalism.HC Formalism.FrobeniusOrbits
+open scoped Pointwise
+
+private theorem regroup {N : ℕ} (hN : N ≠ 0) (f : ℕ → ℝ) :
+    ∑ m ∈ N.divisors, ArithmeticFunction.vonMangoldt m * f (N / m) =
+      ∑ l ∈ N.primeFactors, (∑ j ∈ Finset.range (N.factorization l), f (ordCompl[l] N * l ^ j)) * Real.log l := by
+  classical
+  simp_rw [Finset.sum_mul]
+  rw [Finset.sum_sigma', ← Finset.sum_filter_add_sum_filter_not N.divisors IsPrimePow,
+    Finset.sum_eq_zero (s := N.divisors.filter fun m => ¬ IsPrimePow m) (fun m hm => by
+      rw [ArithmeticFunction.vonMangoldt_eq_zero_iff.2 (Finset.mem_filter.1 hm).2, zero_mul]), add_zero]
+  symm
+  refine Finset.sum_bij (fun x _ => x.1 ^ (N.factorization x.1 - x.2)) ?_ ?_ ?_ ?_
+  · rintro ⟨l, j⟩ hx
+    simp only [Finset.mem_sigma, Finset.mem_range, Nat.mem_primeFactors] at hx
+    refine Finset.mem_filter.2 ⟨Nat.mem_divisors.2 ⟨?_, hN⟩, ?_⟩
+    · exact (pow_dvd_pow l (Nat.sub_le _ _)).trans (Nat.ordProj_dvd N l)
+    · exact hx.1.1.isPrimePow.pow (by dsimp only; omega)
+  · rintro ⟨l, j⟩ hx ⟨l', j'⟩ hy h
+    simp only [Finset.mem_sigma, Finset.mem_range, Nat.mem_primeFactors] at hx hy
+    dsimp only at h
+    have h1 : l = l' := by
+      refine (Nat.prime_dvd_prime_iff_eq hx.1.1 hy.1.1).1 (hx.1.1.dvd_of_dvd_pow (n := N.factorization l' - j') ?_)
+      rw [← h]; exact dvd_pow_self l (by omega)
+    subst h1
+    have h2 := Nat.pow_right_injective hx.1.1.two_le h
+    obtain rfl : j = j' := by omega
+    rfl
+  · intro m hm
+    obtain ⟨hm1, hm2⟩ := Finset.mem_filter.1 hm
+    obtain ⟨p, k, hp, hk, rfl⟩ := (isPrimePow_nat_iff m).1 hm2
+    have hd := Nat.dvd_of_mem_divisors hm1
+    have hle : k ≤ N.factorization p := (hp.pow_dvd_iff_le_factorization hN).1 hd
+    refine ⟨⟨p, N.factorization p - k⟩, ?_, ?_⟩
+    · simp only [Finset.mem_sigma, Finset.mem_range, Nat.mem_primeFactors]
+      exact ⟨⟨hp, (dvd_pow_self p hk.ne').trans hd, hN⟩, by omega⟩
+    · dsimp only
+      congr 1; omega
+  · rintro ⟨l, j⟩ hx
+    simp only [Finset.mem_sigma, Finset.mem_range, Nat.mem_primeFactors] at hx
+    dsimp only
+    have hl := hx.1.1
+    have h4 : N / l ^ (N.factorization l - j) = ordCompl[l] N * l ^ j := by
+      refine Nat.div_eq_of_eq_mul_right (pow_pos hl.pos _) ?_
+      rw [mul_comm (ordCompl[l] N), ← mul_assoc, ← pow_add, Nat.sub_add_cancel hx.2.le]
+      exact (Nat.ordProj_mul_ordCompl_eq_self N l).symm
+    rw [ArithmeticFunction.vonMangoldt_apply_pow (by omega), ArithmeticFunction.vonMangoldt_apply_prime hl, h4, mul_comm]
+
+theorem UpperTheory.HF.vd_formula :
+    ∀ {φ : Frame} (H : HostAx φ) {l : ℕ}, l.Prime → H.vdH l = ∑ j ∈ Finset.range (H.condN.factorization l), (1 - 1 / (Nat.card (H.imgOne (ordCompl[l] H.condN * l ^ j)) : ℝ)) := by
+  intro φ H l hl
+  have hN : H.condN ≠ 0 := NeZero.ne _
+  obtain ⟨-, h2, h3, -⟩ := UpperTheory.HF.log_rd_sum H
+  by_cases hlN : l ∈ H.condN.primeFactors
+  · have h4 := Formalism.HC.Der.Rd.log_rd_eq H.toHostRaw
+    rw [Formalism.HC.Der.Rd.SS, regroup hN (Formalism.HC.Der.Rd.rho H.art.ker), h2] at h4
+    let a : ℕ → ℚ := fun p => (padicValNat p (NumberField.discr H.E).natAbs : ℚ) / (Module.finrank ℚ H.E : ℚ)
+    let b : ℕ → ℚ := fun p => ∑ j ∈ Finset.range (H.condN.factorization p),
+      (1 - 1 / (Nat.card (H.imgOne (ordCompl[p] H.condN * p ^ j)) : ℚ))
+    have ha : ∀ p, (a p : ℝ) = H.vdH p := fun p => by
+      simp only [a, HostRaw.vdH]; push_cast; rfl
+    have hb : ∀ p, (b p : ℝ) = ∑ j ∈ Finset.range (H.condN.factorization p),
+        (1 - 1 / (Nat.card (H.imgOne (ordCompl[p] H.condN * p ^ j)) : ℝ)) := fun p => by
+      simp only [b]; push_cast; rfl
+    have h5 := UpperTheory.HF.log_prime_indep H.condN.primeFactors a b (fun p hp => Nat.prime_of_mem_primeFactors hp)
+      (by
+        simp_rw [ha, hb]
+        rw [h4]
+        refine Finset.sum_congr rfl fun p _ => ?_
+        congr 1
+        refine Finset.sum_congr rfl fun j hj => ?_
+        refine UpperTheory.HF.rho_art H.toHostRaw ?_
+        conv_rhs => rw [← Nat.ordProj_mul_ordCompl_eq_self H.condN p, mul_comm]
+        exact mul_dvd_mul_left _ (pow_dvd_pow p (Finset.mem_range.1 hj).le)) l hlN
+    rw [← ha, ← hb, h5]
+  · have h6 : H.condN.factorization l = 0 := by
+      rwa [← Nat.support_factorization, Finsupp.notMem_support_iff] at hlN
+    have h7 : ¬ l ∣ (NumberField.discr H.E).natAbs := fun hd =>
+      hlN (h3 (Nat.mem_primeFactors.2 ⟨hl, hd, Int.natAbs_ne_zero.2 (discr_ne_zero H.E)⟩))
+    rw [h6, Finset.sum_range_zero, HostRaw.vdH, Nat.padicValNat_def,
+      multiplicity_eq_zero_of_not_dvd h7, Nat.cast_zero, zero_div]
+end

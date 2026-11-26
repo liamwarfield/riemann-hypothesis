@@ -1,0 +1,531 @@
+module
+
+public import Formalism.HermitianCurvature.StatementQ
+public import Formalism.FormalDegreeBessel.FinalG
+public import Formalism.FormalDegreeBessel.FinalIO
+
+@[expose] public section
+
+section -- merged from Formalism.PeriodIntegrals.UnitaryGroupMassFormula.GeneralLinearLevel.ElementaryGeneratorsLevelGroup
+section -- merged from Formalism.PeriodIntegrals.UnitaryGroupMassFormula.GeneralLinearLevel.HpartUnique
+section -- merged from Formalism.PeriodIntegrals.UnitaryGroupMassFormula.GeneralLinearLevel.ExpMulVecFix
+open Matrix Filter Topology
+open scoped ContDiff
+
+noncomputable section
+
+namespace Formalism.FourierDecayAlt.Q.EabGlW
+
+open Formalism.REAL Formalism.QuantumDeterminants
+
+
+set_option backward.isDefEq.respectTransparency false in
+open scoped Norms.Operator in
+theorem exp_mulVec_fix {n : ℕ} (Y : Matrix (Fin n) (Fin n) ℂ) (v : Fin n → ℂ) (h : Y *ᵥ v = 0) :
+    NormedSpace.exp Y *ᵥ v = v := by
+  have hs : HasSum (fun m : ℕ => ((m.factorial : ℂ)⁻¹) • Y ^ m) (NormedSpace.exp Y) :=
+    open scoped Matrix.Norms.Operator in
+    NormedSpace.exp_series_hasSum_exp' (𝕂 := ℂ) Y
+  have h2 := hs.map (Matrix.mulVec.addMonoidHomLeft v)
+    (Continuous.matrix_mulVec continuous_id (continuous_const (y := v)))
+  have e : ((Matrix.mulVec.addMonoidHomLeft v) ∘ fun m : ℕ => ((m.factorial : ℂ)⁻¹) • Y ^ m) =
+      fun m => if m = 0 then v else 0 := by
+    funext m
+    show (((m.factorial : ℂ)⁻¹) • Y ^ m) *ᵥ v = _
+    rcases m with _ | m
+    · simp
+    · rw [Matrix.smul_mulVec, pow_succ, ← Matrix.mulVec_mulVec, h, Matrix.mulVec_zero, smul_zero]
+      simp
+  rw [e] at h2
+  exact h2.unique (hasSum_ite_eq 0 v)
+
+attribute [local instance] Matrix.normedAddCommGroup Matrix.normedSpace
+
+variable {n : ℕ} {E : Type} [NormedAddCommGroup E] [NormedSpace ℂ E]
+
+def Flow (G : Set (Matrix (Fin n) (Fin n) ℂ)) (X : Matrix (Fin n) (Fin n) ℂ) : Prop :=
+  ∀ g ∈ G, ∀ t : ℝ, g * NormedSpace.exp ((t : ℂ) • X) ∈ G
+
+def LocExt (G : Set (Matrix (Fin n) (Fin n) ℂ)) (f F : Matrix (Fin n) (Fin n) ℂ → E)
+    (U : Set (Matrix (Fin n) (Fin n) ℂ)) : Prop :=
+  IsOpen U ∧ ContDiffOn ℝ ∞ F U ∧ ∀ h ∈ U, h ∈ G → f h = F h
+
+theorem loc_ext {G : Set (Matrix (Fin n) (Fin n) ℂ)} {X : Matrix (Fin n) (Fin n) ℂ} (hX : Flow G X)
+    {f F : Matrix (Fin n) (Fin n) ℂ → E} {U : Set (Matrix (Fin n) (Fin n) ℂ)} (hL : LocExt G f F U)
+    {g : Matrix (Fin n) (Fin n) ℂ} (hg : g ∈ U) (hgG : g ∈ G) :
+    RdV X f g = fderiv ℝ F g (g * X) := by
+  obtain ⟨hU, hF, hfF⟩ := hL
+  unfold RdV
+  have hγ := hasDerivAt_mul_exp_smul_zero g X
+  have hγ0 : g * NormedSpace.exp (((0 : ℝ) : ℂ) • X) = g := by
+    simp [NormedSpace.exp_zero]
+  have hFd : DifferentiableAt ℝ F g :=
+    (hF.differentiableOn (by simp)).differentiableAt (hU.mem_nhds hg)
+  have hcomp : HasDerivAt (fun t : ℝ => F (g * NormedSpace.exp ((t : ℂ) • X)))
+      (fderiv ℝ F g (g * X)) 0 :=
+    hFd.hasFDerivAt.comp_hasDerivAt_of_eq (0 : ℝ) hγ hγ0.symm
+  have hev : (fun t : ℝ => f (g * NormedSpace.exp ((t : ℂ) • X))) =ᶠ[𝓝 0]
+      (fun t : ℝ => F (g * NormedSpace.exp ((t : ℂ) • X))) := by
+    have hmem : ∀ᶠ t : ℝ in 𝓝 0, g * NormedSpace.exp ((t : ℂ) • X) ∈ U :=
+      hγ.continuousAt.preimage_mem_nhds (by rw [hγ0]; exact hU.mem_nhds hg)
+    filter_upwards [hmem] with t ht
+    exact hfF _ ht (hX g hgG t)
+  rw [hev.deriv_eq]
+  exact hcomp.deriv
+
+theorem loc_smooth {F : Matrix (Fin n) (Fin n) ℂ → E} {U : Set (Matrix (Fin n) (Fin n) ℂ)}
+    (hU : IsOpen U) (hF : ContDiffOn ℝ ∞ F U) (Z : Matrix (Fin n) (Fin n) ℂ) :
+    ContDiffOn ℝ ∞ (fun k => fderiv ℝ F k (k * Z)) U :=
+  (hF.fderiv_of_isOpen hU withTop_enat_infty_add_one_le_infty).clm_apply (mulRightRealCLM Z).contDiff.contDiffOn
+
+theorem loc_rd_ext {G : Set (Matrix (Fin n) (Fin n) ℂ)} {X : Matrix (Fin n) (Fin n) ℂ} (hX : Flow G X)
+    {f F : Matrix (Fin n) (Fin n) ℂ → E} {U : Set (Matrix (Fin n) (Fin n) ℂ)} (hL : LocExt G f F U) :
+    LocExt G (RdV X f) (fun k => fderiv ℝ F k (k * X)) U :=
+  ⟨hL.1, loc_smooth hL.1 hL.2.1 X, fun _ hh hhG => loc_ext hX hL hh hhG⟩
+
+theorem loc_add {G : Set (Matrix (Fin n) (Fin n) ℂ)} {X Y : Matrix (Fin n) (Fin n) ℂ}
+    (hX : Flow G X) (hY : Flow G Y) (hXY : Flow G (X + Y))
+    {f F : Matrix (Fin n) (Fin n) ℂ → E} {U : Set (Matrix (Fin n) (Fin n) ℂ)} (hL : LocExt G f F U)
+    {g : Matrix (Fin n) (Fin n) ℂ} (hg : g ∈ U) (hgG : g ∈ G) :
+    RdV (X + Y) f g = RdV X f g + RdV Y f g := by
+  rw [loc_ext hXY hL hg hgG, loc_ext hX hL hg hgG, loc_ext hY hL hg hgG, Matrix.mul_add, map_add (f := _)]
+
+theorem loc_sub {G : Set (Matrix (Fin n) (Fin n) ℂ)} {X Y : Matrix (Fin n) (Fin n) ℂ}
+    (hX : Flow G X) (hY : Flow G Y) (hXY : Flow G (X - Y))
+    {f F : Matrix (Fin n) (Fin n) ℂ → E} {U : Set (Matrix (Fin n) (Fin n) ℂ)} (hL : LocExt G f F U)
+    {g : Matrix (Fin n) (Fin n) ℂ} (hg : g ∈ U) (hgG : g ∈ G) :
+    RdV (X - Y) f g = RdV X f g - RdV Y f g := by
+  rw [loc_ext hXY hL hg hgG, loc_ext hX hL hg hgG, loc_ext hY hL hg hgG, Matrix.mul_sub, map_sub]
+
+theorem loc_comb {G : Set (Matrix (Fin n) (Fin n) ℂ)} {V A B : Matrix (Fin n) (Fin n) ℂ}
+    (hV : Flow G V) (hA : Flow G A) (hB : Flow G B)
+    {f F : Matrix (Fin n) (Fin n) ℂ → E} {U : Set (Matrix (Fin n) (Fin n) ℂ)} (hL : LocExt G f F U)
+    {g : Matrix (Fin n) (Fin n) ℂ} (hg : g ∈ U) (hgG : g ∈ G) (c : ℂ) :
+    RdV V (fun h => RdV A f h + c • RdV B f h) g = RdV V (RdV A f) g + c • RdV V (RdV B f) g := by
+  have hU := hL.1
+  have hF := hL.2.1
+  have hsA := loc_smooth hU hF A
+  have hsB := loc_smooth hU hF B
+  have hLc : LocExt G (fun h => RdV A f h + c • RdV B f h)
+      (fun k => fderiv ℝ F k (k * A) + c • fderiv ℝ F k (k * B)) U :=
+    ⟨hU, hsA.add (hsB.const_smul c), fun h hh hhG => by
+      show RdV A f h + c • RdV B f h = fderiv ℝ F h (h * A) + c • fderiv ℝ F h (h * B)
+      rw [loc_ext hA hL hh hhG, loc_ext hB hL hh hhG]⟩
+  rw [loc_ext hV hLc hg hgG, loc_ext hV (loc_rd_ext hA hL) hg hgG,
+    loc_ext hV (loc_rd_ext hB hL) hg hgG]
+  have dA : DifferentiableAt ℝ (fun k => fderiv ℝ F k (k * A)) g :=
+    (hsA.differentiableOn (by simp)).differentiableAt (hU.mem_nhds hg)
+  have dB : DifferentiableAt ℝ (fun k => fderiv ℝ F k (k * B)) g :=
+    (hsB.differentiableOn (by simp)).differentiableAt (hU.mem_nhds hg)
+  have hD : HasFDerivAt (fun k => fderiv ℝ F k (k * A) + c • fderiv ℝ F k (k * B))
+      (fderiv ℝ (fun k => fderiv ℝ F k (k * A)) g + c • fderiv ℝ (fun k => fderiv ℝ F k (k * B)) g) g :=
+    dA.hasFDerivAt.add (dB.hasFDerivAt.const_smul c)
+  rw [hD.fderiv]
+  simp
+
+theorem loc_bracket {G : Set (Matrix (Fin n) (Fin n) ℂ)} {X Y : Matrix (Fin n) (Fin n) ℂ}
+    (hX : Flow G X) (hY : Flow G Y) (hXY : Flow G (X * Y - Y * X))
+    {f F : Matrix (Fin n) (Fin n) ℂ → E} {U : Set (Matrix (Fin n) (Fin n) ℂ)} (hL : LocExt G f F U)
+    {g : Matrix (Fin n) (Fin n) ℂ} (hg : g ∈ U) (hgG : g ∈ G) :
+    RdV X (RdV Y f) g - RdV Y (RdV X f) g = RdV (X * Y - Y * X) f g := by
+  have hU := hL.1
+  have hF := hL.2.1
+  have hFa : ContDiffAt ℝ ∞ F g := hF.contDiffAt (hU.mem_nhds hg)
+  have hc : DifferentiableAt ℝ (fderiv ℝ F) g :=
+    (hFa.fderiv_right (m := ∞) withTop_enat_infty_add_one_le_infty).differentiableAt (by simp)
+  have hd : ∀ Z W : Matrix (Fin n) (Fin n) ℂ, fderiv ℝ (fun k => fderiv ℝ F k (k * Z)) g W
+      = fderiv ℝ (fderiv ℝ F) g W (g * Z) + fderiv ℝ F g (W * Z) := by
+    intro Z W
+    have H := (hc.hasFDerivAt.clm_apply (mulRightRealCLM Z).hasFDerivAt).fderiv
+    erw [H]
+    exact add_comm _ _
+  have e1 := loc_ext hX (loc_rd_ext hY hL) hg hgG
+  have e2 := loc_ext hY (loc_rd_ext hX hL) hg hgG
+  have e3 := loc_ext hXY hL hg hgG
+  have hsym : IsSymmSndFDerivAt ℝ F g :=
+    hFa.isSymmSndFDerivAt (by rw [minSmoothness_of_isRCLikeNormedField]; norm_cast)
+  have hs2 := hsym (g * X) (g * Y)
+  rw [e1, e2, e3, hd, hd]
+  simp only [Matrix.mul_sub, Matrix.mul_assoc, map_sub]
+  erw [hs2]
+  exact add_sub_add_left_eq_sub _ _ _
+
+end Formalism.FourierDecayAlt.Q.EabGlW
+end
+end
+
+open Matrix Filter Topology
+open scoped ContDiff
+
+noncomputable section
+
+namespace Formalism.FourierDecayAlt.Q.EabGlW
+
+open Formalism.REAL Formalism.QuantumDeterminants
+
+attribute [local instance] Matrix.normedAddCommGroup Matrix.normedSpace
+
+variable {k r : ℕ}
+
+lemma hsq : Hpk k r * Hpk k r = 1 := (hpkFacts k r).2.1
+
+lemma hsq' (M : Mx k r) : Hpk k r * (Hpk k r * M) = M := by
+  rw [← Matrix.mul_assoc, hsq, Matrix.one_mul]
+
+lemma hinv : (Hpk k r)⁻¹ = Hpk k r := Matrix.inv_eq_left_inv hsq
+
+def Skew (X : Mx k r) : Prop := Xᴴ * Hpk k r + Hpk k r * X = 0
+
+def LieL (k r : ℕ) (i : Fin (r + 1)) : Set (Mx k r) :=
+  {X | Skew X ∧ ∀ a : Fin r, a.val < i.val →
+    X *ᵥ bvec (eI k r a) = 0 ∧ X *ᵥ bvec (esI k r a) = 0}
+
+def Out (k r : ℕ) (i : Fin (r + 1)) (p : Fin (2 * r + k + 1)) : Prop :=
+  p.val < i.val ∨ 2 * r + k - i.val < p.val
+
+def InV (k r : ℕ) (i : Fin (r + 1)) (Z : Mx k r) : Prop :=
+  ∀ p q : Fin (2 * r + k + 1), (Out k r i p ∨ Out k r i q) → Z p q = 0
+
+lemma skew_conj {X : Mx k r} (h : Skew X) : Xᴴ = Hpk k r * (-X) * Hpk k r := by
+  have h' : Xᴴ * Hpk k r + Hpk k r * X = 0 := h
+  have h1 : Xᴴ * Hpk k r = -(Hpk k r * X) := eq_neg_of_add_eq_zero_left h'
+  calc Xᴴ = Xᴴ * Hpk k r * Hpk k r := by rw [Matrix.mul_assoc, hsq, Matrix.mul_one]
+    _ = -(Hpk k r * X) * Hpk k r := by rw [h1]
+    _ = Hpk k r * (-X) * Hpk k r := by rw [Matrix.mul_neg, Matrix.neg_mul]
+
+lemma exp_uh {X : Mx k r} (h : Skew X) : NormedSpace.exp X ∈ UH (Hpk k r) := by
+  have hU : IsUnit (Hpk k r) :=
+    (Matrix.isUnit_iff_isUnit_det _).mpr (Matrix.isUnit_det_of_right_inverse hsq)
+  have hc := Matrix.exp_conj (Hpk k r) (-X) hU
+  rw [hinv] at hc
+  show (NormedSpace.exp X)ᴴ * Hpk k r * NormedSpace.exp X = Hpk k r
+  rw [← Matrix.exp_conjTranspose, skew_conj h, hc,
+    Matrix.mul_assoc (Hpk k r * NormedSpace.exp (-X)) (Hpk k r) (Hpk k r), hsq, Matrix.mul_one,
+    Matrix.mul_assoc, ← Matrix.exp_add_of_commute _ _ (Commute.neg_left (Commute.refl X)),
+    neg_add_cancel, NormedSpace.exp_zero, Matrix.mul_one]
+
+lemma lieL_rsmul {i : Fin (r + 1)} {X : Mx k r} (hX : X ∈ LieL k r i) (t : ℝ) :
+    (t : ℂ) • X ∈ LieL k r i := by
+  obtain ⟨h1, h2⟩ := hX
+  have h1' : Xᴴ * Hpk k r + Hpk k r * X = 0 := h1
+  refine ⟨?_, fun a ha => ?_⟩
+  · show ((t : ℂ) • X)ᴴ * Hpk k r + Hpk k r * ((t : ℂ) • X) = 0
+    rw [Matrix.conjTranspose_smul, Complex.star_def, Complex.conj_ofReal, Matrix.smul_mul,
+      Matrix.mul_smul, ← smul_add, h1', smul_zero]
+  · obtain ⟨e1, e2⟩ := h2 a ha
+    exact ⟨by rw [Matrix.smul_mulVec, e1, smul_zero],
+      by rw [Matrix.smul_mulVec, e2, smul_zero]⟩
+
+theorem flow_of_lieL {i : Fin (r + 1)} {X : Mx k r} (hX : X ∈ LieL k r i) : Flow (Glev k r i) X := by
+  intro g hg t
+  have hY : (t : ℂ) • X ∈ LieL k r i := lieL_rsmul hX t
+  obtain ⟨hgU, hgv⟩ := hg
+  have hgU' : gᴴ * Hpk k r * g = Hpk k r := hgU
+  have hE' : (NormedSpace.exp ((t : ℂ) • X))ᴴ * Hpk k r * NormedSpace.exp ((t : ℂ) • X) = Hpk k r :=
+    exp_uh hY.1
+  refine ⟨?_, fun a ha => ?_⟩
+  · show (g * NormedSpace.exp ((t : ℂ) • X))ᴴ * Hpk k r * (g * NormedSpace.exp ((t : ℂ) • X)) = Hpk k r
+    rw [Matrix.conjTranspose_mul]
+    calc _ = (NormedSpace.exp ((t : ℂ) • X))ᴴ * (gᴴ * Hpk k r * g) * NormedSpace.exp ((t : ℂ) • X) := by
+          simp only [Matrix.mul_assoc]
+      _ = Hpk k r := by rw [hgU', hE']
+  · obtain ⟨e1, e2⟩ := hY.2 a ha
+    obtain ⟨g1, g2⟩ := hgv a ha
+    exact ⟨by rw [← Matrix.mulVec_mulVec, exp_mulVec_fix _ _ e1, g1],
+      by rw [← Matrix.mulVec_mulVec, exp_mulVec_fix _ _ e2, g2]⟩
+
+lemma lieL_add {i : Fin (r + 1)} {X Y : Mx k r} (hX : X ∈ LieL k r i) (hY : Y ∈ LieL k r i) :
+    X + Y ∈ LieL k r i := by
+  obtain ⟨hX1, hX2⟩ := hX
+  obtain ⟨hY1, hY2⟩ := hY
+  have a1 : Xᴴ * Hpk k r + Hpk k r * X = 0 := hX1
+  have b1 : Yᴴ * Hpk k r + Hpk k r * Y = 0 := hY1
+  refine ⟨?_, fun a ha => ?_⟩
+  · show (X + Y)ᴴ * Hpk k r + Hpk k r * (X + Y) = 0
+    rw [Matrix.conjTranspose_add, Matrix.add_mul, Matrix.mul_add]
+    calc _ = (Xᴴ * Hpk k r + Hpk k r * X) + (Yᴴ * Hpk k r + Hpk k r * Y) := by abel
+      _ = 0 := by rw [a1, b1, add_zero]
+  · obtain ⟨x1, x2⟩ := hX2 a ha
+    obtain ⟨y1, y2⟩ := hY2 a ha
+    exact ⟨by rw [Matrix.add_mulVec, x1, y1, add_zero], by rw [Matrix.add_mulVec, x2, y2, add_zero]⟩
+
+lemma lieL_sub {i : Fin (r + 1)} {X Y : Mx k r} (hX : X ∈ LieL k r i) (hY : Y ∈ LieL k r i) :
+    X - Y ∈ LieL k r i := by
+  obtain ⟨hX1, hX2⟩ := hX
+  obtain ⟨hY1, hY2⟩ := hY
+  have a1 : Xᴴ * Hpk k r + Hpk k r * X = 0 := hX1
+  have b1 : Yᴴ * Hpk k r + Hpk k r * Y = 0 := hY1
+  refine ⟨?_, fun a ha => ?_⟩
+  · show (X - Y)ᴴ * Hpk k r + Hpk k r * (X - Y) = 0
+    rw [Matrix.conjTranspose_sub, Matrix.sub_mul, Matrix.mul_sub]
+    calc _ = (Xᴴ * Hpk k r + Hpk k r * X) - (Yᴴ * Hpk k r + Hpk k r * Y) := by abel
+      _ = 0 := by rw [a1, b1, sub_zero]
+  · obtain ⟨x1, x2⟩ := hX2 a ha
+    obtain ⟨y1, y2⟩ := hY2 a ha
+    exact ⟨by rw [Matrix.sub_mulVec, x1, y1, sub_zero], by rw [Matrix.sub_mulVec, x2, y2, sub_zero]⟩
+
+lemma lieL_bracket {i : Fin (r + 1)} {X Y : Mx k r} (hX : X ∈ LieL k r i) (hY : Y ∈ LieL k r i) :
+    X * Y - Y * X ∈ LieL k r i := by
+  have cX := skew_conj hX.1
+  have cY := skew_conj hY.1
+  refine ⟨?_, fun a ha => ?_⟩
+  · show (X * Y - Y * X)ᴴ * Hpk k r + Hpk k r * (X * Y - Y * X) = 0
+    rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_mul, Matrix.conjTranspose_mul, cX, cY]
+    simp only [Matrix.mul_assoc, hsq', hsq, Matrix.mul_one, Matrix.mul_neg, Matrix.neg_mul, neg_neg,
+      Matrix.sub_mul, Matrix.mul_sub]
+    all_goals abel
+  · obtain ⟨x1, x2⟩ := hX.2 a ha
+    obtain ⟨y1, y2⟩ := hY.2 a ha
+    exact ⟨by rw [Matrix.sub_mulVec, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, y1, x1,
+        Matrix.mulVec_zero, Matrix.mulVec_zero, sub_zero],
+      by rw [Matrix.sub_mulVec, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, y2, x2,
+        Matrix.mulVec_zero, Matrix.mulVec_zero, sub_zero]⟩
+
+lemma skew_hpart1 (Z : Mx k r) : Skew (hpart1 (Hpk k r) Z) := by
+  have hH : (Hpk k r)ᴴ = Hpk k r := (hpkFacts k r).1
+  have hs : star (1 / 2 : ℂ) = 1 / 2 := by
+    first | simp | (rw [Complex.star_def]; simp)
+  show (hpart1 (Hpk k r) Z)ᴴ * Hpk k r + Hpk k r * hpart1 (Hpk k r) Z = 0
+  simp only [hpart1, hinv, Matrix.conjTranspose_smul, Matrix.conjTranspose_sub, Matrix.conjTranspose_mul,
+    Matrix.conjTranspose_conjTranspose, hH, hs, Matrix.smul_mul, Matrix.mul_smul, Matrix.sub_mul,
+    Matrix.mul_sub, Matrix.mul_assoc, hsq', hsq, Matrix.mul_one]
+  all_goals module
+
+lemma skew_hpart2 (Z : Mx k r) : Skew (hpart2 (Hpk k r) Z) := by
+  have hH : (Hpk k r)ᴴ = Hpk k r := (hpkFacts k r).1
+  have hs : star (1 / (2 * Complex.I) : ℂ) = -(1 / (2 * Complex.I)) := by
+    rw [Complex.star_def, map_div₀, map_one, map_mul, Complex.conj_I, map_ofNat]
+    ring
+  show (hpart2 (Hpk k r) Z)ᴴ * Hpk k r + Hpk k r * hpart2 (Hpk k r) Z = 0
+  simp only [hpart2, hinv, Matrix.conjTranspose_smul, Matrix.conjTranspose_add, Matrix.conjTranspose_mul,
+    Matrix.conjTranspose_conjTranspose, hH, hs, Matrix.smul_mul, Matrix.mul_smul, Matrix.add_mul,
+    Matrix.mul_add, Matrix.mul_assoc, hsq', hsq, Matrix.mul_one]
+  all_goals module
+
+lemma mulVec_bvec (M : Mx k r) (q : Fin (2 * r + k + 1)) : M *ᵥ bvec q = fun p => M p q := by
+  funext p
+  simp [bvec, Matrix.mulVec, dotProduct, Pi.single_apply]
+
+lemma col_HZH {i : Fin (r + 1)} {Z : Mx k r} (hZ : InV k r i Z) {q : Fin (2 * r + k + 1)}
+    (hq : Out k r i q) (p : Fin (2 * r + k + 1)) : (Hpk k r * Zᴴ * Hpk k r) p q = 0 := by
+  rw [Matrix.mul_apply]
+  apply Finset.sum_eq_zero
+  intro b _
+  by_cases hb : Out k r i b
+  · have h0 : (Hpk k r * Zᴴ) p b = 0 := by
+      rw [Matrix.mul_apply]
+      apply Finset.sum_eq_zero
+      intro a _
+      rw [Matrix.conjTranspose_apply, hZ b a (Or.inl hb), star_zero, mul_zero]
+    rw [h0, zero_mul]
+  · have h0 : Hpk k r b q = 0 := by
+      unfold Out at hq hb
+      have := i.isLt
+      have := b.isLt
+      have := q.isLt
+      simp only [Hpk, Fin.ext_iff]
+      split_ifs <;> first | rfl | omega
+    rw [h0, mul_zero]
+
+lemma hpart_kill {i : Fin (r + 1)} {Z : Mx k r} (hZ : InV k r i Z) {q : Fin (2 * r + k + 1)}
+    (hq : Out k r i q) :
+    hpart1 (Hpk k r) Z *ᵥ bvec q = 0 ∧ hpart2 (Hpk k r) Z *ᵥ bvec q = 0 := by
+  rw [mulVec_bvec, mulVec_bvec]
+  refine ⟨funext fun p => ?_, funext fun p => ?_⟩ <;>
+    simp only [hpart1, hpart2, hinv, Matrix.smul_apply, Matrix.sub_apply, Matrix.add_apply,
+      hZ p q (Or.inr hq), col_HZH hZ hq p, sub_zero, add_zero, smul_zero, Pi.zero_apply]
+
+lemma out_eI {i : Fin (r + 1)} (a : Fin r) (ha : a.val < i.val) : Out k r i (eI k r a) := by
+  exact Or.inl ha
+
+lemma out_esI {i : Fin (r + 1)} (a : Fin r) (ha : a.val < i.val) : Out k r i (esI k r a) := by
+  have := i.isLt
+  have := a.isLt
+  right
+  show 2 * r + k - i.val < 2 * r + k - a.val
+  omega
+
+theorem hpart_mem {i : Fin (r + 1)} {Z : Mx k r} (hZ : InV k r i Z) :
+    hpart1 (Hpk k r) Z ∈ LieL k r i ∧ hpart2 (Hpk k r) Z ∈ LieL k r i :=
+  ⟨⟨skew_hpart1 Z, fun a ha => ⟨(hpart_kill hZ (out_eI a ha)).1, (hpart_kill hZ (out_esI a ha)).1⟩⟩,
+    ⟨skew_hpart2 Z, fun a ha => ⟨(hpart_kill hZ (out_eI a ha)).2, (hpart_kill hZ (out_esI a ha)).2⟩⟩⟩
+
+lemma hpart_decomp (Z : Mx k r) : Z = hpart1 (Hpk k r) Z + Complex.I • hpart2 (Hpk k r) Z := by
+  have hI : Complex.I * (1 / (2 * Complex.I)) = 1 / 2 := by
+    have := Complex.I_ne_zero
+    field_simp
+    try ring
+  unfold hpart1 hpart2
+  rw [smul_smul, hI]
+  module
+
+lemma hpart_unique {P Q : Mx k r} (hP : Skew P) (hQ : Skew Q) :
+    hpart1 (Hpk k r) (P + Complex.I • Q) = P ∧ hpart2 (Hpk k r) (P + Complex.I • Q) = Q := by
+  have hWP : Hpk k r * Pᴴ * Hpk k r = -P := by
+    rw [skew_conj hP]
+    simp only [Matrix.mul_assoc, hsq', hsq, Matrix.mul_one]
+  have hWQ : Hpk k r * Qᴴ * Hpk k r = -Q := by
+    rw [skew_conj hQ]
+    simp only [Matrix.mul_assoc, hsq', hsq, Matrix.mul_one]
+  have hW : Hpk k r * (P + Complex.I • Q)ᴴ * Hpk k r = -P + Complex.I • Q := by
+    rw [Matrix.conjTranspose_add, Matrix.conjTranspose_smul, Matrix.mul_add, Matrix.add_mul,
+      Matrix.mul_smul, Matrix.smul_mul, hWP, hWQ, Complex.star_def, Complex.conj_I, neg_smul,
+      smul_neg, neg_neg]
+  have hI : (1 / (2 * Complex.I)) * (2 * Complex.I) = 1 := by
+    have := Complex.I_ne_zero
+    field_simp
+  unfold hpart1 hpart2
+  rw [hinv, hW]
+  constructor
+  · rw [show P + Complex.I • Q - (-P + Complex.I • Q) = (2 : ℂ) • P by module, smul_smul]
+    norm_num
+  · rw [show P + Complex.I • Q + (-P + Complex.I • Q) = (2 * Complex.I) • Q by module, smul_smul, hI,
+      one_smul]
+
+end Formalism.FourierDecayAlt.Q.EabGlW
+end
+end
+
+open Matrix Filter Topology
+open scoped ContDiff
+
+noncomputable section
+
+namespace Formalism.FourierDecayAlt.Q.EabGlW
+
+open Formalism.REAL Formalism.QuantumDeterminants
+
+attribute [local instance] Matrix.normedAddCommGroup Matrix.normedSpace
+
+variable {k r : ℕ} {E : Type} [NormedAddCommGroup E] [NormedSpace ℂ E]
+
+def Ec (Z : Mx k r) (f : Mx k r → E) : Mx k r → E :=
+  fun g => RdV (hpart1 (Hpk k r) Z) f g + Complex.I • RdV (hpart2 (Hpk k r) Z) f g
+
+def Good (k r : ℕ) (i : Fin (r + 1)) (Z : Mx k r) : Prop :=
+  hpart1 (Hpk k r) Z ∈ LieL k r i ∧ hpart2 (Hpk k r) Z ∈ LieL k r i
+
+theorem ec_comm {i : Fin (r + 1)} {Z W : Mx k r} (hZ : Good k r i Z) (hW : Good k r i W)
+    {f F : Mx k r → E} {U : Set (Mx k r)} (hL : LocExt (Glev k r i) f F U) {g : Mx k r}
+    (hg : g ∈ U) (hgG : g ∈ Glev k r i) :
+    Ec Z (Ec W f) g - Ec W (Ec Z f) g = Ec (Z * W - W * Z) f g := by
+  obtain ⟨hX1, hX2⟩ := hZ
+  obtain ⟨hY1, hY2⟩ := hW
+  have hZW := commutator_complex_expand (hpart1 (Hpk k r) Z) (hpart2 (Hpk k r) Z) (hpart1 (Hpk k r) W)
+    (hpart2 (Hpk k r) W)
+  rw [← hpart_decomp Z, ← hpart_decomp W] at hZW
+  have hP := lieL_sub (lieL_bracket hX1 hY1) (lieL_bracket hX2 hY2)
+  have hQ := lieL_add (lieL_bracket hX1 hY2) (lieL_bracket hX2 hY1)
+  obtain ⟨h1, h2⟩ := hpart_unique hP.1 hQ.1
+  have eZ : Ec Z f = fun h => RdV (hpart1 (Hpk k r) Z) f h + Complex.I • RdV (hpart2 (Hpk k r) Z) f h :=
+    rfl
+  have eW : Ec W f = fun h => RdV (hpart1 (Hpk k r) W) f h + Complex.I • RdV (hpart2 (Hpk k r) W) f h :=
+    rfl
+  simp only [Ec]
+  rw [eZ, eW]
+  rw [loc_comb (flow_of_lieL hX1) (flow_of_lieL hY1) (flow_of_lieL hY2) hL hg hgG,
+    loc_comb (flow_of_lieL hX2) (flow_of_lieL hY1) (flow_of_lieL hY2) hL hg hgG,
+    loc_comb (flow_of_lieL hY1) (flow_of_lieL hX1) (flow_of_lieL hX2) hL hg hgG,
+    loc_comb (flow_of_lieL hY2) (flow_of_lieL hX1) (flow_of_lieL hX2) hL hg hgG,
+    hZW, h1, h2,
+    loc_sub (flow_of_lieL (lieL_bracket hX1 hY1)) (flow_of_lieL (lieL_bracket hX2 hY2))
+      (flow_of_lieL hP) hL hg hgG,
+    loc_add (flow_of_lieL (lieL_bracket hX1 hY2)) (flow_of_lieL (lieL_bracket hX2 hY1))
+      (flow_of_lieL hQ) hL hg hgG,
+    ← loc_bracket (flow_of_lieL hX1) (flow_of_lieL hY1) (flow_of_lieL (lieL_bracket hX1 hY1)) hL hg hgG,
+    ← loc_bracket (flow_of_lieL hX2) (flow_of_lieL hY2) (flow_of_lieL (lieL_bracket hX2 hY2)) hL hg hgG,
+    ← loc_bracket (flow_of_lieL hX1) (flow_of_lieL hY2) (flow_of_lieL (lieL_bracket hX1 hY2)) hL hg hgG,
+    ← loc_bracket (flow_of_lieL hX2) (flow_of_lieL hY1) (flow_of_lieL (lieL_bracket hX2 hY1)) hL hg hgG]
+  simp only [smul_add, smul_sub, smul_smul, Complex.I_mul_I, neg_smul, one_smul]
+  abel
+
+lemma hpart1_sub (A B : Mx k r) :
+    hpart1 (Hpk k r) (A - B) = hpart1 (Hpk k r) A - hpart1 (Hpk k r) B := by
+  simp only [hpart1, Matrix.conjTranspose_sub, Matrix.mul_sub, Matrix.sub_mul, smul_sub]
+  abel
+
+lemma hpart2_sub (A B : Mx k r) :
+    hpart2 (Hpk k r) (A - B) = hpart2 (Hpk k r) A - hpart2 (Hpk k r) B := by
+  simp only [hpart2, Matrix.conjTranspose_sub, Matrix.mul_sub, Matrix.sub_mul, smul_sub, smul_add]
+  abel
+
+theorem ec_sub {i : Fin (r + 1)} {A B : Mx k r} (hA : Good k r i A) (hB : Good k r i B)
+    {f F : Mx k r → E} {U : Set (Mx k r)} (hL : LocExt (Glev k r i) f F U) {g : Mx k r}
+    (hg : g ∈ U) (hgG : g ∈ Glev k r i) :
+    Ec (A - B) f g = Ec A f g - Ec B f g := by
+  simp only [Ec]
+  rw [hpart1_sub, hpart2_sub,
+    loc_sub (flow_of_lieL hA.1) (flow_of_lieL hB.1) (flow_of_lieL (lieL_sub hA.1 hB.1)) hL hg hgG,
+    loc_sub (flow_of_lieL hA.2) (flow_of_lieL hB.2) (flow_of_lieL (lieL_sub hA.2 hB.2)) hL hg hgG,
+    smul_sub]
+  abel
+
+lemma ec_zero (f : Mx k r → E) (g : Mx k r) : Ec (0 : Mx k r) f g = 0 := by
+  simp [Ec, hpart1, hpart2, RdV]
+
+lemma inV_zero {i : Fin (r + 1)} : InV k r i (0 : Mx k r) := fun _ _ _ => rfl
+
+lemma inV_single {i : Fin (r + 1)} (x y : Fin (mdim k r i)) :
+    InV k r i (Matrix.single (posL k r i x) (posL k r i y) (1 : ℂ)) := by
+  intro p q h
+  rw [Matrix.single_apply]
+  split_ifs with hh
+  · obtain ⟨rfl, rfl⟩ := hh
+    exfalso
+    have hx := x.isLt
+    have hy := y.isLt
+    have hi := i.isLt
+    unfold mdim at hx hy
+    rcases h with h | h <;> (simp only [Out, posL] at h; omega)
+  · rfl
+
+end Formalism.FourierDecayAlt.Q.EabGlW
+end
+end
+
+private lemma single_one_mul_single_one {n : ℕ} (p q s t : Fin n) :
+    Matrix.single p q (1 : ℂ) * Matrix.single s t 1 = if q = s then Matrix.single p t 1 else 0 := by
+  split_ifs with h
+  · subst h
+    rw [Matrix.single_mul_single_same, mul_one]
+  · exact Matrix.single_mul_single_of_ne (h := h) ..
+
+private lemma posL_eq_posL_iff (k r : ℕ) (i : Fin (r + 1)) (x y : Fin (Formalism.FourierDecayAlt.Q.mdim k r i)) :
+    Formalism.FourierDecayAlt.Q.posL k r i x = Formalism.FourierDecayAlt.Q.posL k r i y ↔ x = y := by
+  constructor
+  · intro h
+    have h' := congrArg Fin.val h
+    simp only [Formalism.FourierDecayAlt.Q.posL] at h'
+    exact Fin.ext (by omega)
+  · rintro rfl
+    rfl
+
+theorem qnEabGl : Formalism.FourierDecayAlt.Q.EabGlLev := by
+  intro E _ _ k r i D a b c d f _ hf g hg
+  obtain ⟨U, F, hU, hgU, hF, hfF⟩ := hf g hg
+  have hL : Formalism.FourierDecayAlt.Q.EabGlW.LocExt (Formalism.FourierDecayAlt.Q.Glev k r i) f F U := ⟨hU, hF, hfF⟩
+  have good : ∀ x y : Fin (Formalism.FourierDecayAlt.Q.mdim k r i), Formalism.FourierDecayAlt.Q.EabGlW.Good k r i
+      (Matrix.single (Formalism.FourierDecayAlt.Q.posL k r i x) (Formalism.FourierDecayAlt.Q.posL k r i y) (1 : ℂ)) :=
+    fun x y => Formalism.FourierDecayAlt.Q.EabGlW.hpart_mem (Formalism.FourierDecayAlt.Q.EabGlW.inV_single x y)
+  have good0 : Formalism.FourierDecayAlt.Q.EabGlW.Good k r i (0 : Formalism.FourierDecayAlt.Q.Mx k r) :=
+    Formalism.FourierDecayAlt.Q.EabGlW.hpart_mem Formalism.FourierDecayAlt.Q.EabGlW.inV_zero
+  have goodIf : ∀ (P : Prop) [Decidable P] (x y : Fin (Formalism.FourierDecayAlt.Q.mdim k r i)),
+      Formalism.FourierDecayAlt.Q.EabGlW.Good k r i (if P then
+        Matrix.single (Formalism.FourierDecayAlt.Q.posL k r i x) (Formalism.FourierDecayAlt.Q.posL k r i y) (1 : ℂ) else 0) := by
+    intro P _ x y
+    split_ifs
+    · exact good x y
+    · exact good0
+  have hcomm := Formalism.FourierDecayAlt.Q.EabGlW.ec_comm (good a b) (good c d) hL hgU hg.1
+  rw [single_one_mul_single_one, single_one_mul_single_one] at hcomm
+  simp only [posL_eq_posL_iff] at hcomm
+  rw [Formalism.FourierDecayAlt.Q.EabGlW.ec_sub (goodIf _ a d) (goodIf _ c b) hL hgU hg.1] at hcomm
+  change _ = _ at hcomm
+  refine hcomm.trans ?_
+  congr 1
+  · split_ifs
+    · rfl
+    · exact Formalism.FourierDecayAlt.Q.EabGlW.ec_zero f g
+  · split_ifs
+    · rfl
+    · exact Formalism.FourierDecayAlt.Q.EabGlW.ec_zero f g

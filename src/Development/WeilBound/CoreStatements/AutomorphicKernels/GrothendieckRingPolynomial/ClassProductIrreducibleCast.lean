@@ -1,0 +1,24 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.GrothendieckRingPolynomial.ClassProductIrreducibleCast
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.GrothendieckRingPolynomial.ProdList
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ProductTransposeInverseDualReverse
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ContragredientProductIrreducible
+public import Development.AbelianVarietyTheory.Proofs.TwistedOperators.IsAutFunOfMemCusp
+public import Development.WeilBound.CoreStatements.TemperedRepresentationTheory.BernsteinZelevinskyGL.TopAdm
+
+@[expose] public section
+
+namespace PositivityTheory.Groth.GrothendieckCommutativity
+export CompanionTheory.Groth.GrothendieckCommutativity (
+  subComp subQuotComp equivComp occursTimes_comp jhMult_le_comp ann ann_anti
+  formOf formOf_mem annMap ker_annMap annMap_surjective annEquiv
+  occursTimes_contra jhMult_le_contra prodIrr_congr class_product_irreducible_cast
+  hasFiniteLength_prodIrr_cast class_congr_equiv class_eq_of_jordan_holder_mult
+  jhMult_pair_le
+)
+end PositivityTheory.Groth.GrothendieckCommutativity
+
+namespace PositivityTheory.Groth
+export CompanionTheory.Groth (comm)
+end PositivityTheory.Groth

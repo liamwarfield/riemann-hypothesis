@@ -1,0 +1,15 @@
+module
+
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.ThetaModuleTransport.HeadColumnCoordinates.FormPairAlgebra.FwdEx
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.ThetaModuleTransport.HeadColumnCoordinates.FormPairAlgebra.BwdEx
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.ThetaModuleTransport.HeadColumnCoordinates.FormInverseCounting.AssembleG
+
+@[expose] public section
+
+namespace Formalism.L2.SG.LocalCountModules.UnramifiedPairingAlgebraic
+
+theorem stepPairG_holds : StepPairG := stepPairG_of_fwd_bwd fwdEx bwdEx
+
+theorem algAll_holds : Formalism.L2.SG.LocalCountModules.UnitaryGroupMassFormula.ThetaMbeU.AlgAll := algAll_of stepPairG_holds
+
+end Formalism.L2.SG.LocalCountModules.UnramifiedPairingAlgebraic

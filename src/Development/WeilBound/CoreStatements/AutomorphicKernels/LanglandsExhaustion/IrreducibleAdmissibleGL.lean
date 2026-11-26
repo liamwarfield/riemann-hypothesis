@@ -1,0 +1,16 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.CuspidalExhaustion.IrreducibleAdmissibleGL
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.CuspEmbP
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.DiagTMemIwGL
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.JacquetOfInducedFiltration
+public import Development.AutomorphicSpectrum.Proofs.GlobalProofs.IsSubquotientCompMulSingle
+
+@[expose] public section
+
+namespace PositivityTheory.Exh
+export CompanionTheory.Exh (
+  geometricLemmaGL embL_of_eq embL_pair embL_nil cuspEmbP suppP
+  irreducibleAdmissibleGL cuspEmbP_of_refine
+)
+end PositivityTheory.Exh

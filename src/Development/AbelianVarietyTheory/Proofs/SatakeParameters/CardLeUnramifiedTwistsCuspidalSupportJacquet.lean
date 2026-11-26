@@ -1,0 +1,350 @@
+module
+
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.TameBlockVectorJacquetNonzero
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.JacquetRankOneCentral
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.JacquetRankOneCentral
+open Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.N Formalism.ConjugateSelfDual ReciprocityTheory.Gal ReciprocityTheory.Aut Formalism.AUTREP Formalism.L2 Formalism.L2.Host Formalism.L2.NT NumberField IsDedekindDomain Polynomial GlobalTheory.HeightCounting GlobalTheory.RowTie GlobalTheory.SplitRead GlobalTheory.NPin
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+namespace GlobalTheory.JacGL1
+
+
+open GlobalTheory.SmGL GlobalTheory.PRep Matrix in
+theorem jac_mulSingle_scalar : ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k] (d : ℕ) (V : Type) [AddCommGroup V] [Module ℂ V] (σ : Representation ℂ (GL (Fin d) k) V) (ω : kˣ →* ℂˣ) (s' : ℕ) (b : Fin s' → ℕ) (f : (Σ j, Fin (b j)) ≃ Fin d) (j : Fin s'), d = 1 → b j = 1 → GlobalTheory.SmGL.HasCentralChar σ ω → ∀ (z : kˣ) (x : GlobalTheory.PRep.Jacquet σ (GlobalTheory.SmGL.unipRad k f)), GlobalTheory.SmGL.jac f σ (Pi.mulSingle j (Matrix.GeneralLinearGroup.scalar (Fin (b j)) z)) x = (ω z : ℂ) • x := by
+  intro k _ _ _ _ d V _ _ σ ω s' b f j hd hj hω z x
+  have hsum : ∑ i, b i = 1 := by
+    have := Fintype.card_congr f
+    simpa [Fintype.card_sigma, hd] using this
+  have hsplit := Finset.add_sum_erase Finset.univ b (Finset.mem_univ j)
+  have ha : ∀ i, i ≠ j → IsEmpty (Fin (b i)) := fun i hi => by
+    have h0 : ∑ i ∈ Finset.univ.erase j, b i = 0 := by omega
+    rw [Finset.sum_eq_zero_iff.1 h0 i (Finset.mem_erase.2 ⟨hi, Finset.mem_univ i⟩)]
+    infer_instance
+  have h1 : leviEmb k f (Pi.mulSingle j (GeneralLinearGroup.scalar (Fin (b j)) z)) =
+      GeneralLinearGroup.scalar (Fin d) z := by
+    ext i i'
+    obtain ⟨⟨a, y⟩, rfl⟩ := f.surjective i
+    obtain ⟨⟨a', y'⟩, rfl⟩ := f.surjective i'
+    obtain rfl : a = j := by_contra fun h => (ha a h).elim y
+    obtain rfl : a' = a := by_contra fun h => (ha a' h).elim y'
+    rw [leviEmb_apply_same]
+    simp [GeneralLinearGroup.scalar, diagonal_apply]
+  have h2 : modExp (fun i => Fin (b i)) j = 0 := by
+    unfold modExp
+    rw [Finset.sum_eq_zero, Finset.sum_eq_zero, sub_zero]
+    · intro a hb
+      have := ha a (Finset.mem_filter.1 hb).2.ne
+      exact Nat.cast_eq_zero.2 Fintype.card_eq_zero
+    · intro a hb
+      have := ha a (Finset.mem_filter.1 hb).2.ne'
+      exact Nat.cast_eq_zero.2 Fintype.card_eq_zero
+  have h3 : deltaHalf k (fun i => Fin (b i))
+      (Pi.mulSingle j (GeneralLinearGroup.scalar (Fin (b j)) z)) = 1 := by
+    rw [deltaHalf_apply]
+    refine Finset.prod_eq_one fun a _ => ?_
+    by_cases hb : a = j
+    · subst hb
+      simp [h2]
+    · rw [Pi.mulSingle_eq_of_ne hb, map_one, map_one]
+  obtain ⟨v, rfl⟩ := Submodule.Quotient.mk_surjective _ x
+  refine (jac_mk f σ _ v).trans ?_
+  rw [h3, h1, hω z v, inv_one, Units.val_one, one_smul]
+  exact map_smul (Submodule.mkQ _) _ _
+
+end GlobalTheory.JacGL1
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.JacquetRankOneCentralStatement
+open Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.N Formalism.ConjugateSelfDual ReciprocityTheory.Gal ReciprocityTheory.Aut Formalism.AUTREP Formalism.L2 Formalism.L2.Host Formalism.L2.NT NumberField IsDedekindDomain Polynomial GlobalTheory.HeightCounting GlobalTheory.RowTie GlobalTheory.SplitRead GlobalTheory.NPin
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.jacquet_rank_one_central : ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k] (d : ℕ) (V : Type) [AddCommGroup V] [Module ℂ V] (σ : Representation ℂ (GL (Fin d) k) V) (ω : kˣ →* ℂˣ) (s' : ℕ) (b : Fin s' → ℕ) (f : (Σ j, Fin (b j)) ≃ Fin d) (j : Fin s'), d = 1 → b j = 1 → GlobalTheory.SmGL.HasCentralChar σ ω → ∀ (z : kˣ) (x : GlobalTheory.PRep.Jacquet σ (GlobalTheory.SmGL.unipRad k f)), GlobalTheory.SmGL.jac f σ (Pi.mulSingle j (Matrix.GeneralLinearGroup.scalar (Fin (b j)) z)) x = (ω z : ℂ) • x := by
+  first | exact @GlobalTheory.JacGL1.jac_mulSingle_scalar | exact GlobalTheory.JacGL1.jac_mulSingle_scalar | (intros; apply GlobalTheory.JacGL1.jac_mulSingle_scalar <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.IrreducibleGl1IsoDet
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.IrreducibleGl1IsoDet
+open Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.N Formalism.ConjugateSelfDual ReciprocityTheory.Gal ReciprocityTheory.Aut Formalism.AUTREP Formalism.L2 Formalism.L2.Host Formalism.L2.NT NumberField IsDedekindDomain Polynomial GlobalTheory.HeightCounting GlobalTheory.RowTie GlobalTheory.SplitRead GlobalTheory.NPin
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+noncomputable section
+
+namespace GlobalTheory.GLOneChar
+
+open GlobalTheory.SmGL
+
+theorem equiv_detRep_of_isIrreducible : ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k] (d : ℕ) (V : Type) [AddCommGroup V] [Module ℂ V] (σ : Representation ℂ (GL (Fin d) k) V) (ω : kˣ →* ℂˣ), d = 1 → σ.IsIrreducible → GlobalTheory.SmGL.HasCentralChar σ ω → Nonempty (σ.Equiv (GlobalTheory.SmGL.detRep (Fin d) ω)) := by
+  intro k _ _ _ _ d V _ _ σ ω hd hirr hω
+  have hact : ∀ (g : GL (Fin d) k) (v : V), σ g v = (ω (Matrix.GeneralLinearGroup.det g) : ℂ) • v := by
+    intro g v
+    conv_lhs => rw [GlobalTheory.ProdSupport.eq_scalar_det hd g]
+    exact hω _ v
+  haveI : Nontrivial V := by
+    by_contra hV
+    rw [not_nontrivial_iff_subsingleton] at hV
+    have : (⊥ : Subrepresentation σ) = ⊤ :=
+      Subrepresentation.toSubmodule_injective (Subsingleton.elim _ _)
+    exact bot_ne_top this
+  obtain ⟨v, hv⟩ := exists_ne (0 : V)
+  let S : Subrepresentation σ := ⟨ℂ ∙ v, fun g w hw => by
+    obtain ⟨c, rfl⟩ := Submodule.mem_span_singleton.1 hw
+    rw [hact, smul_smul]
+    exact Submodule.mem_span_singleton.2 ⟨_, rfl⟩⟩
+  have hS : S = ⊤ := by
+    rcases eq_bot_or_eq_top S with h | h
+    · exfalso
+      have : v ∈ S.toSubmodule := Submodule.mem_span_singleton_self v
+      rw [h] at this
+      exact hv this
+    · exact h
+  have hsurj : Function.Surjective (LinearMap.toSpanSingleton ℂ V v) := by
+    intro w
+    have hw : w ∈ S.toSubmodule := by rw [hS]; trivial
+    obtain ⟨c, rfl⟩ := Submodule.mem_span_singleton.1 hw
+    exact ⟨c, rfl⟩
+  have hinj : Function.Injective (LinearMap.toSpanSingleton ℂ V v) := by
+    intro a b hab
+    simp only [LinearMap.toSpanSingleton_apply] at hab
+    exact smul_left_injective ℂ hv hab
+  let e : ℂ ≃ₗ[ℂ] V := LinearEquiv.ofBijective _ ⟨hinj, hsurj⟩
+  refine ⟨(Representation.Equiv.mk e fun g => ?_).symm⟩
+  ext c
+  simp only [LinearMap.coe_comp, Function.comp_apply, LinearEquiv.coe_coe, e,
+    LinearEquiv.ofBijective_apply, LinearMap.toSpanSingleton_apply, detRep, ofChar_apply,
+    detChar_apply, hact, smul_smul, smul_eq_mul]
+  rw [mul_one, ← LinearEquiv.map_smul, smul_eq_mul, mul_one]
+
+end GlobalTheory.GLOneChar
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.IrreducibleGl1IsoDetStatement
+open Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.N Formalism.ConjugateSelfDual ReciprocityTheory.Gal ReciprocityTheory.Aut Formalism.AUTREP Formalism.L2 Formalism.L2.Host Formalism.L2.NT NumberField IsDedekindDomain Polynomial GlobalTheory.HeightCounting GlobalTheory.RowTie GlobalTheory.SplitRead GlobalTheory.NPin
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.irreducible_gl1_iso_det : ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k] (d : ℕ) (V : Type) [AddCommGroup V] [Module ℂ V] (σ : Representation ℂ (GL (Fin d) k) V) (ω : kˣ →* ℂˣ), d = 1 → σ.IsIrreducible → GlobalTheory.SmGL.HasCentralChar σ ω → Nonempty (σ.Equiv (GlobalTheory.SmGL.detRep (Fin d) ω)) := by
+  first | exact @GlobalTheory.GLOneChar.equiv_detRep_of_isIrreducible | exact GlobalTheory.GLOneChar.equiv_detRep_of_isIrreducible | (intros; apply GlobalTheory.GLOneChar.equiv_detRep_of_isIrreducible <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.IrreducibleSubquotientEigenvector
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.IrreducibleSubquotientEigenvector
+open Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.N Formalism.ConjugateSelfDual ReciprocityTheory.Gal ReciprocityTheory.Aut Formalism.AUTREP Formalism.L2 Formalism.L2.Host Formalism.L2.NT NumberField IsDedekindDomain Polynomial GlobalTheory.HeightCounting GlobalTheory.RowTie GlobalTheory.SplitRead GlobalTheory.NPin
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+noncomputable section
+
+namespace GlobalTheory.VecSubquot
+
+theorem exists_irreducible_subquotient_of_ne_zero : ∀ (G V : Type) [Group G] [AddCommGroup V] [Module ℂ V]
+    (ρ : Representation ℂ G V) (x : V), x ≠ 0 →
+    ∃ (Y : Type) (_ : AddCommGroup Y) (_ : Module ℂ Y) (τ : Representation ℂ G Y) (y : Y),
+      τ.IsIrreducible ∧ GlobalTheory.SmGL.IsSubquotient τ ρ ∧ y ≠ 0 ∧
+        ∀ (g : G) (c : ℂ), ρ g x = c • x → τ g y = c • y := by
+  intro G V _ _ _ ρ x hx
+
+  let s : Set (Submodule ℂ V) := {N | (∀ (g : G), ∀ v ∈ N, ρ g v ∈ N) ∧ x ∉ N}
+  have hbot : (⊥ : Submodule ℂ V) ∈ s := ⟨fun g v hv => by
+    rw [Submodule.mem_bot] at hv ⊢; rw [hv, map_zero], by simpa using hx⟩
+  obtain ⟨N, -, hmax⟩ := zorn_le_nonempty₀ s (fun c hcs hc y hy => by
+    have hne : c.Nonempty := ⟨y, hy⟩
+    have hd : DirectedOn (· ≤ ·) c := hc.directedOn
+    refine ⟨sSup c, ⟨fun g v hv => ?_, fun hx' => ?_⟩, fun z hz => le_sSup hz⟩
+    · obtain ⟨M, hM, hvM⟩ := (Submodule.mem_sSup_of_directed hne hd).1 hv
+      exact le_sSup hM ((hcs hM).1 g v hvM)
+    · obtain ⟨M, hM, hxM⟩ := (Submodule.mem_sSup_of_directed hne hd).1 hx'
+      exact (hcs hM).2 hxM) ⊥ hbot
+  obtain ⟨hNst, hxN⟩ := hmax.prop
+
+  let O : Submodule ℂ V := Submodule.span ℂ (Set.range fun g : G => ρ g x)
+  have hOst : ∀ (g : G), ∀ v ∈ O, ρ g v ∈ O := by
+    intro g v hv
+    have : O.map (ρ g) ≤ O := by
+      rw [Submodule.map_span, Submodule.span_le]
+      rintro _ ⟨_, ⟨h, rfl⟩, rfl⟩
+      exact Submodule.subset_span ⟨g * h, by simp only [map_mul, Module.End.mul_apply]⟩
+    exact this ⟨v, hv, rfl⟩
+  have hxO : x ∈ O := Submodule.subset_span ⟨1, by simp only [map_one, Module.End.one_apply]⟩
+  let T : Subrepresentation ρ := ⟨N, fun g v hv => hNst g v hv⟩
+  let S : Subrepresentation ρ := ⟨N ⊔ O, fun g v hv => by
+    obtain ⟨a, ha, b, hb, rfl⟩ := Submodule.mem_sup.1 hv
+    rw [map_add (f := _)]
+    exact Submodule.add_mem_sup (hNst g a ha) (hOst g b hb)⟩
+  have hxS : x ∈ S.toSubmodule := Submodule.mem_sup_right hxO
+  have hcov : T ⋖ S := by
+    refine ⟨lt_of_le_of_ne (fun v hv => Submodule.mem_sup_left hv) fun h => hxN ?_, ?_⟩
+    · have : x ∈ (S : Set V) := hxS
+      rw [← h] at this
+      exact this
+    · intro T' h1 h2
+      have hle : N ≤ T'.toSubmodule := h1.le
+      have hxT' : x ∈ T'.toSubmodule := by
+        by_contra hn
+        have hmem : T'.toSubmodule ∈ s := ⟨fun g v hv => T'.apply_mem_toSubmodule g hv, hn⟩
+        have heq : T'.toSubmodule = N := le_antisymm (hmax.2 hmem hle) hle
+        exact h1.ne (Subrepresentation.toSubmodule_injective heq.symm)
+      have hST' : S.toSubmodule ≤ T'.toSubmodule := by
+        refine sup_le hle ?_
+        rw [Submodule.span_le]
+        rintro _ ⟨g, rfl⟩
+        exact T'.apply_mem_toSubmodule g hxT'
+      exact h2.not_ge hST'
+  refine ⟨_, inferInstance, inferInstance, GlobalTheory.SmGL.subQuot S T,
+    Submodule.Quotient.mk (⟨x, hxS⟩ : S.toSubmodule), GlobalTheory.SmGL.isIrreducible_subQuot hcov,
+    ⟨S, ⟨Submodule.mkQ _, fun _ => rfl⟩, Submodule.Quotient.mk_surjective _⟩, ?_, ?_⟩
+  · intro h0
+    rw [Submodule.Quotient.mk_eq_zero] at h0
+    exact hxN h0
+  · intro g c hgc
+    show Submodule.Quotient.mk (S.toRepresentation g ⟨x, hxS⟩) = _
+    rw [← Submodule.Quotient.mk_smul]
+    congr 1
+    exact Subtype.ext hgc
+
+end GlobalTheory.VecSubquot
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.IrreducibleSubquotientEigenvectorStatement
+open Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.N Formalism.ConjugateSelfDual ReciprocityTheory.Gal ReciprocityTheory.Aut Formalism.AUTREP Formalism.L2 Formalism.L2.Host Formalism.L2.NT NumberField IsDedekindDomain Polynomial GlobalTheory.HeightCounting GlobalTheory.RowTie GlobalTheory.SplitRead GlobalTheory.NPin
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.irreducible_subquotient_eigenvector : ∀ (G V : Type) [Group G] [AddCommGroup V] [Module ℂ V] (ρ : Representation ℂ G V) (x : V), x ≠ 0 →
+    ∃ (Y : Type) (_ : AddCommGroup Y) (_ : Module ℂ Y) (τ : Representation ℂ G Y) (y : Y),
+      τ.IsIrreducible ∧ GlobalTheory.SmGL.IsSubquotient τ ρ ∧ y ≠ 0 ∧ ∀ (g : G) (c : ℂ), ρ g x = c • x → τ g y = c • y := by
+  first | exact @GlobalTheory.VecSubquot.exists_irreducible_subquotient_of_ne_zero | exact GlobalTheory.VecSubquot.exists_irreducible_subquotient_of_ne_zero | (intros; apply GlobalTheory.VecSubquot.exists_irreducible_subquotient_of_ne_zero <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.CardLeUnramifiedTwistsCuspidalSupportJacquet
+open Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.N Formalism.ConjugateSelfDual ReciprocityTheory.Gal ReciprocityTheory.Aut Formalism.AUTREP Formalism.L2 Formalism.L2.Host Formalism.L2.NT NumberField IsDedekindDomain Polynomial GlobalTheory.HeightCounting GlobalTheory.RowTie GlobalTheory.SplitRead GlobalTheory.NPin
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+noncomputable section
+
+namespace GlobalTheory.JacSuppCount
+
+
+open GlobalTheory.SmGL GlobalTheory.SplitWeil ValuativeRel in
+theorem eq_mul_unrChar_of_eq_on_units : ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k] (χ ω : kˣ →* ℂˣ), (∀ u : kˣ, ValuativeRel.valuation k (u : k) = 1 → ω u = χ u) → ∃ α : ℂˣ, ω = χ * GlobalTheory.SmGL.unrChar k α := by
+  intro k _ _ _ _ χ ω h
+  obtain ⟨ϖ, hϖ⟩ : ∃ ϖ : kˣ, valuation k (ϖ : k) = uniformizer k := by
+    obtain ⟨x, hx⟩ := valuation_surjective (K := k) (uniformizer k)
+    have h0 : x ≠ 0 := by
+      rintro rfl
+      exact uniformizer_ne_zero (R := k) (by simpa using hx.symm)
+    exact ⟨Units.mk0 x h0, hx⟩
+  have hu : IsUnram (χ⁻¹ * ω) := fun u hu => by
+    simp [h u hu]
+  refine ⟨(χ⁻¹ * ω) ϖ, ?_⟩
+  rw [← eq_unrChar hu hϖ]
+  ext u
+  simp
+
+
+open GlobalTheory.SmGL GlobalTheory.PRep GlobalTheory.SplitWeil GlobalTheory.ProdSupport Matrix ValuativeRel TensorProduct in
+theorem scalar_mem_KO_of_val {k : Type} [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k]
+    (m : Type) [Fintype m] [DecidableEq m] {z : kˣ} (hz : ValuativeRel.valuation k (z : k) = 1) :
+    GeneralLinearGroup.scalar m z ∈ KO k m := by
+  have hz' : ValuativeRel.valuation k ((z⁻¹ : kˣ) : k) = 1 := by
+    rw [Units.val_inv_eq_inv_val, map_inv₀, hz, inv_one]
+  have h1 : (z : k) ∈ 𝒪[k] := (Valuation.mem_integer_iff _ _).2 hz.le
+  have h2 : ((z⁻¹ : kˣ) : k) ∈ 𝒪[k] := (Valuation.mem_integer_iff _ _).2 hz'.le
+  refine (GlobalTheory.SplitFlip.mem_KO_iff _).2 ⟨fun i j => ?_, fun i j => ?_⟩
+  · by_cases h : i = j
+    · subst h; simpa [GeneralLinearGroup.scalar] using h1
+    · simp [GeneralLinearGroup.scalar, h, zero_mem]
+  · rw [← map_inv]
+    by_cases h : i = j
+    · subst h; simpa [GeneralLinearGroup.scalar] using h2
+    · simp [GeneralLinearGroup.scalar, h, zero_mem]
+
+
+open GlobalTheory.SmGL GlobalTheory.PRep GlobalTheory.SplitWeil GlobalTheory.ProdSupport Matrix ValuativeRel TensorProduct in
+theorem card_le_ncard_unrTwist : GlobalTheory.Published.BernsteinZelevinskyFiniteness → GlobalTheory.Published.GeometricLemma → ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k] (n s s' : ℕ) (χ : kˣ →* ℂˣ) (π : Irr k n) (d : Fin s → ℕ) (σ : ∀ a, Irr k (d a)) (d' : Fin s' → ℕ) (e : (Σ j, Fin (d' j)) ≃ Fin n) (A : Finset (Fin s')) (x : GlobalTheory.PRep.Jacquet π.π (GlobalTheory.SmGL.unipRad k e)), GlobalTheory.SmGL.IsSmoothChar χ → GlobalTheory.SmGL.IsCuspSupport π.π d (fun a => (σ a).π) → (∀ j ∈ A, d' j = 1) → x ≠ 0 → (∀ j ∈ A, ∀ g ∈ GlobalTheory.SplitWeil.KO k (Fin (d' j)), GlobalTheory.SmGL.jac e π.π (Pi.mulSingle j g) x = (χ (Matrix.GeneralLinearGroup.det g) : ℂ) • x) → A.card ≤ Set.ncard {a | d a = 1 ∧ ∃ α : ℂˣ, Nonempty ((σ a).π.Equiv (GlobalTheory.SmGL.detRep (Fin (d a)) (χ * GlobalTheory.SmGL.unrChar k α)))} := by
+  intro _ hG k _ _ _ _ n s s' χ π d σ d' e A x hχ hcs hA hx hact
+  obtain ⟨-, hσ, e₀, hsub⟩ := hcs
+  obtain ⟨Y, _, _, τ, y, hτ, hτs, hy, hτy⟩ := GlobalTheory.T.irreducible_subquotient_eigenvector _ _ (SmGL.jac e π.π) x hx
+  have hτP : IsSubquotient τ (SmGL.jac e (multiProd e₀ fun a => (σ a).π)) :=
+    hτs.trans (GlobalTheory.JacquetExact.isSubquotient_jac e (isSmooth_parInd _ _) hsub)
+  obtain ⟨b, f, g, t, hrow, hcol⟩ := exists_cell_of_isSubquotient (hG k).1 (hG k).2 e₀ e
+    (fun a => (σ a).smooth) (fun a => hasFiniteLength_of_isIrreducible (σ a).irr) hτ hτP
+
+  have hcolj : ∀ j ∈ A, ∃ i, b.1 i j = 1 ∧ ∀ i', i' ≠ i → b.1 i' j = 0 := by
+    intro j hj
+    have hsum : ∑ i, b.1 i j = 1 := by simpa [hA j hj] using b.2.2 j
+    obtain ⟨i, -, hi0⟩ := Finset.exists_ne_zero_of_sum_ne_zero (hsum.trans_ne one_ne_zero)
+    have hsplit := Finset.add_sum_erase Finset.univ (fun i => b.1 i j) (Finset.mem_univ i)
+    have h0 : ∑ i' ∈ Finset.univ.erase i, b.1 i' j = 0 := by simp only at hsplit; omega
+    refine ⟨i, by simp only at hsplit; omega, fun i' hi' => ?_⟩
+    exact Finset.sum_eq_zero_iff.1 h0 i' (Finset.mem_erase.2 ⟨hi', Finset.mem_univ i'⟩)
+  rcases A.eq_empty_or_nonempty with rfl | ⟨j₀, hj₀⟩
+  · simp
+  haveI : Nonempty (Fin s) := ⟨(hcolj j₀ hj₀).choose⟩
+  choose! ι hι1 hι0 using hcolj
+
+  have hrow1 : ∀ i j j', 0 < b.1 i j → 0 < b.1 i j' → j = j' := fun i =>
+    GlobalTheory.T.cuspidal_jacquet_subquotient_at_most_one_nonempty_block k (d i) _ (σ i).π s' (b.1 i) (f i) _ (fun j => (t i j).ρ) (hσ i).2.2
+      (fun j => Model.nontrivial_of_isIrreducible (t i j).irr) (hrow i)
+
+  have hd1 : ∀ j ∈ A, d (ι j) = 1 := by
+    intro j hj
+    have h := b.2.1 (ι j)
+    rw [Fintype.card_fin, Finset.sum_eq_single j (fun j' _ hj' => by
+      by_contra hne
+      exact hj' (hrow1 _ _ _ (Nat.pos_of_ne_zero hne) (by rw [hι1 j hj]; exact one_pos)))
+      (by simp), hι1 j hj] at h
+    exact h.symm
+  have hinj : Set.InjOn ι (A : Set (Fin s')) := by
+    intro j hj j' hj' h
+    refine hrow1 (ι j) j j' (by rw [hι1 j hj]; exact one_pos) ?_
+    rw [h, hι1 j' hj']; exact one_pos
+
+  have hmem : ∀ j ∈ A, ι j ∈ {a | d a = 1 ∧ ∃ α : ℂˣ, Nonempty ((σ a).π.Equiv
+      (GlobalTheory.SmGL.detRep (Fin (d a)) (χ * GlobalTheory.SmGL.unrChar k α)))} := by
+    intro j hj
+    set i := ι j with hi
+    obtain ⟨ω, -, hω⟩ := GlobalTheory.LocGL.exists_smooth_hasCentralChar (σ i).smooth (σ i).irr
+
+    have hT : ∀ (z : kˣ) (v : ⨂[ℂ] j', (t i j').V),
+        piTensor (fun j' => (t i j').ρ) (Pi.mulSingle j (GeneralLinearGroup.scalar (Fin (b.1 i j)) z)) v =
+          (ω z : ℂ) • v := fun z v =>
+      Model.scalar_of_isSubquotient (hrow i) (GlobalTheory.T.jacquet_rank_one_central k (d i) _ (σ i).π ω s' (b.1 i) (f i) j (hd1 j hj)
+        (hι1 j hj) hω z) v
+    have hωt : HasCentralChar (t i j).ρ ω := by
+      obtain ⟨ω', -, hω'⟩ := GlobalTheory.LocGL.exists_smooth_hasCentralChar (t i j).smooth (t i j).irr
+      have := nontrivial_piTensor _ fun j' => Model.nontrivial_of_isIrreducible (t i j').irr
+      obtain ⟨v, hv⟩ := exists_ne (0 : ⨂[ℂ] j', (t i j').V)
+      have : ω' = ω := MonoidHom.ext fun z => Units.ext (smul_left_injective ℂ hv
+        ((piTensor_mulSingle (fun j' => (t i j').ρ) j _ _ (hω' z) v).symm.trans (hT z v)))
+      exact this ▸ hω'
+    have hz : ∀ i', i' ≠ i → IsEmpty (Fin (b.1 i' j)) := fun i' h' => by
+      rw [hι0 j hj i' h']; infer_instance
+    have hcen := hasCentralChar_multiProd (g j) (fun i' => (t i' j).ρ) i hz hωt
+    have hωχ : ∀ u : kˣ, ValuativeRel.valuation k (u : k) = 1 → ω u = χ u := by
+      intro u hu
+      have h1 := Model.scalar_of_isSubquotient hcol
+        (piTensor_mulSingle (fun j => multiProd (g j) fun i => (t i j).ρ) j _ _ (hcen u)) y
+      have h2 := hτy _ _ (hact j hj _ (scalar_mem_KO_of_val (Fin (d' j)) hu))
+      rw [det_scalar_one (hA j hj)] at h2
+      exact Units.ext (smul_left_injective ℂ hy (h1.symm.trans h2))
+    obtain ⟨α, hα⟩ := eq_mul_unrChar_of_eq_on_units k χ ω hωχ
+    exact ⟨hd1 j hj, α, hα ▸ GlobalTheory.T.irreducible_gl1_iso_det k (d i) _ (σ i).π ω (hd1 j hj) (σ i).irr hω⟩
+  rw [← Set.ncard_coe_finset]
+  exact Set.ncard_le_ncard_of_injOn ι hmem hinj (Set.toFinite _)
+
+end GlobalTheory.JacSuppCount
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.CardLeUnramifiedTwistsCuspidalSupportJacquetStatement
+open Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.N Formalism.ConjugateSelfDual ReciprocityTheory.Gal ReciprocityTheory.Aut Formalism.AUTREP Formalism.L2 Formalism.L2.Host Formalism.L2.NT NumberField IsDedekindDomain Polynomial GlobalTheory.HeightCounting GlobalTheory.RowTie GlobalTheory.SplitRead GlobalTheory.NPin
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.card_le_unramifiedTwists_cuspidalSupport_jacquet : GlobalTheory.Published.BernsteinZelevinskyFiniteness → GlobalTheory.Published.GeometricLemma → ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k] (n s s' : ℕ) (χ : kˣ →* ℂˣ) (π : Irr k n) (d : Fin s → ℕ) (σ : ∀ a, Irr k (d a)) (d' : Fin s' → ℕ) (e : (Σ j, Fin (d' j)) ≃ Fin n) (A : Finset (Fin s')) (x : GlobalTheory.PRep.Jacquet π.π (GlobalTheory.SmGL.unipRad k e)), GlobalTheory.SmGL.IsSmoothChar χ → GlobalTheory.SmGL.IsCuspSupport π.π d (fun a => (σ a).π) → (∀ j ∈ A, d' j = 1) → x ≠ 0 → (∀ j ∈ A, ∀ g ∈ GlobalTheory.SplitWeil.KO k (Fin (d' j)), GlobalTheory.SmGL.jac e π.π (Pi.mulSingle j g) x = (χ (Matrix.GeneralLinearGroup.det g) : ℂ) • x) → A.card ≤ Set.ncard {a | d a = 1 ∧ ∃ α : ℂˣ, Nonempty ((σ a).π.Equiv (GlobalTheory.SmGL.detRep (Fin (d a)) (χ * GlobalTheory.SmGL.unrChar k α)))} := by
+  first | exact @GlobalTheory.JacSuppCount.card_le_ncard_unrTwist | exact GlobalTheory.JacSuppCount.card_le_ncard_unrTwist | (intros; apply GlobalTheory.JacSuppCount.card_le_ncard_unrTwist <;> assumption)
+end

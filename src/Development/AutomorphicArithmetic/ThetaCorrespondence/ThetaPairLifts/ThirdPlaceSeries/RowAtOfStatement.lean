@@ -1,0 +1,36 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Definitions.AutomorphicMembership.StdLvPr
+public import Development.AbelianVarietyTheory.Definitions.Divisors.LevelOfOfSameBut
+public import Development.AbelianVarietyTheory.PublishedTheorems.AutomorphicForms₂.ExistsUniqueHcharOfFiniteOrder
+public import Development.AbelianVarietyTheory.PublishedTheorems.AutomorphicForms₂.ExistsNormLeHeightPow
+public import Development.AbelianVarietyTheory.PublishedTheorems.PublishedFoundations.NonemptyAlgHomOfIsRayOfDvd
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ComplexUniformizationLawsOfGoodDeepCover
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.ThetaSeriesBaseTwistedUniversalRational
+public import Development.AbelianVarietyTheory.Statements.PlaceShiftStatements.SingleIndexPlacesAreTwisted
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.SplitPartRealisationWithScalarsCharOfWeak
+public import Formalism.LocalToGlobal.IndefiniteReal.PrimitivePackageFullHecke
+public import Formalism.LocalToGlobal.IndefiniteReal.PackageFromPrimitiveStatements
+public import Development.AbelianVarietyTheory.Proofs.TwistedOperators.IntegrableOnOfRapidDec
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.SplitRowsBarPhaseCompatibility
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.IsFockMap
+public import Development.AbelianVarietyTheory.Statements.PlaceShiftStatements.TwoRunDatumBoundUnitAtIndefinitePoint
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.IsNefPullLLStepEx
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsSmulNonnegOfSpan
+public import Development.AbelianVarietyTheory.Proofs.IwasawaDecomposition.HeckeDEqSumOfAgree
+public import Development.AbelianVarietyTheory.Proofs.TwistedOperators.HasInfExpOfOrder
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LineBundleIsoOfGenericNormalLocalBase
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.GeoAll
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.TwistedBundle
+
+@[expose] public section
+
+set_option synthInstance.maxHeartbeats 200000
+
+section
+open GlobalTheory.BigTop GlobalTheory.BigOn GlobalTheory.BigOn.Exp
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.at_statement_of_low_weight_twAdm : GlobalTheory.Published.CuspRapidDecay → GlobalTheory.Published.GlobalArtinReciprocity → GlobalTheory.Published.RayClassFieldSt → GlobalTheory.SerStd.SeriesRatS → _root_.GlobalTheory.BigOn.Exp.LowerBoundAtPlace → _root_.GlobalTheory.BigOn.Exp.TwAdmAlt → _root_.GlobalTheory.BigOn.Exp.ConditionAtPlace := by
+  first | exact @_root_.GlobalTheory.BigOn.Exp.rowAt_of_alt | exact _root_.GlobalTheory.BigOn.Exp.rowAt_of_alt | (intros; apply _root_.GlobalTheory.BigOn.Exp.rowAt_of_alt <;> assumption)
+end

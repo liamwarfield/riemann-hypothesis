@@ -1,0 +1,381 @@
+module
+
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.PatchingModules.DeterminantPadicFree.AcConst
+
+@[expose] public section
+
+section -- merged from Development.AutomorphicArithmetic.AutomorphicVarieties.PatchingModules.DeterminantPadicFree.CharPOfPadic
+section -- merged from Development.AutomorphicArithmetic.AutomorphicVarieties.PatchingModules.DeterminantPadicFree.MaxIndep
+open Matrix IsLocalRing UpperTheory.V.Alg UpperTheory.V.W UpperTheory.V.Pa
+
+theorem UpperTheory.V.Pa.Det.maxIndep :
+    ∀ {A M : Type} [CommRing A] [IsDomain A] [IsDiscreteValuationRing A] [AddCommGroup M] [Module A M] (t : A) (S B : Submodule A M), Irreducible t → S.FG → ∃ (g : ℕ) (κ : Fin g → M), (∀ j, κ j ∈ S) ∧ (∀ c : Fin g → A, ∑ j, c j • κ j ∈ B → c = 0) ∧ ∀ z ∈ S, ∃ (s : ℕ) (c : Fin g → A), t ^ s • z - ∑ j, c j • κ j ∈ B := by
+  intro A M _ _ _ _ _ t S B ht hS
+  haveI : Module.Finite A (S.map B.mkQ) := Module.Finite.iff_fg.mpr (hS.map _)
+  obtain ⟨n, ι, _, p, hp, e, ⟨φ⟩⟩ := Module.equiv_free_prod_directSum A (S.map B.mkQ)
+  let ψ : (Fin n →₀ A) →ₗ[A] S.map B.mkQ := φ.symm.toLinearMap ∘ₗ LinearMap.inl A _ _
+  have hlift : ∀ j : Fin n, ∃ m ∈ S, B.mkQ m = (ψ (Finsupp.single j 1) : M ⧸ B) :=
+    fun j => Submodule.mem_map.mp (ψ (Finsupp.single j 1)).2
+  choose κ hκS hκ using hlift
+  have hψinj : Function.Injective ψ := φ.symm.injective.comp LinearMap.inl_injective
+  have hli : LinearIndependent A (fun j => (ψ (Finsupp.single j 1) : M ⧸ B)) := by
+    have h1 := (Finsupp.basisSingleOne (R := A) (ι := Fin n)).linearIndependent
+    have h2 := h1.map' ψ (LinearMap.ker_eq_bot.mpr hψinj)
+    have h3 := h2.map' (S.map B.mkQ).subtype (Submodule.ker_subtype _)
+    simpa [Function.comp_def] using h3
+  refine ⟨n, κ, hκS, ?_, ?_⟩
+  · intro c hc
+    have h0 : ∑ j, c j • (ψ (Finsupp.single j 1) : M ⧸ B) = 0 := by
+      set_option synthInstance.maxHeartbeats 100000 in
+        simp_rw [← hκ, ← map_smul, ← map_sum]
+      exact (Submodule.Quotient.mk_eq_zero B).mpr hc
+    funext j
+    exact Fintype.linearIndependent_iff.mp hli c h0 j
+  · intro z hz
+    let w : S.map B.mkQ := ⟨B.mkQ z, Submodule.mem_map_of_mem hz⟩
+    let K := ∑ i, e i
+    have hd : t ^ K • (φ w).2 = 0 := by
+      refine DFinsupp.ext fun i => ?_
+      rw [DirectSum.smul_apply, DirectSum.zero_apply]
+      obtain ⟨x, hx⟩ := Submodule.Quotient.mk_surjective _ ((φ w).2 i)
+      rw [← hx, ← Submodule.Quotient.mk_smul, Submodule.Quotient.mk_eq_zero, Submodule.mem_span_singleton]
+      obtain ⟨u, hu⟩ := ((IsDiscreteValuationRing.associated_of_irreducible A (hp i) ht).pow_pow (n := e i)).dvd.trans
+        (pow_dvd_pow t (Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ i)))
+      exact ⟨u * x, by rw [hu, smul_eq_mul, smul_eq_mul]; ring⟩
+    have hφ : t ^ K • w = ψ (t ^ K • (φ w).1) := by
+      apply φ.injective
+      rw [map_smul]
+      show t ^ K • φ w = φ (φ.symm (t ^ K • (φ w).1, 0))
+      rw [LinearEquiv.apply_symm_apply]
+      ext1
+      · rfl
+      · exact hd
+    refine ⟨K, fun j => t ^ K * (φ w).1 j, ?_⟩
+    set_option synthInstance.maxHeartbeats 100000 in
+      rw [← Submodule.Quotient.mk_eq_zero, ← Submodule.mkQ_apply, map_sub, map_smul, map_sum]
+    simp_rw [map_smul, hκ]
+    have hz' : B.mkQ z = (w : M ⧸ B) := rfl
+    rw [hz', sub_eq_zero, ← Submodule.coe_smul, hφ]
+    conv_lhs => rw [← Finsupp.univ_sum_single (t ^ K • (φ w).1)]
+    set_option synthInstance.maxHeartbeats 100000 in
+      rw [map_sum, Submodule.coe_sum]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [Finsupp.smul_apply, smul_eq_mul, ← Finsupp.smul_single_one, map_smul, Submodule.coe_smul]
+end
+
+open Matrix IsLocalRing UpperTheory.V.Alg UpperTheory.V.W UpperTheory.V.Pa
+
+private theorem charP_of_padic {l : ℕ} [Fact l.Prime] {K : Type} [Field K] [Finite K] (f : ℤ_[l] →+* K) :
+    CharP K l := by
+  obtain ⟨p, hp⟩ := CharP.exists K
+  have hpp : p.Prime := CharP.char_is_prime K p
+  have hpK : ((p : ℕ) : K) = 0 := CharP.cast_eq_zero K p
+  have hpl : p = l := by
+    by_contra hne
+    have hcop : l.Coprime p := (Nat.coprime_primes (Fact.out) hpp).2 (Ne.symm hne)
+    have hu : IsUnit ((p : ℕ) : ℤ_[l]) :=
+      PadicInt.isUnit_iff.2 (PadicInt.norm_natCast_eq_one_iff.2 hcop)
+    have hu' := hu.map f
+    rw [map_natCast, hpK] at hu'
+    exact not_isUnit_zero hu'
+  subst hpl
+  exact hp
+
+theorem UpperTheory.V.Pa.Det.kapEx :
+    ∀ {l : ℕ} [Fact l.Prime] {F : GFrame l} {n : ℕ} (x : NP F n), PhiCond F.Γ l → Nonempty (Kap x) := by
+  intro l _ F n x hΦ
+  letI : Field x.K := x.field
+  haveI : Finite x.K := x.fin
+  letI : Algebra ℤ_[l] x.K := x.algZ
+  haveI : CharP x.K l := charP_of_padic (algebraMap ℤ_[l] x.K)
+  haveI : CompactSpace F.G₀ :=
+    isCompact_iff_compactSpace.mp (F.η.ker.isClosed_of_isOpen F.η_open).isCompact
+  have hΦ0 : PhiCond F.G₀ l := UpperTheory.V.Pa.Det.phiSub l F.η.ker F.η_open hΦ
+  have hρ : x.ρX x.A = fun g => mat x.ρ g := by
+    funext g
+    simp [UpperTheory.V.Pa.NP.ρX, Algebra.algebraMap_self]
+  obtain ⟨⟨S, hS⟩, ⟨B, hB⟩⟩ := UpperTheory.V.Pa.Det.selSub F (A := x.A) (R := x.A) x.t (x.ρX x.A)
+    (x.wX x.A) (x.wiX x.A) (Od x.A x.A n x.a)
+  have hSfg : S.FG := by
+    refine UpperTheory.V.Pa.Det.matFg l (K := x.K) (G := F.G₀) (R := x.A) (1 : F.G₀ →* x.A) (mat x.ρ) S hΦ0
+      ?_ ?_ ?_
+    · intro N
+      simp only [MonoidHom.one_apply]
+      exact IsLocallyConstant.const (X := F.G₀) _
+    · intro i j
+      have h := x.cont i j
+      simpa [PowerSeries.maximalIdeal_eq_span_X] using h
+    · intro z hz
+      rw [← SetLike.mem_coe, hS] at hz
+      refine ⟨hz.2.1, ?_⟩
+      intro g _ h _
+      have e := hz.2.2.1 g h
+      rw [hρ] at e
+      simpa using e
+  obtain ⟨g, κ, hmem, hind, hgen⟩ :=
+    UpperTheory.V.Pa.Det.maxIndep x.t S B PowerSeries.X_irreducible hSfg
+  have hsel : ∀ j, κ j ∈ SelZ F x.t (x.ρX x.A) (x.wX x.A) (x.wiX x.A) (Od x.A x.A n x.a) := by
+    intro j
+    rw [← hS]
+    exact hmem j
+  have hloc : ∀ j v, ∃ Y ∈ Od x.A x.A n x.a,
+      LocAt F (x.ρX x.A) (x.wX x.A) (x.wiX x.A) (κ j) v Y :=
+    fun j v => (hsel j).2.2.2.2.2 v
+  choose Y hYmem hYloc using hloc
+  refine ⟨⟨g, κ, hsel, Y, hYmem, hYloc, ?_, ?_⟩⟩
+  · intro c hc
+    apply hind c
+    rw [← SetLike.mem_coe, hB]
+    exact hc
+  · intro z hz
+    rw [← hS] at hz
+    obtain ⟨s, c, hsc⟩ := hgen z hz
+    refine ⟨s, c, ?_⟩
+    rw [← hB]
+    exact hsc
+end
+
+section -- merged from Development.AutomorphicArithmetic.AutomorphicVarieties.PatchingModules.DeterminantPadicFree.DetFin
+section -- merged from Development.AutomorphicArithmetic.AutomorphicVarieties.PatchingModules.DeterminantPadicFree.FinSub
+open Matrix IsLocalRing UpperTheory.V.Alg UpperTheory.V.W UpperTheory.V.Pa
+
+theorem UpperTheory.V.Pa.Det.finSub :
+    ∀ {A M ι : Type} [CommRing A] [IsDomain A] [IsDiscreteValuationRing A] [AddCommGroup M] [Module A M] (t : A) (Z B : Submodule A M) (f : ι → M →ₗ[A] A), Irreducible t → Z.FG → (∀ i, ∀ b ∈ B, f i b = 0) → (∀ z ∈ Z, (∀ i, f i z = 0) → ∃ s : ℕ, t ^ s • z ∈ B) → ∃ T : Finset ι, ∀ z ∈ Z, (∀ i ∈ T, f i z = 0) → ∃ s : ℕ, t ^ s • z ∈ B := by
+  intro A M ι _ _ _ _ _ t Z B f ht hZ hB hZB
+  classical
+  obtain ⟨s, rfl⟩ := hZ
+  let h : ι → (↥s → A) := fun i a => f i a.1
+  obtain ⟨P, ⟨T, rfl⟩, hP⟩ := (set_has_maximal_iff_noetherian (R := A) (M := ↥s → A)).mpr
+    inferInstance (Set.range fun T : Finset ι => Submodule.span A (h '' (T : Set ι))) ⟨_, ⟨∅, rfl⟩⟩
+  refine ⟨T, fun z hz hzT => hZB z hz fun j => ?_⟩
+  have hj : h j ∈ Submodule.span A (h '' (T : Set ι)) := by
+    have hle : Submodule.span A (h '' (T : Set ι)) ≤
+        Submodule.span A (h '' ((insert j T : Finset ι) : Set ι)) :=
+      Submodule.span_mono (Set.image_mono (by rw [Finset.coe_insert]; exact Set.subset_insert _ _))
+    have heq := (eq_or_lt_of_le hle).resolve_right (hP _ ⟨insert j T, rfl⟩)
+    rw [heq]
+    exact Submodule.subset_span ⟨j, by simp, rfl⟩
+  obtain ⟨c, rfl⟩ := Submodule.mem_span_finset'.mp hz
+  let E : (↥s → A) →ₗ[A] A := Fintype.linearCombination A c
+  have hE : ∀ i, f i (∑ a : ↥s, c a • a.1) = E (h i) := by
+    intro i
+    set_option synthInstance.maxHeartbeats 100000 in
+      simp [E, h, Fintype.linearCombination_apply, map_sum, mul_comm]
+  have hker : Submodule.span A (h '' (T : Set ι)) ≤ LinearMap.ker E := by
+    rw [Submodule.span_le]
+    rintro _ ⟨i, hi, rfl⟩
+    simp only [SetLike.mem_coe, LinearMap.mem_ker]
+    rw [← hE]
+    exact hzT i hi
+  rw [hE]
+  exact hker hj
+end
+
+open Matrix IsLocalRing UpperTheory.V.Alg UpperTheory.V.W UpperTheory.V.Pa
+
+private theorem ac_mul {G R : Type} [TopologicalSpace G] [CommRing R] {I : Ideal R} {f h : G → R}
+    (hf : AdicCont I f) (hh : AdicCont I h) : AdicCont I fun g => f g * h g := by
+  intro N
+  simpa only [map_mul] using (hf N).comp₂ (hh N) (· * ·)
+
+private theorem ac_add {G R : Type} [TopologicalSpace G] [CommRing R] {I : Ideal R} {f h : G → R}
+    (hf : AdicCont I f) (hh : AdicCont I h) : AdicCont I fun g => f g + h g := by
+  intro N
+  simpa only [map_add (f := _)] using (hf N).comp₂ (hh N) (· + ·)
+
+private theorem ac_const {G R : Type} [TopologicalSpace G] [CommRing R] {I : Ideal R} (c : R) :
+    AdicCont I fun _ : G => c := fun _ => IsLocallyConstant.const _
+
+private theorem ac_sum {G R ι : Type} [TopologicalSpace G] [CommRing R] {I : Ideal R} (s : Finset ι)
+    {f : ι → G → R} (hf : ∀ i, AdicCont I (f i)) : AdicCont I fun g => ∑ i ∈ s, f i g := by
+  classical
+  induction s using Finset.induction_on with
+  | empty => simpa using ac_const (G := G) (I := I) 0
+  | insert a s ha ih =>
+    simp only [Finset.sum_insert ha]
+    exact ac_add (hf a) ih
+
+private theorem ac_map {G A R : Type} [TopologicalSpace G] [CommRing A] [CommRing R] (φ : A →+* R) (t : A)
+    {f : G → A} (hf : AdicCont (Ideal.span {t}) f) : AdicCont (Ideal.span {φ t}) fun g => φ (f g) := by
+  intro N
+  have hle : (Ideal.span {t}) ^ N ≤ ((Ideal.span {φ t}) ^ N).comap φ := by
+    rw [← Ideal.map_le_iff_le_comap, Ideal.map_pow, Ideal.map_span, Set.image_singleton]
+  have h := (hf N).comp (Ideal.quotientMap ((Ideal.span {φ t}) ^ N) φ hle)
+  simpa [Function.comp_def, Ideal.quotientMap_mk] using h
+
+private theorem dd_sum {X ι Y : Type} [CommRing X] [AddCommMonoid Y] {g : ℕ} (p : DD X g → Y) (h0 : p 0 = 0)
+    (ha : ∀ x y, p (x + y) = p x + p y) (s : Finset ι) (f : ι → DD X g) : p (∑ i ∈ s, f i) = ∑ i ∈ s, p (f i) := by
+  classical
+  refine Finset.induction_on s ?_ ?_
+  · simpa using h0
+  · intro i s hi ih
+    rw [Finset.sum_insert hi, Finset.sum_insert hi, ha, ih]
+
+private theorem epM_entry {X : Type} [CommRing X] {g n : ℕ} (Z : Fin g → Matrix (Fin n) (Fin n) X) (a b : Fin n) :
+    DD.epM Z a b = ∑ j, DD.C (Z j a b) * (⟨0, Pi.single j 1, 0, 0⟩ : DD X g) := by
+  have hm : ∀ j, DD.C (Z j a b) * (⟨0, Pi.single j 1, 0, 0⟩ : DD X g)
+      = (⟨0, Pi.single j (Z j a b), 0, 0⟩ : DD X g) := by
+    intro j
+    apply DD.ext
+    · show Z j a b * 0 = 0
+      simp
+    · funext i
+      show Z j a b * (Pi.single j (1 : X) : Fin g → X) i + (0 : Fin g → X) i * 0
+        = (Pi.single j (Z j a b) : Fin g → X) i
+      by_cases h : i = j
+      · subst h
+        simp
+      · simp [Pi.single_apply, h]
+    · funext i
+      show Z j a b * (0 : Fin g → X) i + (0 : Fin g → X) i * 0 = (0 : Fin g → X) i
+      simp
+    · show Z j a b * 0 + 0 * 0 + ∑ k, ((0 : Fin g → X) k * (0 : Fin g → X) k
+          + (0 : Fin g → X) k * (Pi.single j (1 : X) : Fin g → X) k) = 0
+      simp
+  simp_rw [hm]
+  ext i
+  · rw [dd_sum (fun x : DD X g => x.a) rfl (fun _ _ => rfl)]
+    simp [DD.epM]
+  · rw [dd_sum (fun x : DD X g => x.ep i) rfl (fun _ _ => rfl)]
+    simp [DD.epM, Pi.single_apply]
+  · rw [dd_sum (fun x : DD X g => x.ep' i) rfl (fun _ _ => rfl)]
+    simp [DD.epM]
+  · rw [dd_sum (fun x : DD X g => x.eta) rfl (fun _ _ => rfl)]
+    simp [DD.epM]
+
+private noncomputable def ddLin (A : Type) [CommRing A] (g : ℕ) :
+    DD A g ≃ₗ[A] A × (Fin g → A) × (Fin g → A) × A :=
+  { DD.equiv with
+    map_add' := fun _ _ => rfl
+    map_smul' := fun c x => by
+      have hc : c • x = DD.C c * x := rfl
+      rw [hc]
+      ext <;> simp [DD.equiv] }
+
+private theorem charK (l : ℕ) [Fact l.Prime] (K : Type) [Field K] [Finite K] [Algebra ℤ_[l] K] : CharP K l := by
+  have hl : (algebraMap ℤ_[l] K) (l : ℤ_[l]) = 0 := by
+    by_contra hne
+    have hinj : Function.Injective (algebraMap ℤ_[l] K) := by
+      set_option backward.isDefEq.respectTransparency.instanceSearchTypes false in rw [injective_iff_map_eq_zero]
+      intro a ha
+      by_contra ha0
+      have hker : RingHom.ker (algebraMap ℤ_[l] K) ≠ ⊥ := by
+        intro h
+        apply ha0
+        have hmem : a ∈ RingHom.ker (algebraMap ℤ_[l] K) := ha
+        rw [h] at hmem
+        exact hmem
+      obtain ⟨m, hm⟩ := PadicInt.ideal_eq_span_pow_p hker
+      have hmem : (l : ℤ_[l]) ^ m ∈ RingHom.ker (algebraMap ℤ_[l] K) := by
+        rw [hm]
+        exact Ideal.subset_span rfl
+      rw [RingHom.mem_ker, map_pow] at hmem
+      exact hne (pow_eq_zero_iff'.mp hmem).1
+    have : Finite ℤ_[l] := Finite.of_injective _ hinj
+    have : Finite ℤ := Finite.of_injective (Int.cast : ℤ → ℤ_[l]) Int.cast_injective
+    exact not_finite ℤ
+  have hK : ((l : ℕ) : K) = 0 := by
+    rw [← map_natCast (algebraMap ℤ_[l] K)]
+    exact hl
+  exact (CharP.charP_iff_prime_eq_zero (Fact.out : l.Prime)).mpr hK
+
+private theorem lc_zp {l : ℕ} [Fact l.Prime] {G R : Type} [TopologicalSpace G] [CommRing R] (φ : ℤ_[l] →+* R)
+    (hl : (l : R) = 0) {e : G → ℤ_[l]} (he : Continuous e) : IsLocallyConstant fun g => φ (e g) := by
+  have hφ : IsLocallyConstant (φ : ℤ_[l] → R) := by
+    rw [IsLocallyConstant.iff_eventually_eq]
+    intro x
+    filter_upwards [Metric.ball_mem_nhds x one_pos] with y hy
+    rw [Metric.mem_ball, dist_eq_norm, PadicInt.norm_lt_one_iff_dvd] at hy
+    obtain ⟨c, hc⟩ := hy
+    have hy' : y = x + (l : ℤ_[l]) * c := by rw [← hc]; ring
+    rw [hy', map_add (f := _), map_mul, map_natCast, hl, zero_mul, add_zero]
+  exact hφ.comp_continuous he
+
+theorem UpperTheory.V.Pa.Det.detFin :
+    ∀ {l : ℕ} [Fact l.Prime] {F : GFrame l} {n : ℕ} {x : NP F n} (k : Kap x) (S : Set F.G₀), PhiCond F.Γ l → Detects k S → ∃ T : Finset F.G₀, (T : Set F.G₀) ⊆ S ∧ Detects k (T : Set F.G₀) := by
+  intro l _ F n x k S hΦ hdet
+  classical
+  haveI : CharP x.K l := charK l x.K
+  haveI : Module.Free x.A (DD x.A k.g) := Module.Free.of_equiv (ddLin x.A k.g).symm
+  haveI : Module.Finite x.A (DD x.A k.g) := Module.Finite.equiv (ddLin x.A k.g).symm
+  haveI : CompactSpace F.G₀ :=
+    isCompact_iff_compactSpace.mp (Subgroup.isClosed_of_isOpen _ F.η_open).isCompact
+  let I : Ideal (DD x.A k.g) := Ideal.span {algebraMap x.A (DD x.A k.g) x.t}
+  let χ : F.G₀ →* DD x.A k.g :=
+    (algebraMap x.A (DD x.A k.g)).toMonoidHom.comp ((algebraMap ℤ_[l] x.A).toMonoidHom.comp
+      ((Units.coeHom ℤ_[l]).comp (F.ε.comp F.η.ker.subtype)))
+  let r : F.G₀ →* Matrix (Fin n) (Fin n) (DD x.A k.g) :=
+    ⟨⟨k.ρ1 x.A, (Det.rho1Hom k x.A).1⟩, (Det.rho1Hom k x.A).2.1⟩
+  let Zb : Submodule x.A (F.G₀ → Matrix (Fin n) (Fin n) (DD x.A k.g)) :=
+    { carrier := {z | (∀ i j, AdicCont I fun g => z g i j) ∧ TwCoc (⇑χ) (⇑r) Set.univ z}
+      zero_mem' := by
+        refine ⟨fun _ _ => ac_const 0, fun g _ h _ => ?_⟩
+        simp
+      add_mem' := by
+        intro a b ha hb
+        refine ⟨fun i j => ac_add (ha.1 i j) (hb.1 i j), fun g _ h _ => ?_⟩
+        simp only [Pi.add_apply]
+        rw [ha.2 g trivial h trivial, hb.2 g trivial h trivial]
+        simp only [Matrix.mul_add, Matrix.add_mul, smul_add]
+        abel
+      smul_mem' := by
+        intro c z hz
+        refine ⟨fun i j => ?_, fun g _ h _ => ?_⟩
+        · have h := ac_mul (ac_const (G := F.G₀) (I := I) (algebraMap x.A (DD x.A k.g) c)) (hz.1 i j)
+          simpa [Algebra.smul_def] using h
+        · simp only [Pi.smul_apply]
+          rw [hz.2 g trivial h trivial, smul_add, Matrix.mul_smul, Matrix.smul_mul, smul_comm c (χ g)] }
+  have hG : PhiCond F.G₀ l := Det.phiSub l F.η.ker F.η_open hΦ
+  have he : Continuous fun g : F.G₀ => ((F.ε g : ℤ_[l]ˣ) : ℤ_[l]) :=
+    Units.continuous_val.comp (F.ε_cont.comp continuous_subtype_val)
+  have hA : AdicCont (Ideal.span {x.t}) fun g : F.G₀ => algebraMap ℤ_[l] x.A (F.ε g) := by
+    intro N
+    have hl : ((l : ℕ) : x.A ⧸ (Ideal.span {x.t}) ^ N) = 0 := by
+      rw [← map_natCast (Ideal.Quotient.mk _), ← map_natCast (algebraMap x.K x.A),
+        CharP.cast_eq_zero, map_zero, map_zero]
+    exact lc_zp ((Ideal.Quotient.mk _).comp (algebraMap ℤ_[l] x.A)) hl he
+  have hχ : AdicCont I χ := ac_map (algebraMap x.A (DD x.A k.g)) x.t hA
+  have hE : ∀ a b, AdicCont I fun g => DD.epM (fun j => (k.κ j g).map (algebraMap x.A x.A)) a b := by
+    intro a b
+    simp_rw [epM_entry]
+    refine ac_sum _ (fun j => ac_mul ?_ (ac_const _))
+    exact ac_map (algebraMap x.A (DD x.A k.g)) x.t ((k.mem j).2.1 a b)
+  have hρ : ∀ a b, AdicCont I fun g => x.ρX (DD x.A k.g) g a b := by
+    intro a b
+    have h := x.cont a b
+    rw [PowerSeries.maximalIdeal_eq_span_X] at h
+    exact ac_map (algebraMap x.A (DD x.A k.g)) PowerSeries.X h
+  have hr : ∀ i j, AdicCont I fun g => r g i j := by
+    intro i j
+    show AdicCont I fun g => ((1 + DD.epM fun j => (k.κ j g).map (algebraMap x.A x.A))
+      * x.ρX (DD x.A k.g) g) i j
+    simp only [Matrix.mul_apply, Matrix.add_apply]
+    exact ac_sum _ fun m => ac_mul (ac_add (ac_const _) (hE i m)) (hρ m j)
+  have hFG : Zb.FG := Det.matFg l χ r Zb hG hχ hr (fun z hz => hz)
+  let etaL : DD x.A k.g →ₗ[x.A] x.A :=
+    (LinearMap.snd x.A _ _).comp ((LinearMap.snd x.A _ _).comp
+      ((LinearMap.snd x.A _ _).comp (ddLin x.A k.g).toLinearMap))
+  let f : S → (F.G₀ → Matrix (Fin n) (Fin n) (DD x.A k.g)) →ₗ[x.A] x.A := fun σ =>
+    etaL.comp ((Matrix.traceLinearMap (Fin n) x.A (DD x.A k.g)).comp
+      ((LinearMap.mulRight x.A (k.ρ1 x.A σ)).comp (LinearMap.proj (σ : F.G₀))))
+  let B : Submodule x.A (F.G₀ → Matrix (Fin n) (Fin n) (DD x.A k.g)) := ⨅ σ : S, LinearMap.ker (f σ)
+  obtain ⟨T, hT⟩ := Det.finSub x.t Zb B f PowerSeries.X_irreducible hFG
+    (fun i b hb => LinearMap.mem_ker.mp ((Submodule.mem_iInf _).mp hb i))
+    (fun z _ hz => ⟨0, by
+      rw [pow_zero, one_smul]
+      exact (Submodule.mem_iInf _).mpr fun i => LinearMap.mem_ker.mpr (hz i)⟩)
+  refine ⟨T.map (Function.Embedding.subtype _), ?_, ?_⟩
+  · intro σ hσ
+    rw [Finset.coe_map, Set.mem_image] at hσ
+    obtain ⟨i, _, rfl⟩ := hσ
+    exact i.2
+  · intro z hz hvan
+    have hzZ : z ∈ Zb := ⟨hz.2.1, fun g _ h _ => hz.2.2.1 g h⟩
+    obtain ⟨s, hs⟩ := hT z hzZ (fun i hi => hvan _ (Finset.mem_map_of_mem _ hi))
+    apply hdet z hz
+    intro σ hσ
+    have h1 : f ⟨σ, hσ⟩ (x.t ^ s • z) = 0 :=
+      LinearMap.mem_ker.mp ((Submodule.mem_iInf _).mp hs ⟨σ, hσ⟩)
+    rw [map_smul, smul_eq_mul] at h1
+    exact (mul_eq_zero.mp h1).resolve_left (pow_ne_zero _ PowerSeries.X_ne_zero)
+end

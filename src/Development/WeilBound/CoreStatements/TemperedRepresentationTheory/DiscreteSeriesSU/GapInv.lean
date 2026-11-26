@@ -1,0 +1,12 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.TemperedLocalSpectra.DiscreteSeriesSU.GapInv
+public import Development.AbelianVarietyTheory.Statements.CuspFrameWeights.DiscreteSpectrumKFiniteDecomposition
+public import CompanionTheory.HarishChandraModules.LowKTypeMultiplicity.EigenspaceCyclicDensity.LowKTypeMultiplicityOneFock
+public import CompanionTheory.SpectralGeometry.LocalGlobalProofs.StableLattices.IsDerivedOnOfIsKMod
+
+@[expose] public section
+
+namespace PositivityTheory.DiscreteSeriesGap.GapInv
+export CompanionTheory.DiscreteSeriesGap.GapInv (dsUnique_dec lowKMultOne_dec)
+end PositivityTheory.DiscreteSeriesGap.GapInv

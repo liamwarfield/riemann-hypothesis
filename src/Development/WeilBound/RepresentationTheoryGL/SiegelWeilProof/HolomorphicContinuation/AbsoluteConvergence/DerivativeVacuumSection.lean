@@ -1,0 +1,13 @@
+module
+
+public import Development.WeilBound.RepresentationTheoryGL.SiegelWeilProof.HolomorphicContinuation.AbsoluteConvergence.RowsBlocks
+public import Development.WeilBound.RepresentationTheoryGL.SiegelWeilProof.HolomorphicContinuation.AbsoluteConvergence.ContinuousSecondCayleyBlockMap
+public import Development.WeilBound.RepresentationTheoryGL.SiegelWeilProof.HolomorphicContinuation.AbsoluteConvergence.GroupPart
+
+@[expose] public section
+
+namespace PositivityTheory.Rg.Sw.AbsSt
+
+theorem derivative_vacuum_section : DerivativeVacuumDilations := DF.derivative_vacuum_of_parts DF.gaussPart DF.groupPart
+
+end PositivityTheory.Rg.Sw.AbsSt

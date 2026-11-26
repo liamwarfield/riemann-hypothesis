@@ -1,0 +1,11 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.PadicCyclotomicFields.GcohTopEuler
+public import Development.WeilBound.CoreStatements.EulerCharacteristicCounts.GcohTop
+public import GroundTheory.ProfiniteCohomology.LocalEulerCharacteristic.EulerCharGaloisOfCardEq
+
+@[expose] public section
+
+namespace PositivityTheory.LocalTateOrthogonality.Gcoh
+export CompanionTheory.LocalTateOrthogonality.Gcoh (exists_card_eq_pow euler_of top_euler)
+end PositivityTheory.LocalTateOrthogonality.Gcoh

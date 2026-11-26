@@ -1,0 +1,20 @@
+module
+
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.SiegelWeilFormula.LagrangianDecomposition.ModelEx
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.HalfIndexLattices.SplitStab
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.HalfIndexLattices.IsLatRepL
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.ThetaKernels.SiegelWeilAldCut
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.ThetaKernels.ModelExistsOfSiegelSmall
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.ThetaKernels.SiegelWeilAldSiegelP
+
+@[expose] public section
+
+set_option synthInstance.maxHeartbeats 200000
+
+section
+noncomputable section
+namespace PositivityTheory.SiegelWeilFormula.Ald
+theorem modelEx_k : _root_.PositivityTheory.SiegelWeilFormula.Ald.ModelEx_k := _root_.PositivityTheory.SiegelWeilFormula.Ald.modelExists_of_siegelSmall (_root_.PositivityTheory.SiegelWeilFormula.Ald.siegelSmall_of_slice_k sliceFacts)
+end PositivityTheory.SiegelWeilFormula.Ald
+end
+end

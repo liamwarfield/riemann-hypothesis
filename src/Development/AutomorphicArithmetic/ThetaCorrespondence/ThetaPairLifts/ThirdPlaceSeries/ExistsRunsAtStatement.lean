@@ -1,0 +1,26 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Statements.PlaceShiftStatements.SingleIndexPlacesAreTwisted
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsParameterRunWithLawsAndPinsAtSpecialPrimeStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsRatRepr
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.SplitPartRealisationWithScalarsCharOfWeak
+public import Formalism.LocalToGlobal.IndefiniteReal.PrimitivePackageFullHecke
+public import Formalism.LocalToGlobal.IndefiniteReal.PackageFromPrimitiveStatements
+public import Development.AbelianVarietyTheory.Proofs.TwistedOperators.IntegrableOnOfRapidDec
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.SplitRowsBarPhaseCompatibility
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.TrueW
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.ExistsRunsAt
+
+@[expose] public section
+
+set_option synthInstance.maxHeartbeats 200000
+
+section
+open NumberField IsDedekindDomain
+open Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj Formalism.L2.DIV Formalism.L2.Indef Formalism.L2.Indef.Tree Formalism.IndefR Formalism.IndefR.Links Formalism.IndefR.Cx Formalism.IndefR.FWT
+open GlobalTheory.BigTop GlobalTheory.BigOn
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.runs_estimate_statement' : _root_.GlobalTheory.BigOn.TwoRunsStatement := by
+  first | exact @_root_.GlobalTheory.BigOn.bigOn_runsSt | exact _root_.GlobalTheory.BigOn.bigOn_runsSt | (intros; apply _root_.GlobalTheory.BigOn.bigOn_runsSt <;> assumption)
+end

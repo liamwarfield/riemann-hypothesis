@@ -1,0 +1,320 @@
+module
+
+public import Development.AbelianVarietyTheory.Definitions.LatticeFrames.NotRedOfMem
+public import Development.AbelianVarietyTheory.Proofs.HomogeneousIdeals.WeierstrassCurvePointOfLatticeAddOfGeneric
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.ReductionSetSubgroup
+open Formalism.L2.Th1.F GlobalTheory.Klein
+open scoped ComplexConjugate BigOperators
+
+namespace GlobalTheory.Klein
+
+private theorem ultra_add_le {K : Type*} [NormedField K] [IsUltrametricDist K] {x y : K} {C : ℝ}
+    (hx : ‖x‖ ≤ C) (hy : ‖y‖ ≤ C) : ‖x + y‖ ≤ C :=
+  (IsUltrametricDist.norm_add_le_max x y).trans (max_le hx hy)
+
+private theorem mul_le_of {K : Type*} [NormedField K] {x y : K} {C D : ℝ}
+    (hx : ‖x‖ ≤ C) (hy : ‖y‖ ≤ D) : ‖x * y‖ ≤ C * D := by
+  rw [norm_mul]
+  exact mul_le_mul hx hy (norm_nonneg _) ((norm_nonneg _).trans hx)
+
+private theorem cubic_le {K : Type*} [NormedField K] [IsUltrametricDist K] {x k₂ k₁ k₀ : K} {ρ : ℝ}
+    (h2 : ‖(2 : K)‖ = 1) (hρ : 1 ≤ ρ) (hx : ‖x‖ ≤ ρ) (hk₂ : ‖k₂‖ ≤ 1) (hk₁ : ‖k₁‖ ≤ 1) (hk₀ : ‖k₀‖ ≤ 1) :
+    ‖2 * 2 * (x * x * x) + k₂ * (x * x) + k₁ * x + k₀‖ ≤ ρ * ρ * ρ := by
+  have h1 : 1 ≤ ρ * ρ := by nlinarith
+  refine ultra_add_le (ultra_add_le (ultra_add_le ?_ ?_) ?_) ?_
+  · simpa using mul_le_of (mul_le_of h2.le h2.le) (mul_le_of (mul_le_of hx hx) hx)
+  · exact (mul_le_of hk₂ (mul_le_of hx hx)).trans (by nlinarith)
+  · exact (mul_le_of hk₁ hx).trans (by nlinarith)
+  · exact hk₀.trans (by nlinarith)
+
+private theorem le_of_mul_self_le_mul_self' {x y : ℝ} (h : x * x ≤ y * y) (hy : 0 ≤ y) : x ≤ y :=
+  (abs_le_of_sq_le_sq' (by simpa only [sq] using h) hy).2
+
+theorem chord_norm_le_one {K : Type*} [NormedField K] [IsUltrametricDist K] {a b A B X k₂ k₁ k₀ : K}
+    (h2 : ‖(2 : K)‖ = 1) (ha : 1 < ‖a‖) (hb : ‖b‖ ≤ 1) (hk₂ : ‖k₂‖ ≤ 1) (hk₁ : ‖k₁‖ ≤ 1) (hk₀ : ‖k₀‖ ≤ 1)
+    (hA : A ^ 2 = 4 * a ^ 3 + k₂ * a ^ 2 + k₁ * a + k₀)
+    (hB : B ^ 2 = 4 * b ^ 3 + k₂ * b ^ 2 + k₁ * b + k₀)
+    (hX : 4 * (a - b) ^ 2 * X = (A - B) ^ 2 - (4 * (a + b) + k₂) * (a - b) ^ 2) : ‖X‖ ≤ 1 := by
+  set ρ := ‖a‖ with hρ
+  have haa : ‖a‖ ≤ ρ := le_rfl
+  have hab : ‖a - b‖ = ρ := by
+    rw [sub_eq_add_neg, IsUltrametricDist.norm_add_eq_max_of_norm_ne_norm (by rw [norm_neg]; linarith),
+      norm_neg, max_eq_left (by linarith)]
+  have hA' : ‖A‖ * ‖A‖ ≤ ρ * ρ * ρ := by
+    rw [← norm_mul, show A * A = 2 * 2 * (a * a * a) + k₂ * (a * a) + k₁ * a + k₀ by
+      linear_combination hA]
+    exact cubic_le h2 ha.le haa hk₂ hk₁ hk₀
+  have hB' : ‖B‖ * ‖B‖ ≤ 1 * 1 * 1 := by
+    rw [← norm_mul, show B * B = 2 * 2 * (b * b * b) + k₂ * (b * b) + k₁ * b + k₀ by
+      linear_combination hB]
+    exact cubic_le h2 le_rfl hb hk₂ hk₁ hk₀
+  have h1 : 1 ≤ ρ * ρ := by nlinarith
+  have hρρ : ρ ≤ ρ * ρ := by nlinarith
+  have hA1 : ‖A‖ ≤ ρ * ρ := by
+    exact le_of_mul_self_le_mul_self' (hA'.trans (by nlinarith)) (by linarith)
+  have hB1 : ‖B‖ ≤ 1 := by
+    exact le_of_mul_self_le_mul_self' (hB'.trans (by norm_num)) (by linarith)
+  have hN : 2 * 2 * ((a - b) * (a - b)) * X =
+      2 * 2 * b * (a * (a + b)) + 2 * k₂ * b * a + k₁ * (a + b) + 2 * k₀ + 2 * B * (-A) := by
+    linear_combination hX + hA + hB
+  have hs : ‖a + b‖ ≤ ρ := ultra_add_le haa (by linarith)
+  have hn : ‖2 * 2 * b * (a * (a + b)) + 2 * k₂ * b * a + k₁ * (a + b) + 2 * k₀ + 2 * B * (-A)‖
+      ≤ ρ * ρ := by
+    refine ultra_add_le (ultra_add_le (ultra_add_le (ultra_add_le ?_ ?_) ?_) ?_) ?_
+    · simpa using mul_le_of (mul_le_of (mul_le_of h2.le h2.le) hb) (mul_le_of haa hs)
+    · exact (mul_le_of (mul_le_of (mul_le_of h2.le hk₂) hb) haa).trans (by linarith)
+    · exact (mul_le_of hk₁ hs).trans (by linarith)
+    · exact (mul_le_of h2.le hk₀).trans (by linarith)
+    · exact (mul_le_of (mul_le_of h2.le hB1) ((norm_neg A).le.trans hA1)).trans (by linarith)
+  rw [← hN, norm_mul, norm_mul, norm_mul, norm_mul, h2, hab] at hn
+  by_contra hc
+  push_neg at hc
+  nlinarith
+
+theorem norm_two_of_ne {p : ℕ} [Fact p.Prime] (hp : p ≠ 2) : ‖(2 : ℂ_[p])‖ = 1 := by
+  have h : ‖((2 : ℕ) : ℚ_[p])‖ = 1 := by
+    rw [Padic.norm_natCast_eq_one_iff]
+    exact (Nat.coprime_primes Fact.out Nat.prime_two).2 hp
+  have e : (2 : ℂ_[p]) = algebraMap ℚ_[p] ℂ_[p] ((2 : ℕ) : ℚ_[p]) := by
+    rw [map_natCast]; norm_num
+  rw [e, norm_algebraMap', h]
+
+variable {p : ℕ} [Fact p.Prime]
+
+theorem Red.neg {ι : ℂ ≃+* ℂ_[p]} {L : PeriodPair} {r z : ℂ} (h : Red ι L r z) : Red ι L r (-z) :=
+  ⟨fun h' => h.1 (by simpa using h'), by rw [L.weierstrassP_neg]; exact h.2⟩
+
+theorem Red.add_lattice {ι : ℂ ≃+* ℂ_[p]} {L : PeriodPair} {r z ω : ℂ} (h : Red ι L r z)
+    (hω : ω ∈ L.lattice) : Red ι L r (z + ω) :=
+  ⟨fun h' => h.1 ((L.lattice.add_mem_iff_left hω).1 h'), by
+    have e : L.weierstrassP (z + ω) = L.weierstrassP z := L.weierstrassP_add_coe z ⟨ω, hω⟩
+    rw [e]; exact h.2⟩
+
+theorem Red.add_of_not {ι : ℂ ≃+* ℂ_[p]} {L : PeriodPair} {r u w : ℂ} (hg : Good ι L r)
+    (hu : ¬ Red ι L r u) (hw : Red ι L r w) : Red ι L r (u + w) := by
+  by_cases hL : u ∈ L.lattice
+  · rw [add_comm]; exact hw.add_lattice hL
+  have ha : 1 < ‖ι (L.weierstrassP u - r)‖ := not_le.1 fun h => hu ⟨hL, h⟩
+  have hne : L.weierstrassP u ≠ L.weierstrassP w := fun h => by
+    rw [h] at ha; exact absurd hw.2 (not_le.2 ha)
+  refine ⟨fun h => hu ?_, ?_⟩
+  · have := hw.neg.add_lattice h
+    rwa [show -w + (u + w) = u by ring] at this
+  obtain ⟨hp, hk₂, hk₁, hk₀, -⟩ := hg
+  have hs := (GlobalTheory.weierstrassP_add L hL hw.1 hne).1
+  have e1 := L.derivWeierstrassP_sq u hL
+  have e2 := L.derivWeierstrassP_sq w hw.1
+  have hd := sub_ne_zero.2 hne
+  have key : ∀ x y : ℂ, y ^ 2 = 4 * x ^ 3 - L.g₂ * x - L.g₃ →
+      ι y ^ 2 = 4 * ι (x - r) ^ 3 + ι (12 * r) * ι (x - r) ^ 2 + ι (12 * r ^ 2 - L.g₂) * ι (x - r)
+        + ι (4 * r ^ 3 - L.g₂ * r - L.g₃) := fun x y h => by
+    have : y ^ 2 = 4 * (x - r) ^ 3 + (12 * r) * (x - r) ^ 2 + (12 * r ^ 2 - L.g₂) * (x - r)
+        + (4 * r ^ 3 - L.g₂ * r - L.g₃) := by linear_combination h
+    rw [← map_pow, this, map_add (f := _), map_add (f := _), map_add (f := _), map_mul ι 4, map_mul ι (12 * r),
+      map_mul ι _ (x - r), map_pow, map_pow, map_ofNat]
+  refine chord_norm_le_one (norm_two_of_ne hp) ha hw.2 hk₂ hk₁ hk₀ (key _ _ e1) (key _ _ e2) ?_
+  have : 4 * ((L.weierstrassP u - r) - (L.weierstrassP w - r)) ^ 2 * (L.weierstrassP (u + w) - r)
+      = (L.derivWeierstrassP u - L.derivWeierstrassP w) ^ 2
+        - (4 * ((L.weierstrassP u - r) + (L.weierstrassP w - r)) + 12 * r)
+          * ((L.weierstrassP u - r) - (L.weierstrassP w - r)) ^ 2 := by
+    rw [hs]; field_simp; ring
+  have := congrArg ι this
+  simpa only [map_mul, map_sub, map_add (f := _), map_pow, map_ofNat] using this
+
+theorem not_red_addSubgroup : ∀ (p : ℕ) [Fact p.Prime] (ι : ℂ ≃+* ℂ_[p]) (L : PeriodPair) (r : ℂ), Good ι L r → (∀ z, Red ι L r z → Red ι L r (-z)) ∧ (∀ z, Red ι L r z → ∀ ω ∈ L.lattice, Red ι L r (z + ω)) ∧ (∀ u w, ¬ Red ι L r u → Red ι L r w → Red ι L r (u + w)) ∧ ∃ G : AddSubgroup ℂ, (∀ z, z ∈ G ↔ ¬ Red ι L r z) ∧ ∀ ω ∈ L.lattice, ω ∈ G := by
+  intro p _ ι L r hg
+  refine ⟨fun z h => h.neg, fun z h ω hω => h.add_lattice hω, fun u w hu hw => Red.add_of_not hg hu hw, ?_⟩
+  have hneg : ∀ {z : ℂ}, ¬ Red ι L r z → ¬ Red ι L r (-z) := fun hz h => hz (by simpa using h.neg)
+  refine ⟨{ carrier := {z | ¬ Red ι L r z}
+            add_mem' := fun {u v} hu hv h => hu ?_
+            zero_mem' := not_red_of_mem ι L r L.lattice.zero_mem
+            neg_mem' := hneg }, fun z => Iff.rfl, fun ω hω => not_red_of_mem ι L r hω⟩
+  have := Red.add_of_not hg (hneg hv) h
+  rwa [show -v + (u + v) = u by ring] at this
+
+end GlobalTheory.Klein
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.NormWeierstrassPSubEqOne
+open Formalism.L2.Th1.F GlobalTheory.Klein
+open scoped ComplexConjugate BigOperators
+
+namespace GlobalTheory.Klein.DiffUnit
+
+variable {p : ℕ} [Fact p.Prime]
+
+end GlobalTheory.Klein.DiffUnit
+
+namespace GlobalTheory.Klein
+open DiffUnit
+
+section
+variable {p : ℕ} [Fact p.Prime]
+
+private lemma padicComplex_norm_add_le_of_norm_le {x y : ℂ_[p]} {a : ℝ} (hx : ‖x‖ ≤ a) (hy : ‖y‖ ≤ a) :
+    ‖x + y‖ ≤ a :=
+  (IsUltrametricDist.norm_add_le_max x y).trans (max_le hx hy)
+
+private lemma padicComplex_norm_sub_le_of_norm_le {x y : ℂ_[p]} {a : ℝ} (hx : ‖x‖ ≤ a) (hy : ‖y‖ ≤ a) :
+    ‖x - y‖ ≤ a := by
+  rw [sub_eq_add_neg]
+  exact padicComplex_norm_add_le_of_norm_le hx (by rwa [norm_neg])
+
+private lemma padicComplex_norm_mul_le_of_norm_le_one {x y : ℂ_[p]} {a : ℝ} (hx : ‖x‖ ≤ 1) (hy : ‖y‖ ≤ a) :
+    ‖x * y‖ ≤ a := by
+  rw [norm_mul]
+  exact (mul_le_of_le_one_left (norm_nonneg _) hx).trans hy
+
+private lemma padicComplex_norm_ofNat_le_one (n : ℕ) [n.AtLeastTwo] : ‖(OfNat.ofNat n : ℂ_[p])‖ ≤ 1 := by
+  have := IsUltrametricDist.norm_natCast_le_one ℂ_[p] (OfNat.ofNat n)
+  rwa [Nat.cast_ofNat] at this
+
+private lemma norm_sub_eq_one_of_discriminant_relations (hp2 : ‖(2 : ℂ_[p])‖ = 1)
+    {X₁ X₂ S T Y₁ Y₂ b c D : ℂ_[p]} (hX₁ : ‖X₁‖ ≤ 1) (hX₂ : ‖X₂‖ ≤ 1) (hS : ‖S‖ ≤ 1)
+    (hT : ‖T‖ ≤ 1) (hb : ‖b‖ ≤ 1) (hc : ‖c‖ ≤ 1) (hD : ‖D‖ = 1) (hne : X₁ - X₂ ≠ 0)
+    (hA : (Y₁ - Y₂) ^ 2 = (X₁ - X₂) ^ 2 * (4 * (S + X₁ + X₂) + b))
+    (hB : (Y₁ + Y₂) ^ 2 = (X₁ - X₂) ^ 2 * (4 * (T + X₁ + X₂) + b))
+    (hsym : (X₁ - X₂) ^ 2 * (S + T - 2 * X₂) =
+      (6 * X₂ ^ 2 + b * X₂ + c / 2) * (X₁ - X₂) + Y₂ ^ 2)
+    (hdisc : 4 * D = Y₂ ^ 2 * (36 * (12 * X₂ + b) * (6 * X₂ ^ 2 + b * X₂ + c / 2)
+        - 108 * Y₂ ^ 2 - (12 * X₂ + b) ^ 3) +
+      (6 * X₂ ^ 2 + b * X₂ + c / 2) ^ 2 * ((12 * X₂ + b) ^ 2 - 32 * (6 * X₂ ^ 2 + b * X₂ + c / 2))) :
+    ‖X₁ - X₂‖ = 1 := by
+  have hc2 : ‖c / 2‖ ≤ 1 := by rw [norm_div, hp2, div_one]; exact hc
+  set d := X₁ - X₂ with hd
+  set H := 6 * X₂ ^ 2 + b * X₂ + c / 2 with hH
+  set K := 12 * X₂ + b with hK
+  have h1 : ‖d‖ ≤ 1 := padicComplex_norm_sub_le_of_norm_le hX₁ hX₂
+  refine le_antisymm h1 (not_lt.1 fun hlt => ?_)
+  have hdpos : 0 < ‖d‖ := norm_pos_iff.2 hne
+  have hfour : ∀ {W : ℂ_[p]}, ‖W‖ ≤ 1 → ‖4 * (W + X₁ + X₂) + b‖ ≤ 1 := fun hW =>
+    padicComplex_norm_add_le_of_norm_le (padicComplex_norm_mul_le_of_norm_le_one (padicComplex_norm_ofNat_le_one 4)
+      (padicComplex_norm_add_le_of_norm_le (padicComplex_norm_add_le_of_norm_le hW hX₁) hX₂)) hb
+  have hsq : ∀ {Y W : ℂ_[p]}, Y ^ 2 = d ^ 2 * W → ‖W‖ ≤ 1 → ‖Y‖ ≤ ‖d‖ := fun {Y W} hY hW => by
+    have : ‖Y‖ ^ 2 ≤ ‖d‖ ^ 2 := by
+      rw [← norm_pow, hY, norm_mul, norm_pow]
+      exact mul_le_of_le_one_right (by positivity) hW
+    exact (pow_le_pow_iff_left₀ (norm_nonneg _) (norm_nonneg _) two_ne_zero).1 this
+  have hm := hsq hA (hfour hS)
+  have hp := hsq hB (hfour hT)
+  have hY₂ : ‖Y₂‖ ≤ ‖d‖ := by
+    have h2 : 2 * Y₂ = (Y₁ + Y₂) - (Y₁ - Y₂) := by ring
+    have := padicComplex_norm_sub_le_of_norm_le hp hm
+    rwa [← h2, norm_mul, hp2, one_mul] at this
+  have hX₂' : ‖2 * X₂‖ ≤ 1 := padicComplex_norm_mul_le_of_norm_le_one (padicComplex_norm_ofNat_le_one 2) hX₂
+  have hHd : ‖H‖ ≤ ‖d‖ := by
+    have heq : H * d = d ^ 2 * (S + T - 2 * X₂) - Y₂ ^ 2 := by linear_combination -hsym
+    have hST : ‖S + T - 2 * X₂‖ ≤ 1 := padicComplex_norm_sub_le_of_norm_le (padicComplex_norm_add_le_of_norm_le hS hT) hX₂'
+    have : ‖H‖ * ‖d‖ ≤ ‖d‖ * ‖d‖ := by
+      rw [← norm_mul, heq]
+      refine padicComplex_norm_sub_le_of_norm_le ?_ ?_
+      · rw [norm_mul, norm_pow]
+        nlinarith [norm_nonneg (S + T - 2 * X₂), sq_nonneg ‖d‖]
+      · rw [norm_pow]
+        nlinarith [norm_nonneg Y₂]
+    exact le_of_mul_le_mul_right this hdpos
+  have hK1 : ‖K‖ ≤ 1 :=
+    padicComplex_norm_add_le_of_norm_le (padicComplex_norm_mul_le_of_norm_le_one (padicComplex_norm_ofNat_le_one 12) hX₂) hb
+  have hH1 : ‖H‖ ≤ 1 := hHd.trans h1
+  have hα : ‖Y₂ ^ 2‖ < 1 := by
+    rw [norm_pow]; nlinarith [norm_nonneg Y₂]
+  have hH2 : ‖H ^ 2‖ < 1 := by
+    rw [norm_pow]; nlinarith [norm_nonneg H]
+  have hP : ‖36 * K * H - 108 * Y₂ ^ 2 - K ^ 3‖ ≤ 1 :=
+    padicComplex_norm_sub_le_of_norm_le (padicComplex_norm_sub_le_of_norm_le
+      (padicComplex_norm_mul_le_of_norm_le_one (padicComplex_norm_mul_le_of_norm_le_one (padicComplex_norm_ofNat_le_one 36) hK1) hH1)
+      (padicComplex_norm_mul_le_of_norm_le_one (padicComplex_norm_ofNat_le_one 108) hα.le))
+      (by rw [norm_pow]; exact pow_le_one₀ (norm_nonneg _) hK1)
+  have hQ : ‖K ^ 2 - 32 * H‖ ≤ 1 :=
+    padicComplex_norm_sub_le_of_norm_le (by rw [norm_pow]; exact pow_le_one₀ (norm_nonneg _) hK1)
+      (padicComplex_norm_mul_le_of_norm_le_one (padicComplex_norm_ofNat_le_one 32) hH1)
+  have hlt4 : ‖4 * D‖ < 1 := by
+    rw [hdisc]
+    refine (IsUltrametricDist.norm_add_le_max _ _).trans_lt (max_lt ?_ ?_)
+    · rw [norm_mul]
+      exact (mul_le_of_le_one_right (norm_nonneg _) hP).trans_lt hα
+    · rw [norm_mul]
+      exact (mul_le_of_le_one_right (norm_nonneg _) hQ).trans_lt hH2
+  have h4 : ‖4 * D‖ = 1 := by
+    rw [norm_mul, hD, show (4 : ℂ_[p]) = 2 * 2 by norm_num, norm_mul, hp2]
+    norm_num
+  linarith
+
+private lemma padicComplex_norm_two_eq_one_of_ne_two (h : p ≠ 2) : ‖(2 : ℂ_[p])‖ = 1 := by
+  have h1 : ‖algebraMap ℚ_[p] ℂ_[p] 2‖ = ‖(2 : ℚ_[p])‖ := norm_algebraMap' _ _
+  rw [map_ofNat] at h1
+  rw [h1]
+  have h2 : ‖(2 : ℚ_[p])‖ = ‖((2 : ℤ) : ℤ_[p])‖ := by
+    rw [PadicInt.norm_def, PadicInt.coe_intCast]; norm_num
+  rw [h2]
+  refine le_antisymm (PadicInt.norm_le_one _) (not_lt.1 fun hlt => h ?_)
+  rw [PadicInt.norm_int_lt_one_iff_dvd] at hlt
+  have : p ∣ 2 := by exact_mod_cast hlt
+  exact (Nat.prime_dvd_prime_iff_eq Fact.out Nat.prime_two).1 this
+
+theorem _root_.GlobalTheory.Klein.norm_weierstrassP_sub_eq_one (p : ℕ) [Fact p.Prime] (ι : ℂ ≃+* ℂ_[p])
+    (L : PeriodPair) (r : ℂ)
+    (hG : _root_.GlobalTheory.Klein.Good ι L r) (u v : ℂ) (hu : _root_.GlobalTheory.Klein.Red ι L r u)
+    (hv : _root_.GlobalTheory.Klein.Red ι L r v)
+    (h₁ : _root_.GlobalTheory.Klein.Red ι L r (u + v))
+    (h₂ : _root_.GlobalTheory.Klein.Red ι L r (u - v)) :
+    ‖ι (L.weierstrassP u - L.weierstrassP v)‖ = 1 := by
+  obtain ⟨hp, h12r, hc, -, hΔ⟩ := hG
+  obtain ⟨hu, hXu⟩ := hu
+  obtain ⟨hv, hXv⟩ := hv
+  obtain ⟨hs, hS⟩ := h₁
+  obtain ⟨ht, hT⟩ := h₂
+  have hne : L.weierstrassP u ≠ L.weierstrassP v := by
+    rw [Ne, _root_.GlobalTheory.weierstrassP_eq_iff L hu hv]
+    rintro (h | h)
+    exacts [ht h, hs h]
+  have hd : L.weierstrassP u - L.weierstrassP v ≠ 0 := sub_ne_zero.2 hne
+  have hA := (_root_.GlobalTheory.weierstrassP_add L hu hv hne).1
+  have hnv : -v ∉ L.lattice := fun h => hv (by simpa using neg_mem h)
+  have hne' : L.weierstrassP u ≠ L.weierstrassP (-v) := by rwa [PeriodPair.weierstrassP_neg]
+  have hB := (_root_.GlobalTheory.weierstrassP_add L hu hnv hne').1
+  rw [PeriodPair.weierstrassP_neg, PeriodPair.derivWeierstrassP_neg, ← sub_eq_add_neg,
+    sub_neg_eq_add] at hB
+  have hsym := _root_.GlobalTheory.weierstrassP_add_add_sub L hu hv hne
+  have hY := L.derivWeierstrassP_sq v hv
+  set x₁ := L.weierstrassP u
+  set x₂ := L.weierstrassP v
+  set s := L.weierstrassP (u + v)
+  set t := L.weierstrassP (u - v)
+  set y₁ := L.derivWeierstrassP u
+  set y₂ := L.derivWeierstrassP v
+  have cA : (y₁ - y₂) ^ 2 = ((x₁ - r) - (x₂ - r)) ^ 2 *
+      (4 * ((s - r) + (x₁ - r) + (x₂ - r)) + 12 * r) := by
+    rw [hA]; field_simp; ring
+  have cB : (y₁ + y₂) ^ 2 = ((x₁ - r) - (x₂ - r)) ^ 2 *
+      (4 * ((t - r) + (x₁ - r) + (x₂ - r)) + 12 * r) := by
+    rw [hB]; field_simp; ring
+  have cS : ((x₁ - r) - (x₂ - r)) ^ 2 * ((s - r) + (t - r) - 2 * (x₂ - r)) =
+      (6 * (x₂ - r) ^ 2 + 12 * r * (x₂ - r) + (12 * r ^ 2 - L.g₂) / 2) * ((x₁ - r) - (x₂ - r)) +
+        y₂ ^ 2 := by
+    have e : s = (6 * x₂ ^ 2 - L.g₂ / 2) / (x₁ - x₂) + y₂ ^ 2 / (x₁ - x₂) ^ 2 - t + 2 * x₂ := by
+      linear_combination hsym
+    rw [e]; field_simp; ring
+  have cD : 4 * (L.g₂ ^ 3 - 27 * L.g₃ ^ 2) =
+      y₂ ^ 2 * (36 * (12 * (x₂ - r) + 12 * r) *
+          (6 * (x₂ - r) ^ 2 + 12 * r * (x₂ - r) + (12 * r ^ 2 - L.g₂) / 2)
+        - 108 * y₂ ^ 2 - (12 * (x₂ - r) + 12 * r) ^ 3) +
+      (6 * (x₂ - r) ^ 2 + 12 * r * (x₂ - r) + (12 * r ^ 2 - L.g₂) / 2) ^ 2 *
+        ((12 * (x₂ - r) + 12 * r) ^ 2 -
+          32 * (6 * (x₂ - r) ^ 2 + 12 * r * (x₂ - r) + (12 * r ^ 2 - L.g₂) / 2)) := by
+    rw [hY]; ring
+  have key := norm_sub_eq_one_of_discriminant_relations (padicComplex_norm_two_eq_one_of_ne_two hp) hXu hXv hS hT h12r hc
+    hΔ (Y₁ := ι y₁) (Y₂ := ι y₂)
+    (by rw [← map_sub]; exact (map_ne_zero ι).2 (by rwa [sub_sub_sub_cancel_right]))
+    (by simpa only [map_sub, map_mul, map_add (f := _), map_pow, map_ofNat, map_div₀] using congrArg ι cA)
+    (by simpa only [map_sub, map_mul, map_add (f := _), map_pow, map_ofNat, map_div₀] using congrArg ι cB)
+    (by simpa only [map_sub, map_mul, map_add (f := _), map_pow, map_ofNat, map_div₀] using congrArg ι cS)
+    (by simpa only [map_sub, map_mul, map_add (f := _), map_pow, map_ofNat, map_div₀] using congrArg ι cD)
+  rwa [← map_sub, sub_sub_sub_cancel_right] at key
+end
+
+end GlobalTheory.Klein
+end

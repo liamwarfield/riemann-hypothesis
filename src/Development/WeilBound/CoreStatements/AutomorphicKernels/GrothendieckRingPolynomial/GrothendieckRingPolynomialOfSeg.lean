@@ -1,0 +1,18 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.GrothendieckRingPolynomial.GrothendieckRingPolynomialOfSeg
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.GrothendieckRingPolynomial.GrothOfCls
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.ExhaustionOfThree
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.EmbeddingMiddleFactorTriple
+
+@[expose] public section
+
+namespace PositivityTheory.Groth.ClsOfF
+export CompanionTheory.Groth.ClsOfF (
+  comm_of stdCos segCl ex_of peelGood exh_at
+)
+end PositivityTheory.Groth.ClsOfF
+
+namespace PositivityTheory.Groth
+export CompanionTheory.Groth (cls_of groth_of_three grothendieckRingPolynomial_of_seg)
+end PositivityTheory.Groth

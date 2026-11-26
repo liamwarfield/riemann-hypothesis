@@ -1,0 +1,54 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.CrysToDRBijective
+public import Development.AbelianVarietyTheory.Definitions.Divisors.SlopeTestRemainingChoicesAlt
+public import Development.AbelianVarietyTheory.Statements.HeckeThetaIntegrals.FormulaAt
+public import Development.AbelianVarietyTheory.Definitions.Divisors.TieTest
+public import Development.AbelianVarietyTheory.Statements.PlaceShiftStatements.NormSmall
+public import Development.AbelianVarietyTheory.BlockTheory.DivisorBase.ToricSymbols
+public import Development.AbelianVarietyTheory.Definitions.Divisors.DiscreteSeriesHermitianUnique
+public import Development.AbelianVarietyTheory.Statements.PlaceShiftStatements.InfClassAt
+public import Development.AbelianVarietyTheory.Statements.PlaceShiftStatements.DictAt
+public import Development.AbelianVarietyTheory.Definitions.Foundations.NormSumPairRankZeroOfCurveCoordNorm
+public import Development.AbelianVarietyTheory.Statements.HeckeThetaIntegrals.StepUnfold
+public import Development.AbelianVarietyTheory.Statements.HeckeThetaIntegrals.ThetaIntegralsAgree
+public import Development.AbelianVarietyTheory.BlockTheory.DivisorBase.WeilTensorModels
+public import Development.AbelianVarietyTheory.BlockTheory.TwistedDiscreteSeries.CuspAlongSmoothRows
+public import Development.AbelianVarietyTheory.Definitions.Divisors.MatchingOfParts
+public import Development.AbelianVarietyTheory.BlockTheory.DivisorBase.VpBounds
+public import Development.AbelianVarietyTheory.BlockTheory.DivisorBase.ZetaValueIdeals
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.DenseInterior
+public import Development.AbelianVarietyTheory.BlockTheory.DivisorBase.UnitaryConjugation
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.TwistedTransport
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.GrothendieckDeformation
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.ExistsCrystalPairing
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.ExistsAlgClosedBaseChange
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.PartialZetaFunctionalEquation
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.ExistsEqOfNatCastMulMem
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.SiegelKlingenDeligneRibet
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.HeckeTateFunctionalEquationCM
+public import Development.AbelianVarietyTheory.Definitions.Divisors.SemiposAtOfPositive
+public import Development.AbelianVarietyTheory.Definitions.Divisors.ExistsMonoFamNontrivial
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.TypePartBase
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ZetaDenominatorsFitFunction
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.Realised
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.GeoAll
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.FittedFunctionAtZeroClose
+
+@[expose] public section
+
+set_option synthInstance.maxHeartbeats 200000
+
+section
+section
+namespace GlobalTheory.BigTop.Fun.Close
+theorem fourier_coefficient_fit_of_join_alt : _root_.GlobalTheory.FunPr.ThetaLocalInputs → GlobalTheory.Mem.LiteralAutomorphy.JoinOut → GlobalTheory.Published.HeckeTateFunctionalEquation → GlobalTheory.IndefiniteRowSideFullHecke.WeilTensorModels.ThetaIntegralsAgree → GlobalTheory.IndefiniteRowSideFullHecke.WeilTensorModels.LocalMatching → GlobalTheory.IndefiniteRowSideFullHecke.LevelPlusSubgroup.FunctionalsSeparate → _root_.GlobalTheory.BigTop.LambdaLowerBound₂ → _root_.GlobalTheory.BigTop.Fun.ConstantFunctionFits @GlobalTheory.BigTop.Fun.Fld := by
+  intro hP hJ hHT hTheta hLoc hSep hLam
+  obtain ⟨hTD, hTr, hTw, hZD, hRefl⟩ :=
+    hJ
+  exact _root_.GlobalTheory.BigTop.Fun.Close.fittedFunction_at_zero_close_alt hP (GlobalTheory.Published.HeckeTateFunctionalEquation.abs hHT) hTD hTr hTw hZD hRefl
+    hTheta hLoc hSep hLam
+end GlobalTheory.BigTop.Fun.Close
+end
+end

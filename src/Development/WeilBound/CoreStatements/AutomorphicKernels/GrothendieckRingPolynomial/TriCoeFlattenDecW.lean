@@ -1,0 +1,24 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.GrothendieckRingPolynomial.GrothOfCls
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.GrothendieckRingPolynomial.ProdList
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.JacquetMultiplicityCuspidalProduct
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ReverseOrderedProductPermEquiv
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.CanonicalProductEquivMultiplicityOne
+
+@[expose] public section
+
+namespace PositivityTheory.Groth.GrothendieckSingleMultiplication
+export CompanionTheory.Groth.GrothendieckSingleMultiplication (
+  mulR_sg_left mulR_sg_zero mulR_sg_add mulR_sg_zsmul sum_single_one_smul
+  mulR_sg_sg mulR_sg_left_comm foldr_perm jordan_holder_mult_eq_of_class
+  jhMult_mul_jm_le ofFn_perm jhMult_le_one_of_equiv jhMult_rev_le_one
+)
+end PositivityTheory.Groth.GrothendieckSingleMultiplication
+
+namespace PositivityTheory.Groth
+export CompanionTheory.Groth (
+  multOne tri_coe_decW tri_coe_flatten_decW tri_msupp_of_inShW tri_msupp_wtW
+  tri_sqLen_map_toA tri
+)
+end PositivityTheory.Groth

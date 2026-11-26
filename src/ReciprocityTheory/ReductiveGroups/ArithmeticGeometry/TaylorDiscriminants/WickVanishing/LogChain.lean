@@ -1,0 +1,445 @@
+module
+
+public import Formalism.FormalGroupWitt.FormalGroupWittProofs.SolveV
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.TaylorDiscriminants.WickVanishing.CalcAdd
+public import Formalism.FormalGroupWitt.FormalGroupWittProofs.EqSingleOfDegreeEqOne
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.TaylorDiscriminants.WickVanishing.KillAdd
+
+@[expose] public section
+
+section -- merged from ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.TaylorDiscriminants.WickVanishing.LogChain
+set_option autoImplicit false
+
+noncomputable section
+
+open MvPowerSeries Formalism.FG.SolveVAux
+
+namespace ReciprocityTheory.ChartRestriction.G.TB.LogPf
+
+variable {k : Type} [CommRing k] {σ τ : Type}
+
+theorem low_pderiv {N : ℕ} {g : MvPowerSeries τ k} (hg : Low (N + 1) g) (t : τ) : Low N (pderiv t g) := by
+  intro d hd
+  rw [MvPowerSeries.coeff_pderiv, hg, zero_mul]
+  have e : Finsupp.degree (d + Finsupp.single t 1) = Finsupp.degree d + 1 := by
+    first
+    | rw [map_add (f := _), Finsupp.degree_single]
+    | simp [Finsupp.degree, Finsupp.sum_add_index']
+    | (unfold Finsupp.degree; rw [Finsupp.sum_add_index' (by simp) (by simp)]; simp)
+  omega
+
+private theorem low_mul_lemma {m n : ℕ} {f g : MvPowerSeries τ k} (hf : Low m f) (hg : Low n g) :
+    Low (m + n) (f * g) := by
+  classical
+  intro d hd
+  rw [MvPowerSeries.coeff_mul]
+  refine Finset.sum_eq_zero fun x hx => ?_
+  first
+  | rw [Finset.HasAntidiagonal.mem_antidiagonal] at hx
+  | simp only [Finset.HasAntidiagonal.mem_antidiagonal] at hx
+  | simp only [Finset.mem_antidiagonal] at hx
+  have e : Finsupp.degree x.1 + Finsupp.degree x.2 = Finsupp.degree d := by
+    rw [← hx]
+    first
+    | exact (map_add _ _ _).symm
+    | simp [Finsupp.degree, Finsupp.sum_add_index']
+  by_cases h1 : Finsupp.degree x.1 < m
+  · rw [hf _ h1, zero_mul]
+  · rw [hg _ (by omega), mul_zero]
+
+private theorem low_pow_lemma_2 {f : MvPowerSeries τ k} (hf : Low 1 f) (n : ℕ) : Low n (f ^ n) := by
+  induction n with
+  | zero => intro d hd; omega
+  | succ n ih => rw [pow_succ]; exact low_mul_lemma ih hf
+
+private theorem low_prod_lemma_3 {a : σ → MvPowerSeries τ k} (ha : ∀ s, Low 1 (a s)) (e : σ →₀ ℕ)
+    (S : Finset σ) : Low (∑ s ∈ S, e s) (∏ s ∈ S, a s ^ e s) := by
+  classical
+  refine Finset.induction_on S ?_ ?_
+  · intro d hd
+    simp at hd
+  · intro s S hs ih
+    rw [Finset.sum_insert hs, Finset.prod_insert hs]
+    exact low_mul_lemma (low_pow_lemma_2 (ha s) _) ih
+
+private theorem finsupp_apply_le_degree' {ι : Type} (d : ι →₀ ℕ) (i : ι) : d i ≤ d.degree := by
+  first
+  | exact Finsupp.le_degree i d
+  | exact Finsupp.le_degree d i
+  | exact Finsupp.le_degree
+
+theorem low_subst_of_low [Finite σ] {a : σ → MvPowerSeries τ k} (ha : ∀ s, Low 1 (a s)) {N : ℕ}
+    {g : MvPowerSeries σ k} (hg : Low N g) : Low N (subst a g) := by
+  classical
+  have hc : ∀ s, constantCoeff (a s) = 0 := fun s => by
+    have h0 := ha s 0 (by simp)
+    simpa using h0
+  intro d hd
+  have hS : HasSubst a := by
+    exact MvPowerSeries.hasSubst_of_constantCoeff_zero hc
+  rw [MvPowerSeries.coeff_subst hS]
+  apply finsum_eq_zero_of_forall_eq_zero
+  intro e
+  by_cases he : e.degree < N
+  · exact smul_eq_zero_of_left (hg e he) _
+  · have hl : Low e.degree (e.prod fun s n => a s ^ n) := by
+      have h := low_prod_lemma_3 ha e e.support
+      have hdeg : e.degree = ∑ s ∈ e.support, e s := by
+        first
+        | rfl
+        | exact Finsupp.degree_eq_sum e
+        | simp [Finsupp.degree]
+      rw [hdeg]
+      exact h
+    exact smul_eq_zero_of_right _ (hl d (by omega))
+
+theorem pderiv_aeval [Fintype σ] (a : σ → MvPowerSeries τ k) (p : MvPolynomial σ k) (t : τ) :
+    pderiv t (MvPolynomial.aeval a p) =
+      ∑ s, MvPolynomial.aeval a (MvPolynomial.pderiv s p) * pderiv t (a s) := by
+  classical
+  induction p using MvPolynomial.induction_on
+  next c =>
+    simp
+  next p q hp hq =>
+    simp only [map_add (f := _), hp, hq, add_mul, Finset.sum_add_distrib]
+  next p s0 hp =>
+    rw [map_mul, MvPolynomial.aeval_X, Derivation.leibniz, hp, smul_eq_mul, smul_eq_mul, Finset.mul_sum]
+    simp only [Derivation.leibniz, MvPolynomial.pderiv_X, Pi.single_apply, smul_eq_mul, map_add (f := _), map_mul,
+      MvPolynomial.aeval_X, add_mul, Finset.sum_add_distrib, mul_ite, mul_one, mul_zero, map_one, map_zero,
+      ite_mul, zero_mul, Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    simp only [apply_ite (MvPolynomial.aeval a), map_zero, ite_mul, zero_mul, Finset.sum_ite_eq,
+      Finset.mem_univ, if_true, mul_assoc]
+    try ring
+
+private theorem pderiv_coe_mvPolynomial (s : σ) (p : MvPolynomial σ k) :
+    pderiv s (p : MvPowerSeries σ k) = ((MvPolynomial.pderiv s p : MvPolynomial σ k) : MvPowerSeries σ k) := by
+  exact MvPowerSeries.pderiv_coe p
+
+private theorem Low_finset_sum {N : ℕ} {ι : Type} (S : Finset ι) (F : ι → MvPowerSeries τ k)
+    (h : ∀ i ∈ S, Low N (F i)) : Low N (∑ i ∈ S, F i) := by
+  intro d hd
+  set_option synthInstance.maxHeartbeats 100000 in
+    rw [map_sum]
+  exact Finset.sum_eq_zero fun i hi => h i hi d hd
+
+theorem pderiv_subst [Fintype σ] {a : σ → MvPowerSeries τ k} (ha : ∀ s, constantCoeff (a s) = 0)
+    (f : MvPowerSeries σ k) (t : τ) :
+    pderiv t (subst a f) = ∑ s, subst a (pderiv s f) * pderiv t (a s) := by
+  classical
+  have hS : HasSubst a := MvPowerSeries.hasSubst_of_constantCoeff_zero ha
+  have ha1 : ∀ s, Low 1 (a s) := by
+    intro s d hd
+    have hd0 : d = 0 := Finsupp.ext fun i => by
+      have := finsupp_apply_le_degree' d i
+      simp only [Finsupp.coe_zero, Pi.zero_apply]
+      omega
+    subst hd0
+    simpa using ha s
+  have hpoly : ∀ M : ℕ, ∃ p : MvPolynomial σ k, Low M (f - (p : MvPowerSeries σ k)) := by
+    intro M
+    refine ⟨MvPowerSeries.trunc' k (Finsupp.equivFunOnFinite.symm fun _ => M) f, ?_⟩
+    intro m hm
+    rw [map_sub, MvPolynomial.coeff_coe, MvPowerSeries.coeff_trunc', if_pos, sub_self]
+    rw [Finsupp.le_def]
+    intro s
+    have h1 := finsupp_apply_le_degree' m s
+    first
+    | (change m s ≤ M; omega)
+    | (simp; omega)
+  ext d
+  obtain ⟨p, hp⟩ := hpoly (d.degree + 1 + 1)
+  have hf : f = (f - (p : MvPowerSeries σ k)) + (p : MvPowerSeries σ k) := (sub_add_cancel _ _).symm
+  generalize f - (p : MvPowerSeries σ k) = g at hp hf
+  subst hf
+  have hpol := pderiv_aeval a p t
+  simp only [map_add (f := _), MvPowerSeries.subst_add hS, MvPowerSeries.subst_coe, pderiv_coe_mvPolynomial, add_mul,
+    Finset.sum_add_distrib, hpol]
+  congr 1
+  have h1 : Low (d.degree + 1) (pderiv t (subst a g)) := low_pderiv (low_subst_of_low ha1 hp) t
+  have h2 : Low (d.degree + 1 + 0) (∑ s, subst a (pderiv s g) * pderiv t (a s)) :=
+    Low_finset_sum _ _ fun s _ => low_mul_lemma (low_subst_of_low ha1 (low_pderiv hp s)) (fun e he => by omega)
+  rw [h1 d (by omega), h2 d (by omega)]
+
+theorem pderiv_comm (u v : τ) (g : MvPowerSeries τ k) : pderiv u (pderiv v g) = pderiv v (pderiv u g) := by
+  ext n
+  simp only [MvPowerSeries.coeff_pderiv]
+  by_cases huv : u = v
+  · subst huv
+    rfl
+  · have h1 : (n + Finsupp.single u 1 : τ →₀ ℕ) v = n v := by simp [Finsupp.single_apply, huv]
+    have h2 : (n + Finsupp.single v 1 : τ →₀ ℕ) u = n u := by simp [Finsupp.single_apply, Ne.symm huv]
+    rw [h1, h2, add_right_comm n]
+    ring
+
+theorem eq_C_of_pderiv_zero [Algebra ℚ k] {g : MvPowerSeries τ k} (h : ∀ v, pderiv v g = 0) :
+    g = C (constantCoeff g) := by
+  classical
+  ext n
+  rw [MvPowerSeries.coeff_C]
+  split_ifs with hn
+  · subst hn
+    simp
+  · obtain ⟨v, hv⟩ : ∃ v, n v ≠ 0 := by
+      by_contra hcon
+      push_neg at hcon
+      exact hn (Finsupp.ext fun i => by simpa using hcon i)
+    set m := n - Finsupp.single v 1 with hm
+    have hnm : n = m + Finsupp.single v 1 :=
+      (tsub_add_cancel_of_le (Finsupp.single_le_iff.mpr (Nat.one_le_iff_ne_zero.mpr hv))).symm
+    have h0 := congrArg (MvPowerSeries.coeff m) (h v)
+    rw [MvPowerSeries.coeff_pderiv, ← hnm, map_zero] at h0
+    have hu : IsUnit ((m v : k) + 1) := by
+      have e : ((m v : k) + 1) = algebraMap ℚ k ((m v : ℚ) + 1) := by simp
+      rw [e]
+      exact (IsUnit.mk0 _ (by positivity)).map _
+    exact (hu.mul_left_eq_zero).mp h0
+
+end ReciprocityTheory.ChartRestriction.G.TB.LogPf
+end
+end
+
+section -- merged from ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.TaylorDiscriminants.WickVanishing.ExpLaw
+set_option autoImplicit false
+
+noncomputable section
+
+open MvPowerSeries ReciprocityTheory.ChartRestriction.G.Geo.Tor.Germ
+
+namespace ReciprocityTheory.ChartRestriction.G.TB.WickVanishing
+
+variable {k : Type} [CommRing k] [Algebra ℚ k]
+
+def ExpLawSt : Prop :=
+  ∀ (k : Type) [CommRing k] [Algebra ℚ k] (d : ℕ) (G : FGLaw k d) (ℓ : Pt k 1 d), (∀ i, constantCoeff (ℓ i) = 0) →
+    dLin ℓ = 1 →
+    comp1 ℓ (G.add (pt k (n := 2) d 0) (pt k (n := 2) d 1)) = comp1 ℓ (pt k (n := 2) d 0) + comp1 ℓ (pt k (n := 2) d 1) →
+    ∃ ε : Pt k 1 d, IsInvPair ε ℓ ∧ transF G.F ε ℓ = pt k (n := 2) d 0 + pt k (n := 2) d 1
+
+theorem idMod2_of {d : ℕ} (ℓ : Pt k 1 d) (h0 : ∀ i, constantCoeff (ℓ i) = 0) (h1 : dLin ℓ = 1) :
+    Formalism.FG.IsIdMod2 (fun p : Fin 1 × Fin d => ℓ p.2) := by
+  refine ⟨fun p => h0 p.2, fun j i => ?_⟩
+  obtain ⟨j1, j2⟩ := j
+  obtain ⟨i1, i2⟩ := i
+  have hj : j1 = 0 := Subsingleton.elim _ _
+  have hi : i1 = 0 := Subsingleton.elim _ _
+  subst hj hi
+  have := congrFun (congrFun h1 j2) i2
+  simp only [dLin, Matrix.one_apply] at this
+  simp only [this, Prod.mk.injEq, true_and]
+  by_cases h : i2 = j2
+  · simp [h]
+  · simp [h, Ne.symm h]
+
+theorem subst_single_point_family {d : ℕ} {τ : Type} (ε : Fin d → MvPowerSeries τ k) :
+    (fun p : Fin 1 × Fin d => (![ε] : Fin 1 → Fin d → MvPowerSeries τ k) p.1 p.2) = fun p => ε p.2 := by
+  funext p
+  obtain ⟨j, i⟩ := p
+  fin_cases j
+  rfl
+
+theorem cc_ev {n m d : ℕ} (a : Fin m → Pt k n d) (ha : ∀ j i, constantCoeff (a j i) = 0) {f : PS k m d}
+    (hf : constantCoeff f = 0) : constantCoeff (ev a f) = 0 := by
+  unfold ev
+  exact constantCoeff_subst_eq_zero (hasSubst_pts a ha) (fun p => ha p.1 p.2) hf
+
+theorem cc_pt {n d : ℕ} (j : Fin n) (i : Fin d) : constantCoeff (pt k d j i) = 0 := by simp [pt]
+
+theorem cc_comp1 {n d : ℕ} (φ : Pt k 1 d) (a : Pt k n d) (hφ : ∀ i, constantCoeff (φ i) = 0)
+    (ha : ∀ i, constantCoeff (a i) = 0) (i : Fin d) : constantCoeff (comp1 φ a i) = 0 :=
+  cc_ev _ (fun j i => by fin_cases j; exact ha i) (hφ i)
+
+theorem germComp1_germComp1_eq_substitute {n d : ℕ} (φ ψ : Pt k 1 d) (a : Pt k n d) (hψ : ∀ i, constantCoeff (ψ i) = 0)
+    (ha : ∀ i, constantCoeff (a i) = 0) : comp1 φ (comp1 ψ a) = comp1 (comp1 φ ψ) a := by
+  funext i
+  unfold comp1
+  rw [ev_ev (![ψ] : Fin 1 → Pt k 1 d) (![a] : Fin 1 → Pt k n d) (fun j i => by fin_cases j; exact hψ i)
+    (fun j i => by fin_cases j; exact ha i)]
+  congr 1
+  funext j
+  fin_cases j
+  rfl
+
+theorem germCompOne_identityPoint_left {n d : ℕ} (a : Pt k n d) (ha : ∀ i, constantCoeff (a i) = 0) : comp1 (pt k d 0) a = a := by
+  funext i
+  unfold comp1
+  exact ev_X (![a] : Fin 1 → Pt k n d) (fun j i => by fin_cases j; exact ha i) 0 i
+
+theorem formal_exp_law : ExpLawSt := by
+  intro k _ _ d G ℓ h0 h1 hadd
+  have hid := idMod2_of ℓ h0 h1
+  obtain ⟨h, hh0, hh⟩ := Formalism.FG.solve_exists_vector k (Fin 1 × Fin d) (Fin 1 × Fin d) (fun p => ℓ p.2) X hid
+    (fun j => by simp)
+  let ε : Pt k 1 d := fun i => h (0, i)
+  have hε0 : ∀ i, constantCoeff (ε i) = 0 := fun i => hh0 (0, i)
+  have hhε : h = fun p => ε p.2 := by
+    funext p
+    obtain ⟨j, i⟩ := p
+    fin_cases j
+    rfl
+  have hLε : comp1 ℓ ε = pt k d 0 := by
+    funext i
+    show ev ![ε] (ℓ i) = X (0, i)
+    unfold ev
+    rw [subst_single_point_family, ← hhε]
+    exact hh (0, i)
+  have hsL : HasSubst (fun p : Fin 1 × Fin d => ℓ p.2) := hasSubst_of_constantCoeff_zero fun p => h0 p.2
+  have hsh : HasSubst h := hasSubst_of_constantCoeff_zero hh0
+  have hinj := Formalism.FG.subst_injective_vector k (Fin 1 × Fin d) (Fin 1 × Fin d) (fun p => ℓ p.2)
+    (fun p => subst (fun q : Fin 1 × Fin d => ℓ q.2) (h p)) X hid
+    (fun p => constantCoeff_subst_eq_zero hsL (fun q => h0 q.2) (hh0 p)) (fun p => by simp) (fun j => by
+      rw [← subst_comp_subst_apply hsh hsL, hh j, subst_X hsL, subst_self]
+      rfl)
+  have hεL : comp1 ε ℓ = pt k d 0 := by
+    funext i
+    show ev ![ℓ] (ε i) = X (0, i)
+    unfold ev
+    rw [subst_single_point_family]
+    exact congrFun hinj (0, i)
+  refine ⟨ε, ⟨hε0, h0, hεL, hLε⟩, ?_⟩
+  funext i
+  have e : ev (n := 2) ![G.add (pt k d 0) (pt k d 1)] (ℓ i) =
+      ev (n := 2) ![pt k d 0] (ℓ i) + ev (n := 2) ![pt k d 1] (ℓ i) := congrFun hadd i
+  let b : Fin 2 → Pt k 2 d := ![comp1 ε (pt k d 0), comp1 ε (pt k d 1)]
+  have hb : ∀ j i, constantCoeff (b j i) = 0 := by
+    intro j i
+    fin_cases j
+    · exact cc_comp1 ε _ hε0 (cc_pt 0) i
+    · exact cc_comp1 ε _ hε0 (cc_pt 1) i
+  have hadd0 : ∀ j i, constantCoeff ((![G.add (pt k d 0) (pt k d 1)] : Fin 1 → Pt k 2 d) j i) = 0 := by
+    intro j i
+    fin_cases j
+    exact cc_ev _ (fun j i => by fin_cases j <;> exact cc_pt _ i) (G.const i)
+  have hp0 : ∀ (l : Fin 2) j i, constantCoeff ((![pt k d l] : Fin 1 → Pt k 2 d) j i) = 0 := by
+    intro l j i
+    fin_cases j
+    exact cc_pt l i
+  have e2 := congrArg (ev b) e
+  rw [ev_ev _ _ hadd0 hb, ev_add' _ hb, ev_ev _ _ (hp0 0) hb, ev_ev _ _ (hp0 1) hb] at e2
+  have L1 : (fun (j : Fin 1) (m : Fin d) => ev b ((![G.add (pt k d 0) (pt k d 1)] : Fin 1 → Pt k 2 d) j m)) =
+      ![addOf G.F (comp1 ε (pt k d 0)) (comp1 ε (pt k d 1))] := by
+    funext j m
+    fin_cases j
+    show ev b (ev ![pt k d 0, pt k d 1] (G.F m)) = ev b (G.F m)
+    rw [ev_ev _ _ (fun j i => by fin_cases j <;> exact cc_pt _ i) hb]
+    congr 1
+    funext j' m'
+    fin_cases j' <;> exact ev_X b hb _ m'
+  have L2 : ∀ l : Fin 2, (fun (j : Fin 1) (m : Fin d) => ev b ((![pt k d l] : Fin 1 → Pt k 2 d) j m)) =
+      ![comp1 ε (pt k d l)] := by
+    intro l
+    funext j m
+    fin_cases j
+    fin_cases l <;> exact ev_X b hb _ m
+  have L3 : ∀ l : Fin 2, ev (n := 2) ![comp1 ε (pt k d l)] (ℓ i) = pt k d l i := by
+    intro l
+    have := congrFun (germComp1_germComp1_eq_substitute ℓ ε (pt k (n := 2) d l) hε0 (cc_pt l)) i
+    rw [hLε, germCompOne_identityPoint_left _ (cc_pt l)] at this
+    exact this
+  rw [L1, L2 0, L2 1, L3 0, L3 1] at e2
+  exact e2
+
+
+open Formalism.FG.SolveVAux in
+theorem dLin_comp1 {d : ℕ} (φ ψ : Pt k 1 d) (hψ : ∀ i, constantCoeff (ψ i) = 0) :
+    dLin (comp1 φ ψ) = dLin φ * dLin ψ := by
+  classical
+  refine Matrix.ext fun i j => ?_
+  simp only [dLin, Matrix.mul_apply]
+  show coeff (Finsupp.single ((0 : Fin 1), j) 1) (ev ![ψ] (φ i)) = _
+  unfold ev
+  rw [subst_single_point_family]
+  have hs : HasSubst (fun p : Fin 1 × Fin d => ψ p.2) := hasSubst_of_constantCoeff_zero fun p => hψ p.2
+  have hlow : ∀ p : Fin 1 × Fin d, Formalism.FG.SolveVAux.Low 1 (ψ p.2) :=
+    fun p => (Formalism.FG.SolveVAux.low_one_iff _).2 (hψ p.2)
+  rw [coeff_subst hs, finsum_eq_sum_of_support_subset _
+    (s := Finset.univ.image (fun p : Fin 1 × Fin d => Finsupp.single p 1))]
+  · rw [Finset.sum_image (fun p _ q _ h => Finsupp.single_left_injective one_ne_zero h), Fintype.sum_prod_type,
+      Fin.sum_univ_one]
+    refine Finset.sum_congr rfl fun j' _ => ?_
+    dsimp only
+    rw [Finsupp.prod_single_index (h := fun (s : Fin 1 × Fin d) (e : ℕ) => ψ s.2 ^ e) (pow_zero _), pow_one,
+      smul_eq_mul]
+  · intro e he
+    rw [Function.mem_support] at he
+    by_contra hne
+    apply he
+    have hz : coeff (Finsupp.single ((0 : Fin 1), j) 1) (e.prod fun s n => (fun p : Fin 1 × Fin d => ψ p.2) s ^ n) =
+        0 := by
+      rcases Nat.lt_or_ge e.degree 2 with hd | hd
+      · rcases Nat.lt_or_ge e.degree 1 with hd1 | hd1
+        · have he0 : e = 0 := by
+            have : e.degree = 0 := by omega
+            exact (Finsupp.degree_eq_zero_iff e).1 this
+          rw [he0, Finsupp.prod_zero_index, coeff_one, if_neg]
+          exact Finsupp.single_ne_zero.2 one_ne_zero
+        · obtain ⟨p, rfl⟩ := Formalism.FG.SolveVAux.degree_eq_one e (by omega)
+          exact absurd (Finset.mem_coe.2 (Finset.mem_image_of_mem _ (Finset.mem_univ p))) hne
+      · have hl := Formalism.FG.SolveVAux.low_P hlow e
+        exact hl _ (by rw [Finsupp.degree_single]; omega)
+    rw [hz, smul_zero]
+
+theorem composition_identity_point_right {d : ℕ} (φ : Pt k 1 d) : comp1 φ (pt k d 0) = φ := by
+  funext i
+  unfold comp1
+  have := ev_pt (k := k) (n := 1) (d := d) (φ i)
+  convert this using 2
+  funext j
+  fin_cases j
+  rfl
+
+theorem add_at {d : ℕ} (G : FGLaw k d) (ℓ : Pt k 1 d)
+    (hadd : comp1 ℓ (G.add (pt k (n := 2) d 0) (pt k (n := 2) d 1)) =
+      comp1 ℓ (pt k (n := 2) d 0) + comp1 ℓ (pt k (n := 2) d 1))
+    {n : ℕ} (u v : Pt k n d) (hu : ∀ i, constantCoeff (u i) = 0) (hv : ∀ i, constantCoeff (v i) = 0) :
+    comp1 ℓ (addOf G.F u v) = comp1 ℓ u + comp1 ℓ v := by
+  funext i
+  have e : ev (n := 2) ![G.add (pt k d 0) (pt k d 1)] (ℓ i) =
+      ev (n := 2) ![pt k d 0] (ℓ i) + ev (n := 2) ![pt k d 1] (ℓ i) := congrFun hadd i
+  let b : Fin 2 → Pt k n d := ![u, v]
+  have hb : ∀ j i, constantCoeff (b j i) = 0 := by
+    intro j i
+    fin_cases j
+    · exact hu i
+    · exact hv i
+  have hadd0 : ∀ j i, constantCoeff ((![G.add (pt k d 0) (pt k d 1)] : Fin 1 → Pt k 2 d) j i) = 0 := by
+    intro j i
+    fin_cases j
+    exact cc_ev _ (fun j i => by fin_cases j <;> exact cc_pt _ i) (G.const i)
+  have hp0 : ∀ (l : Fin 2) j i, constantCoeff ((![pt k d l] : Fin 1 → Pt k 2 d) j i) = 0 := by
+    intro l j i
+    fin_cases j
+    exact cc_pt l i
+  have e2 := congrArg (ev b) e
+  rw [ev_ev _ _ hadd0 hb, ev_add' _ hb, ev_ev _ _ (hp0 0) hb, ev_ev _ _ (hp0 1) hb] at e2
+  have L1 : (fun (j : Fin 1) (m : Fin d) => ev b ((![G.add (pt k d 0) (pt k d 1)] : Fin 1 → Pt k 2 d) j m)) =
+      ![addOf G.F u v] := by
+    funext j m
+    fin_cases j
+    show ev b (ev ![pt k d 0, pt k d 1] (G.F m)) = ev b (G.F m)
+    rw [ev_ev _ _ (fun j i => by fin_cases j <;> exact cc_pt _ i) hb]
+    congr 1
+    funext j' m'
+    fin_cases j' <;> exact ev_X b hb _ m'
+  have L2 : (fun (j : Fin 1) (m : Fin d) => ev b ((![pt k d 0] : Fin 1 → Pt k 2 d) j m)) = ![u] := by
+    funext j m
+    fin_cases j
+    exact ev_X b hb 0 m
+  have L3 : (fun (j : Fin 1) (m : Fin d) => ev b ((![pt k d 1] : Fin 1 → Pt k 2 d) j m)) = ![v] := by
+    funext j m
+    fin_cases j
+    exact ev_X b hb 1 m
+  rw [L1, L2, L3] at e2
+  exact e2
+
+
+end ReciprocityTheory.ChartRestriction.G.TB.WickVanishing
+end
+end
+
+section -- merged from ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.TaylorDiscriminants.WickVanishing.KillAddFin
+namespace ReciprocityTheory.ChartRestriction.G.TB
+
+theorem kernel_additive : KillAddSt := killAdd_of quadratic_column_derivative
+
+end ReciprocityTheory.ChartRestriction.G.TB
+end

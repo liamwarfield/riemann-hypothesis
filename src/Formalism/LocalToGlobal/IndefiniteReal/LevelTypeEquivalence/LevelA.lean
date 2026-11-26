@@ -1,0 +1,121 @@
+module
+
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.ClosedVolumeStatements.LevelSubgroupProperties
+public import Formalism.LocalToGlobal.IndefiniteReal.LevelTypeEquivalence.GEqTie
+
+@[expose] public section
+
+section -- merged from Formalism.LocalToGlobal.IndefiniteReal.LevelTypeEquivalence.LevelA
+noncomputable section
+
+open MeasureTheory NumberField Formalism.BasicNotions Formalism.BasicNotions.TH Formalism.MainNotions.S Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes Formalism.L2.Theta
+open scoped TensorProduct Matrix
+
+namespace Formalism.IndefR.Eqv
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+variable {D : D7} {V : HSp D} (fr : UI.Frames D V)
+
+def kf (K : Subgroup (GL (Fin V.rank) (Lev.EAf D))) : Set (UI.instV fr).Gf :=
+  {y | (y.1 : GL (Fin V.rank) (Lev.EAf D)) ∈ K}
+
+theorem brg_mem_levA (K : Subgroup (GL (Fin V.rank) (Lev.EAf D))) (x : (UI.instV fr).GA) :
+    UI.brg fr x ∈ Lev.levA V K ↔ x.1 = 1 ∧ x.2 ∈ kf fr K := by
+  show UI.brg fr x ∈ GfC V ⊓ K.comap (Lev.finE V) ↔ _
+  rw [Subgroup.mem_inf, Subgroup.mem_comap, brg_mem_GfC, finE_brg]
+  rfl
+
+theorem kf_isCompact_isOpen_of_levelA (K : Subgroup (GL (Fin V.rank) (Lev.EAf D))) (hK : IsLevelA V K) :
+    IsCompact (kf fr K) ∧ IsOpen (kf fr K) := by
+  have hpre : kf fr K = jf fr ⁻¹' (Lev.levA V K : Set (GA D V)) := by
+    ext y
+    show y ∈ kf fr K ↔ UI.brg fr (1, y) ∈ Lev.levA V K
+    rw [brg_mem_levA]
+    exact ⟨fun h => ⟨rfl, h⟩, fun h => h.2⟩
+  refine ⟨?_, ?_⟩
+  · rw [hpre]
+    exact (jf_isClosedEmbedding fr).isCompact_preimage hK.1
+  · have hmem : ∀ y, jf fr y ∈ GfC V := fun y => (brg_mem_GfC fr (1, y)).mpr rfl
+    let jc : (UI.instV fr).Gf → GfC V := fun y => ⟨jf fr y, hmem y⟩
+    have hjc : Continuous jc := (jf_isClosedEmbedding fr).continuous.subtype_mk _
+    have e : kf fr K = jc ⁻¹' (((Lev.levA V K).subgroupOf (GfC V)) : Set (GfC V)) := by
+      rw [hpre]
+      ext y
+      simp only [Set.mem_preimage, SetLike.mem_coe, Subgroup.mem_subgroupOf, jc]
+    rw [e]
+    exact hK.2.preimage hjc
+
+
+end Formalism.IndefR.Eqv
+
+end
+end
+
+section -- merged from Formalism.LocalToGlobal.IndefiniteReal.LevelTypeEquivalence.GEqThF
+noncomputable section
+
+open Formalism.BasicNotions Formalism.BasicNotions.TH Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes Formalism.MainNotions.StandardLattice Formalism.MainNotions.S MeasureTheory IsDedekindDomain NumberField Matrix
+open Formalism.L2.Theta Formalism.L2.DIV Formalism.L2.Indef Formalism.DivisionValues Polynomial
+open scoped TensorProduct InnerProductSpace
+
+namespace Formalism.IndefR.Eqv.Act
+
+open Formalism.IndefR.Links Formalism.IndefR.Lev Formalism.IndefR.Mult Formalism.IndefR.Links.RealDat Formalism.IndefR.Datum
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+section Kernel1
+
+variable {D : D7} {S T : HSp D}
+
+end Kernel1
+
+section CoefV
+
+variable {D : D7} {V : HSp D} (c : CoefA V)
+
+theorem ext_g0Act (hc : c.Is) {Q : Subgroup (Bridge.Gf V)} (ch : Q →* ℂˣ) (q : Q) (κ : GA D V) (hκ : κ ∈ GfC V)
+    (hκq : (finHom V).rangeRestrict κ = q) (F : Bridge.Gf V → c.W) (h : GA D V) :
+    c.ext (Bridge.g0Act ch q F) h = (((ch q)⁻¹ : ℂˣ) : ℂ) • c.ext F (h * κ) := by
+  have e : c.ext (Bridge.g0Act ch q F) h =
+      c.ρ h⁻¹ ((((ch q)⁻¹ : ℂˣ) : ℂ) • F ((finHom V).rangeRestrict h * q)) := rfl
+  have e2 : c.ρ h⁻¹ ((((ch q)⁻¹ : ℂˣ) : ℂ) • F ((finHom V).rangeRestrict h * q)) =
+      (((ch q)⁻¹ : ℂˣ) : ℂ) • c.ρ h⁻¹ (F ((finHom V).rangeRestrict h * q)) := LinearMap.map_smul _ _ _
+  have e6 : c.ext F (h * κ) = c.ρ h⁻¹ (F ((finHom V).rangeRestrict h * q)) := hκq ▸ coefExt_mul c hc F h κ hκ
+  exact e.trans (e2.trans (congrArg _ e6.symm))
+
+end CoefV
+
+variable {D : D7} {G : Type} [Group G] [Fintype G] {Pl0 T : Type} {A : FamIn D.what₂.LL G Pl0 T D.R.m}
+variable {Ks : Type} [Field Ks] [NumberField Ks] [Algebra Ks D.what₂.LL] (R : RealDat D A Ks)
+
+theorem mem_Q_of_liftV (i : Fin D.R.m) (t : T) (g : G) {κ0 : GA D (Vc D i)}
+    (hκ0 : IsLevelLift (Vc D i) (R.βV i) (R.datVt i t) (R.eG g) κ0) :
+    (finHom (Vc D i)).rangeRestrict κ0 ∈ (levEnv (Vc D i) (R.βV i) (R.datVt i t)).Q := by
+  show Formalism.UG.bc (swapAE D) (finHom (Vc D i) κ0) ∈ lev D.sp.cm (Vc D i).gram (R.βV i) (flagL (R.datVt i t))
+  rw [← finE_eq]
+  exact ⟨hκ0.2.1, Subgroup.mem_top _⟩
+
+theorem red_of_liftV (hred : R.grp_red_L) (i : Fin D.R.m) (t : T) (g : G) {κ0 : GA D (Vc D i)}
+    (hκ0 : IsLevelLift (Vc D i) (R.βV i) (R.datVt i t) (R.eG g) κ0) :
+    (R.B.L i t).act_tie.red (⟨_, mem_Q_of_liftV R i t g hκ0⟩ : (levEnv (Vc D i) (R.βV i) (R.datVt i t)).Q) = g := by
+  apply R.eG.injective
+  rw [hred i t ⟨_, mem_Q_of_liftV R i t g hκ0⟩]
+  exact hκ0.2.2
+
+theorem jV_act (hM : R.IsModels) (i : Fin D.R.m) (t : T) (g : G) (x : A.fam.amb.FL i t)
+    (q0 : (levEnv (Vc D i) (R.βV i) (R.datVt i t)).Q) (hred0 : (R.B.L i t).act_tie.red q0 = g) :
+    (R.HV i t).e (R.jV i t (A.fam.amb.opL i t (Sum.inr g) x)) =
+      Bridge.g0Act (levEnv (Vc D i) (R.βV i) (R.datVt i t)).ch q0 ((R.HV i t).e (R.jV i t x)) := by
+  have hext := (R.B.L i t).act_tie.act_eq g q0 hred0 x
+  exact (hM.jV i t _).trans (hext.trans
+    (congrArg (Bridge.g0Act (levEnv (Vc D i) (R.βV i) (R.datVt i t)).ch q0) (hM.jV i t x).symm))
+
+theorem extV_apply (i : Fin D.R.m) (t : T) (y : (R.HV i t).H) (h : GA D (Vc D i)) :
+    R.extV i t y h = (R.cV i).ext ((R.HV i t).e y) h := rfl
+
+end Formalism.IndefR.Eqv.Act
+
+end
+end

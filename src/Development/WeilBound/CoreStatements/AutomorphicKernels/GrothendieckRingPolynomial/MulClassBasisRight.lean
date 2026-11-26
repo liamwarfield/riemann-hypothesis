@@ -1,0 +1,23 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.GrothendieckRingPolynomial.MulClassBasisRight
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.GrothendieckRingPolynomial.ProdList
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.IsSstAtOfIsCrysAt
+public import Development.WeilBound.CoreStatements.TemperedRepresentationTheory.BernsteinZelevinskyGL.TopAdm
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ContragredientProductIrreducible
+
+@[expose] public section
+
+namespace PositivityTheory.Groth.GrothendieckAssociativity
+export CompanionTheory.Groth.GrothendieckAssociativity (
+  class_congr_equiv class_induced_cast class_of_chosen_rep mulR_sg assoc_gen
+)
+end PositivityTheory.Groth.GrothendieckAssociativity
+
+namespace PositivityTheory.Groth
+export CompanionTheory.Groth (assoc one jSeg)
+end PositivityTheory.Groth
+
+namespace PositivityTheory.Groth.SegJ
+export CompanionTheory.Groth.SegJ (jhMult_seg_cl jm_seg jmL_seg vWord_ne)
+end PositivityTheory.Groth.SegJ

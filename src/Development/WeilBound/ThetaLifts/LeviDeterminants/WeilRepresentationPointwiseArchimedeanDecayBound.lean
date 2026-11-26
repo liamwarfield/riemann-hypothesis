@@ -1,0 +1,400 @@
+module
+
+public import Development.WeilBound.ThetaLifts.LeviDeterminants.GrowFinal
+public import Development.WeilBound.ThetaLifts.LeviDeterminants.GrowHt
+public import Development.WeilBound.ThetaLifts.LeviDeterminants.GrowFin
+
+@[expose] public section
+
+section -- merged from Development.WeilBound.ThetaLifts.LeviDeterminants.GrowSob
+section -- merged from Development.WeilBound.ThetaLifts.LeviDeterminants.GrowSobB
+noncomputable section
+
+namespace PositivityTheory.ThKF0.Grow
+
+open scoped ENNReal Classical
+open NumberField IsDedekindDomain MeasureTheory
+
+variable (F : Type) [Field F] [NumberField F] (κ : Type) [Fintype κ]
+
+theorem exists_reps (m : ℕ) (hm : 1 ≤ m) :
+    ∃ rep : (Module.Free.ChooseBasisIndex ℤ (𝓞 F) → Fin m) → FiniteAdeleRing (𝓞 F) F,
+      ∀ y : FiniteAdeleRing (𝓞 F) F, (∀ v, y v ∈ v.adicCompletionIntegers F) →
+        ∃ r, ∃ a : FiniteAdeleRing (𝓞 F) F, (∀ v, a v ∈ v.adicCompletionIntegers F) ∧ y = rep r + m • a := by
+  let b := RingOfIntegers.basis F
+  let φ : 𝓞 F →+* FiniteAdeleRing (𝓞 F) F := (algebraMap F _).comp (algebraMap (𝓞 F) F)
+  refine ⟨fun r => φ (∑ j, ((r j : ℕ) : ℤ) • b j), fun y hy => ?_⟩
+  obtain ⟨x, a, ha, h⟩ := (GlobalTheory.AdLat.strong_approximation_mod_nat F m hm).2 y hy
+  have hm' : (0 : ℤ) < m := by exact_mod_cast hm
+  have h0 : ∀ j, 0 ≤ b.repr x j % m := fun j => Int.emod_nonneg _ hm'.ne'
+  refine ⟨fun j => ⟨(b.repr x j % m).toNat, ?_⟩, φ (∑ j, (b.repr x j / m) • b j) + a, fun v => ?_, ?_⟩
+  · have := Int.emod_lt_of_pos (b.repr x j) hm'
+    have := h0 j
+    omega
+  · exact add_mem (HeightOneSpectrum.coe_mem_adicCompletionIntegers v _) (ha v)
+  · rw [h, nsmul_add, ← add_assoc, ← map_nsmul, ← map_add (f := _)]
+    congr 1
+    change φ x = _
+    congr 1
+    rw [Finset.smul_sum, ← Finset.sum_add_distrib]
+    conv_lhs => rw [← b.sum_repr x]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [Int.toNat_of_nonneg (h0 j), ← natCast_zsmul, smul_smul, ← add_smul, Int.emod_add_mul_ediv]
+
+def Om : Set (κ → FiniteAdeleRing (𝓞 F) F) := {y | ∀ i v, y i v ∈ v.adicCompletionIntegers F}
+
+theorem measure_Om_le [MeasurableSpace (κ → FiniteAdeleRing (𝓞 F) F)] [BorelSpace (κ → FiniteAdeleRing (𝓞 F) F)]
+    (ν : Measure (κ → FiniteAdeleRing (𝓞 F) F)) [ν.IsAddRightInvariant] :
+    ∃ k : ℕ, ∀ m : ℕ, 1 ≤ m → ν (Om F κ) ≤ (m : ℝ≥0∞) ^ k * ν ((fun u => m • u) '' Om F κ) := by
+  refine ⟨Fintype.card (Module.Free.ChooseBasisIndex ℤ (𝓞 F)) * Fintype.card κ, fun m hm => ?_⟩
+  obtain ⟨rep, h⟩ := exists_reps F m hm
+  have hsub : Om F κ ⊆ ⋃ r : κ → Module.Free.ChooseBasisIndex ℤ (𝓞 F) → Fin m,
+      (fun y => y + -fun i => rep (r i)) ⁻¹' ((fun u => m • u) '' Om F κ) := fun y hy => by
+    choose r a ha e using fun i => h (y i) (hy i)
+    refine Set.mem_iUnion.2 ⟨r, a, ha, funext fun i => ?_⟩
+    change m • a i = y i + -rep (r i)
+    rw [e i]
+    abel
+  refine (measure_mono hsub).trans ((measure_iUnion_fintype_le _ _).trans (le_of_eq ?_))
+  simp only [measure_preimage_add_right, Finset.sum_const, Finset.card_univ, Fintype.card_fun, Fintype.card_fin,
+    nsmul_eq_mul, Nat.cast_pow, pow_mul]
+
+end PositivityTheory.ThKF0.Grow
+end
+end
+
+section -- merged from Development.WeilBound.ThetaLifts.LeviDeterminants.GrowSobA
+noncomputable section
+
+namespace PositivityTheory.ThKF0.Grow
+
+open scoped ENNReal
+open MeasureTheory
+
+theorem oneD (u u' : ℝ → ℂ) (hu' : Continuous u') (h : ∀ t, HasDerivAt u (u' t) t) :
+    ‖u 0‖ₑ ^ 2 ≤ 2 * ∫⁻ t, (‖u t‖ₑ ^ 2 + ‖u' t‖ₑ ^ 2) := by
+  have hu : Continuous u := continuous_iff_continuousAt.2 fun t => (h t).continuousAt
+  have hd : ∀ t : ℝ, HasDerivAt (fun s : ℝ => ((s : ℂ) - 1) * u s ^ 2) (u t ^ 2 + ((t : ℂ) - 1) * (2 * u t * u' t)) t := by
+    intro t
+    have h1 : HasDerivAt (fun s : ℝ => (s : ℂ) - 1) 1 t := (Complex.ofRealCLM.hasDerivAt (x := t)).sub_const 1
+    have h2 : HasDerivAt (fun s : ℝ => u s ^ 2) (2 * u t * u' t) t := by
+      simpa using (h t).fun_pow 2
+    simpa using h1.fun_mul h2
+  have hc : Continuous fun t : ℝ => u t ^ 2 + ((t : ℂ) - 1) * (2 * u t * u' t) := by fun_prop
+  have e := intervalIntegral.integral_eq_sub_of_hasDerivAt (a := 0) (b := 1) (fun t _ => hd t) (hc.intervalIntegrable 0 1)
+  rw [intervalIntegral.integral_of_le zero_le_one] at e
+  have e' : u 0 ^ 2 = ∫ t in Set.Ioc (0 : ℝ) 1, (u t ^ 2 + ((t : ℂ) - 1) * (2 * u t * u' t)) := by
+    rw [e]; simp
+  rw [← enorm_pow, e', ← lintegral_const_mul' _ _ (by simp)]
+  refine (enorm_integral_le_lintegral_enorm _).trans ?_
+  refine le_trans (setLIntegral_mono' measurableSet_Ioc fun t ht => ?_) (setLIntegral_le_lintegral _ _)
+  have h1 : ‖(t : ℂ) - 1‖ ≤ 1 := by
+    rw [← Complex.ofReal_one, ← Complex.ofReal_sub, Complex.norm_real, Real.norm_eq_abs, abs_le]
+    constructor <;> linarith [ht.1, ht.2]
+  have h2 : ‖u t ^ 2 + ((t : ℂ) - 1) * (2 * u t * u' t)‖ ≤ 2 * (‖u t‖ ^ 2 + ‖u' t‖ ^ 2) := by
+    refine (norm_add_le _ _).trans ?_
+    rw [norm_pow, norm_mul, norm_mul, norm_mul, Complex.norm_two]
+    have : ‖(t : ℂ) - 1‖ * (2 * ‖u t‖ * ‖u' t‖) ≤ 1 * (2 * ‖u t‖ * ‖u' t‖) := by gcongr
+    nlinarith [sq_nonneg (‖u t‖ - ‖u' t‖), sq_nonneg ‖u' t‖]
+  rw [← ofReal_norm, ← ofReal_norm, ← ofReal_norm, ← ENNReal.ofReal_pow (norm_nonneg _),
+    ← ENNReal.ofReal_pow (norm_nonneg _), ← ENNReal.ofReal_add (by positivity) (by positivity), ← ENNReal.ofReal_ofNat,
+    ← ENNReal.ofReal_mul (by norm_num)]
+  exact ENNReal.ofReal_le_ofReal h2
+
+theorem lintegral_fin_succ {D : ℕ} (G : (Fin (D + 1) → ℝ) → ℝ≥0∞) (hG : Measurable G) :
+    ∫⁻ t, G t = ∫⁻ s : ℝ, ∫⁻ t : Fin D → ℝ, G (Fin.cons s t) := by
+  have hp := (volume_preserving_piFinSuccAbove (fun _ : Fin (D + 1) => ℝ) 0).symm
+  rw [← hp.lintegral_comp hG, Measure.volume_eq_prod,
+    lintegral_prod (fun a => G ((MeasurableEquiv.piFinSuccAbove (fun _ : Fin (D + 1) => ℝ) 0).symm a))
+      (hG.comp (MeasurableEquiv.measurable _)).aemeasurable]
+  refine lintegral_congr fun s => lintegral_congr fun t => congrArg G ?_
+  simp [MeasurableEquiv.piFinSuccAbove, Fin.insertNthEquiv, Fin.insertNth_zero']
+
+variable {X W : Type} [AddCommGroup X] [TopologicalSpace X] [IsTopologicalAddGroup X]
+
+def sumSq (dd : W → (X → ℂ) → X → ℂ) (L : List (List W)) (Θ : X → ℂ) (y : X) : ℝ≥0∞ :=
+  (L.map fun l => ‖l.foldr dd Θ y‖ₑ ^ 2).sum
+
+omit [AddCommGroup X] [TopologicalSpace X] [IsTopologicalAddGroup X] in
+theorem foldr_mem {S : Set (X → ℂ)} {dd : W → (X → ℂ) → X → ℂ} (hd : ∀ w, ∀ Θ ∈ S, dd w Θ ∈ S) (l : List W) {Θ : X → ℂ}
+    (h : Θ ∈ S) : l.foldr dd Θ ∈ S := by
+  induction l with
+  | nil => exact h
+  | cons w l ih => exact hd w _ ih
+
+omit [AddCommGroup X] [IsTopologicalAddGroup X] in
+theorem continuous_sumSq {S : Set (X → ℂ)} (hS : ∀ Θ ∈ S, Continuous Θ) {dd : W → (X → ℂ) → X → ℂ}
+    (hd : ∀ w, ∀ Θ ∈ S, dd w Θ ∈ S) (L : List (List W)) {Θ : X → ℂ} (h : Θ ∈ S) : Continuous (sumSq dd L Θ) :=
+  continuous_list_sum L fun l _ => (ENNReal.continuous_pow 2).comp (hS _ (foldr_mem hd l h)).enorm
+
+theorem sobAbs {S : Set (X → ℂ)} (hS : ∀ Θ ∈ S, Continuous Θ) {dd : W → (X → ℂ) → X → ℂ}
+    (hd : ∀ w, ∀ Θ ∈ S, dd w Θ ∈ S) (D : ℕ) : ∀ (ws : Fin D → W) (e : Fin D → ℝ →+ X), (∀ i, Continuous (e i)) →
+      (∀ i, ∀ Θ ∈ S, ∀ x, HasDerivAt (fun t => Θ (x + e i t)) (dd (ws i) Θ x) 0) →
+      ∃ L : List (List W), ∀ Θ ∈ S, ∀ x, ‖Θ x‖ₑ ^ 2 ≤ 2 ^ D * ∫⁻ t : Fin D → ℝ, sumSq dd L Θ (x + ∑ i, e i (t i)) := by
+  induction D with
+  | zero =>
+    intro ws e _ _
+    refine ⟨[[]], fun Θ _ x => ?_⟩
+    simp [sumSq, volume_pi]
+  | succ D ih =>
+    intro ws e he hder
+    obtain ⟨L, hL⟩ := ih (fun i => ws i.succ) (fun i => e i.succ) (fun i => he _) (fun i => hder _)
+    refine ⟨L ++ L.map (· ++ [ws 0]), fun Θ hΘ x => ?_⟩
+    have hΘ' := hd (ws 0) Θ hΘ
+    have hline : Continuous fun s => x + e 0 s := continuous_const.add (he 0)
+    have h1 := oneD (fun s => Θ (x + e 0 s)) (fun s => dd (ws 0) Θ (x + e 0 s)) ((hS _ hΘ').comp hline) fun t => by
+      have h := hder 0 Θ hΘ (x + e 0 t)
+      have h' : HasDerivAt (fun r => Θ (x + e 0 t + e 0 r)) (dd (ws 0) Θ (x + e 0 t)) (t - t) := by rwa [sub_self]
+      have h'' := h'.comp_sub_const t t
+      refine h''.congr_of_eventuallyEq (Filter.Eventually.of_forall fun r => ?_)
+      simp only [map_sub]
+      congr 1
+      abel
+    simp only [map_zero, add_zero] at h1
+    have hsum : ∀ y, sumSq dd (L ++ L.map (· ++ [ws 0])) Θ y = sumSq dd L Θ y + sumSq dd L (dd (ws 0) Θ) y := fun y => by
+      simp [sumSq, List.map_map, Function.comp_def, List.foldr_append]
+    have hc : ∀ {D : ℕ} (e : Fin D → ℝ →+ X), (∀ i, Continuous (e i)) → ∀ x : X,
+        Continuous fun t : Fin D → ℝ => x + ∑ i, e i (t i) := fun e he x =>
+      continuous_const.add (continuous_finsetSum _ fun i _ => (he i).comp (continuous_apply i))
+    have hm : ∀ {D : ℕ} (e : Fin D → ℝ →+ X), (∀ i, Continuous (e i)) → ∀ (x : X) (L : List (List W)),
+        Measurable fun t : Fin D → ℝ => sumSq dd L Θ (x + ∑ i, e i (t i)) := fun e he x L =>
+      ((continuous_sumSq hS hd L hΘ).comp (hc e he x)).measurable
+    rw [lintegral_fin_succ _ (hm e he x _)]
+    refine h1.trans ?_
+    rw [pow_succ', mul_assoc]
+    gcongr
+    rw [← lintegral_const_mul' _ _ (by simp)]
+    refine lintegral_mono fun s => ?_
+    refine (add_le_add (hL Θ hΘ _) (hL _ hΘ' _)).trans (le_of_eq ?_)
+    rw [← mul_add, ← lintegral_add_left (hm (fun i => e i.succ) (fun i => he _) _ _)]
+    congr 1
+    refine lintegral_congr fun t => ?_
+    simp only [hsum, Fin.sum_univ_succ, Fin.cons_zero, Fin.cons_succ, add_assoc]
+
+omit [AddCommGroup X] [IsTopologicalAddGroup X] in
+theorem lintegral_sumSq [MeasurableSpace X] [BorelSpace X] (μ : Measure X) {S : Set (X → ℂ)} (hS : ∀ Θ ∈ S, Continuous Θ)
+    {dd : W → (X → ℂ) → X → ℂ} (hd : ∀ w, ∀ Θ ∈ S, dd w Θ ∈ S) (L : List (List W)) {Θ : X → ℂ} (h : Θ ∈ S) :
+    ∫⁻ y, sumSq dd L Θ y ∂μ = (L.map fun l => ∫⁻ y, ‖l.foldr dd Θ y‖ₑ ^ 2 ∂μ).sum := by
+  induction L with
+  | nil => simp [sumSq]
+  | cons l L ih =>
+    rw [List.map_cons, List.sum_cons, ← ih,
+      ← lintegral_add_left ((hS _ (foldr_mem hd l h)).measurable.enorm.pow_const 2)]
+    rfl
+
+end PositivityTheory.ThKF0.Grow
+end
+end
+
+noncomputable section
+
+namespace PositivityTheory.ThKF0.Grow
+
+open scoped Matrix NNReal ENNReal Classical
+open NumberField IsDedekindDomain MeasureTheory Filter Topology GlobalTheory.WeilM GlobalTheory.AdelicU GlobalTheory.IndefiniteRowSideFullHecke.WeilTensorModels Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes
+open PositivityTheory.ThKF0.Split
+
+variable {F : Type} [Field F] [NumberField F] {κ : Type} [Fintype κ]
+
+def lineA (a : V F κ) : ℝ →+ (κ → AF F) where
+  toFun t := splitE F κ (t • a, 0)
+  map_zero' := by rw [zero_smul]; exact map_zero (splitE F κ)
+  map_add' s t := by rw [← map_add (f := _), Prod.mk_add_mk, add_zero, add_smul]
+
+theorem schr_lineA (ψ : AddChar (AF F) ℂ) (a : V F κ) (t : ℝ) (Θ : (κ → AF F) → ℂ) (x : κ → AF F) :
+    schr ψ (emb (t • ((a, 0) : V F κ × V F κ))) Θ x = Θ (x + lineA a t) := by
+  have e : (emb (t • ((a, 0) : V F κ × V F κ))).2 = 0 := funext fun i => by
+    change inf (t • (0 : mixedEmbedding.mixedSpace F)) = 0
+    rw [smul_zero, inf, map_zero]
+    rfl
+  rw [schr, e, dotProduct_zero, dotProduct_zero, mul_zero, add_zero, AddChar.map_zero_eq_one, one_mul]
+  rfl
+
+theorem slice {D : ℕ} (b : Module.Basis (Fin D) ℝ (V F κ)) : ∃ μ, IsHaar μ ∧ ∃ (C : ℝ≥0) (k : ℕ), ∀ m : ℕ, 1 ≤ m →
+    ∀ G : (κ → AF F) → ℝ≥0∞, Continuous G → (∀ u : κ → AF F, (∀ i, IntF (u i)) → ∀ x, G (x + (m : AF F) • u) = G x) →
+      ∀ x, ∫⁻ t : Fin D → ℝ, G (x + ∑ i, lineA (b i) (t i)) ≤ C * (m : ℝ≥0∞) ^ k * ∫⁻ y, G y ∂μ := by
+  have : LocallyCompactSpace (Af F) := GlobalTheory.AdelicUnitaryTop.locallyCompact_finiteAdele F
+  have : SecondCountableTopology (Af F) := GlobalTheory.AdelicUnitaryTop.secondCountable_finiteAdele F
+  have : T2Space (Af F) := GlobalTheory.AdelicUnitaryTop.t2Space_finiteAdeleRing_of_numberField F
+  let mY : MeasurableSpace (κ → Af F) := borel _
+  have : BorelSpace (κ → Af F) := ⟨rfl⟩
+  let mA : MeasurableSpace (κ → AF F) := borel _
+  have : BorelSpace (κ → AF F) := ⟨rfl⟩
+  have : SigmaCompactSpace (κ → Af F) := sigmaCompactSpace_of_locallyCompact_secondCountable
+  set ν : Measure (κ → Af F) := Measure.addHaar with hν
+  have : SFinite ν := inferInstance
+  have : MeasurableAdd (κ → Af F) := ContinuousAdd.measurableAdd
+  have : ν.IsAddHaarMeasure := by rw [hν]; infer_instance
+  have : ((volume : Measure (Fin D → ℝ)).prod ν).IsAddHaarMeasure := Measure.prod.instIsAddHaarMeasure _ ν
+  let J : ((Fin D → ℝ) × (κ → Af F)) ≃+ (κ → AF F) :=
+    (b.equivFun.symm.toAddEquiv.prodCongr (AddEquiv.refl _)).trans (splitE F κ)
+  have hJ : ∀ t y, J (t, y) = splitE F κ (b.equivFun.symm t, y) := fun _ _ => rfl
+  have c1 : Continuous J := (continuous_splitE F κ).comp
+    ((b.equivFun.symm.toLinearMap.continuous_of_finiteDimensional).prodMap continuous_id)
+  have c2 : Continuous J.symm :=
+    ((b.equivFun.toLinearMap.continuous_of_finiteDimensional).prodMap continuous_id).comp (continuous_splitE_symm F κ)
+  have hμH : Measure.IsAddHaarMeasure ((volume.prod ν).map J) := J.isAddHaarMeasure_map _ c1 c2
+  let em : ((Fin D → ℝ) × (κ → Af F)) ≃ᵐ (κ → AF F) := (Homeomorph.mk J.toEquiv c1 c2).toMeasurableEquiv
+  have hint : ∀ h : (κ → AF F) → ℝ≥0∞, ∫⁻ x, h x ∂((volume.prod ν).map J) = ∫⁻ p, h (J p) ∂(volume.prod ν) :=
+    fun h => lintegral_map_equiv h em
+  have hOc : IsCompact (Om F κ) := by
+    have := isCompact_univ_pi fun _ : κ => GlobalTheory.AdeleCocompact.isCompact_integral F
+    exact this.of_isClosed_subset (by
+      convert this.isClosed using 1
+      ext y
+      exact ⟨fun h i _ => h i, fun h i => h i trivial⟩) fun y h i _ => h i
+  have hOo : IsOpen (Om F κ) := by
+    have : IsOpen {a : Af F | ∀ v, a v ∈ v.adicCompletionIntegers F} :=
+      RestrictedProduct.isOpen_forall_mem (R := fun v : HeightOneSpectrum (𝓞 F) => v.adicCompletion F)
+        (A := fun v => v.adicCompletionIntegers F) fun v => Valued.isOpen_valuationSubring _
+    convert isOpen_set_pi (i := (Set.univ : Set κ)) Set.finite_univ (fun _ _ => this) using 1
+    ext y
+    exact ⟨fun h i _ => h i, fun h i => h i trivial⟩
+  have h0 : ν (Om F κ) ≠ 0 := (hOo.measure_pos ν ⟨0, fun i v => zero_mem _⟩).ne'
+  have hT : ν (Om F κ) ≠ ⊤ := hOc.measure_lt_top.ne
+  obtain ⟨k, hk⟩ := measure_Om_le F κ ν
+  refine ⟨(volume.prod ν).map J, hμH, ((ν (Om F κ))⁻¹).toNNReal, k, fun m hm G hG hinv x => ?_⟩
+  obtain ⟨⟨t₀, y⟩, rfl⟩ := J.surjective x
+  have e1 : ∀ t : Fin D → ℝ, J (t₀, y) + ∑ i, lineA (b i) (t i) = J (t₀ + t, y) := fun t => by
+    have : ∑ i, lineA (b i) (t i) = J (t, 0) := by
+      rw [hJ, Module.Basis.equivFun_symm_apply]
+      change ∑ i, splitE F κ (t i • b i, 0) = _
+      set_option synthInstance.maxHeartbeats 100000 in
+        rw [← map_sum]
+      congr 1
+      exact Prod.ext (by rw [Prod.fst_sum]) (by rw [Prod.snd_sum]; simp)
+    rw [this, ← map_add (f := _), Prod.mk_add_mk, add_zero]
+  simp only [e1]
+  rw [lintegral_add_left_eq_self (fun t => G (J (t, y))) t₀, ENNReal.coe_toNNReal (ENNReal.inv_ne_top.2 h0), hint,
+    lintegral_prod (fun p => G (J p)) (hG.comp c1).measurable.aemeasurable]
+  set S : Set (κ → Af F) := (fun u => m • u) '' Om F κ
+  have hSc : IsCompact S := hOc.image (continuous_nsmul m)
+  have key : ν S * ∫⁻ t, G (J (t, y)) ≤ ∫⁻ t, ∫⁻ y', G (J (t, y')) ∂ν := by
+    rw [← lintegral_const_mul' _ _ hSc.measure_lt_top.ne]
+    refine lintegral_mono fun z => ?_
+    have hTm : MeasurableSet ((fun y' => y' + -y) ⁻¹' S) :=
+      hSc.isClosed.measurableSet.preimage (continuous_id.add continuous_const).measurable
+    calc ν S * G (J (z, y)) = ∫⁻ y', ((fun y' => y' + -y) ⁻¹' S).indicator (fun _ => G (J (z, y))) y' ∂ν := by
+          rw [lintegral_indicator_const hTm, measure_preimage_add_right, mul_comm]
+      _ ≤ _ := by
+          refine lintegral_mono fun y' => (Set.indicator_le (g := fun y' => G (J (z, y'))) (fun a ha => le_of_eq ?_)) y'
+          obtain ⟨u, hu, e⟩ := ha
+          have ha' : a = y + m • u := by
+            rw [show m • u = a + -y from e]
+            abel
+          have : J (z, a) = J (z, y) + (m : AF F) • J (0, u) := by
+            rw [Nat.cast_smul_eq_nsmul, ← map_nsmul, ← map_add (f := _), ha']
+            simp
+          change G (J (z, y)) = G (J (z, a))
+          rw [this, hinv]
+          intro i
+          refine ⟨?_, fun v => hu i v⟩
+          rw [hJ, map_zero]
+          exact map_zero (InfiniteAdeleRing.ringEquiv_mixedSpace F).symm
+  calc ∫⁻ t, G (J (t, y)) = (ν (Om F κ))⁻¹ * (ν (Om F κ) * ∫⁻ t, G (J (t, y))) := by
+        rw [← mul_assoc, ENNReal.inv_mul_cancel h0 hT, one_mul]
+    _ ≤ (ν (Om F κ))⁻¹ * ((m : ℝ≥0∞) ^ k * ν S * ∫⁻ t, G (J (t, y))) := by
+        gcongr
+        exact hk m hm
+    _ ≤ _ := by
+        rw [mul_assoc, mul_assoc]
+        gcongr
+
+theorem sob_of (h : DerivOK) : Sob := by
+  intro F _ _ κ _ ψ hψ
+  let b := Module.finBasis ℝ (V F κ)
+  obtain ⟨μ, hμ, C, k, hC⟩ := slice b
+  have hS : ∀ Θ ∈ (schA F κ : Set ((κ → AF F) → ℂ)), Continuous Θ := fun Θ hΘ => by
+    have := (continuous_comp_splitE F κ Θ hΘ).comp (continuous_splitE_symm F κ)
+    simpa only [Function.comp_def, AddEquiv.apply_symm_apply] using this
+  have hd : ∀ w, ∀ Θ ∈ (schA F κ : Set ((κ → AF F) → ℂ)), dR ψ w Θ ∈ (schA F κ : Set ((κ → AF F) → ℂ)) :=
+    fun w Θ hΘ => (h F κ ψ hψ w Θ hΘ).1
+  obtain ⟨L, hL⟩ := sobAbs hS hd _ (fun i => ((b i, 0) : V F κ × V F κ)) (fun i => lineA (b i))
+    (fun i => (continuous_splitE F κ).comp ((continuous_id.smul continuous_const).prodMk continuous_const))
+    (fun i Θ hΘ x => by simpa only [schr_lineA] using (h F κ ψ hψ (b i, 0) Θ hΘ).2.1 x)
+  refine ⟨μ, hμ, L, 2 ^ Module.finrank ℝ (V F κ) * C, k, fun m hm Θ hΘ hl x => (hL Θ hΘ x).trans ?_⟩
+  have hw : ∀ l : List (V F κ × V F κ), Lev m (l.foldr (dR ψ) Θ) := fun l => by
+    induction l with
+    | nil => exact hl
+    | cons w l ih => exact (h F κ ψ hψ w _ (foldr_mem hd l hΘ)).2.2 m ih
+  have hb := hC m hm _ (continuous_sumSq hS hd L hΘ) (fun u hu y => by simp only [sumSq, hw _ u hu y]) x
+  let : MeasurableSpace (κ → AF F) := borel _
+  have : BorelSpace (κ → AF F) := ⟨rfl⟩
+  rw [lintegral_sumSq μ hS hd L hΘ] at hb
+  push_cast
+  rw [mul_assoc, mul_assoc, ← mul_assoc (C : ℝ≥0∞)]
+  gcongr
+  exact hb
+
+end PositivityTheory.ThKF0.Grow
+end
+end
+
+section -- merged from Development.WeilBound.ThetaLifts.LeviDeterminants.GrowTr
+noncomputable section
+
+namespace PositivityTheory.ThKF0.Grow
+
+open scoped Matrix Classical
+open NumberField
+
+theorem exists_trace_ne {F : Type} [Field F] [NumberField F] (x : mixedEmbedding.mixedSpace F) (hx : x ≠ 0) :
+    ∃ y, Algebra.trace ℝ (mixedEmbedding.mixedSpace F) (x * y) ≠ 0 := by
+  obtain ⟨y, hy⟩ : ∃ y : mixedEmbedding.mixedSpace F, x * y * x = x :=
+    ⟨(fun w => (x.1 w)⁻¹, fun w => (x.2 w)⁻¹), Prod.ext (funext fun w => mul_inv_mul_cancel (x.1 w))
+      (funext fun w => mul_inv_mul_cancel (x.2 w))⟩
+  refine ⟨y, fun h => hx ?_⟩
+  have hi : IsIdempotentElem (LinearMap.mulLeft ℝ (x * y)) := by
+    refine LinearMap.ext fun z => ?_
+    change x * y * (x * y * z) = x * y * z
+    rw [← mul_assoc, ← mul_assoc, hy]
+  have ht := (LinearMap.IsIdempotentElem.isProj_range _ hi).trace
+  have h0 : LinearMap.trace ℝ _ (LinearMap.mulLeft ℝ (x * y)) = 0 := h
+  rw [h0] at ht
+  have hr : LinearMap.range (LinearMap.mulLeft ℝ (x * y)) = ⊥ :=
+    Submodule.finrank_eq_zero.1 (by exact_mod_cast ht.symm)
+  have : x * y * x = 0 := LinearMap.congr_fun (LinearMap.range_eq_bot.1 hr) x
+  rwa [hy] at this
+
+theorem trBd : TrBd := by
+  intro F _ _ κ _
+  let B : V F κ →ₗ[ℝ] V F κ →ₗ[ℝ] ℝ := LinearMap.mk₂ ℝ
+    (fun x b => Algebra.trace ℝ (mixedEmbedding.mixedSpace F) (x ⬝ᵥ b))
+    (fun x x' b => by rw [add_dotProduct, map_add (f := _)]) (fun c x b => by rw [smul_dotProduct, map_smul])
+    (fun x b b' => by rw [dotProduct_add, map_add (f := _)]) (fun c x b => by rw [dotProduct_smul, map_smul])
+  let A : V F κ →ₗ[ℝ] V F κ →L[ℝ] ℝ := (LinearMap.toContinuousLinearMap : (V F κ →ₗ[ℝ] ℝ) ≃ₗ[ℝ] _).toLinearMap ∘ₗ B
+  have hA : LinearMap.ker A = ⊥ := by
+    refine LinearMap.ker_eq_bot'.2 fun x hx => funext fun i => ?_
+    by_contra hi
+    obtain ⟨y, hy⟩ := exists_trace_ne (x i) hi
+    have : Algebra.trace ℝ (mixedEmbedding.mixedSpace F) (x ⬝ᵥ Pi.single i y) = 0 :=
+      congrArg (fun T : V F κ →L[ℝ] ℝ => T (Pi.single i y)) hx
+    rw [dotProduct_single] at this
+    exact hy this
+  obtain ⟨K, -, hK⟩ := A.exists_antilipschitzWith hA
+  refine ⟨2 * K, by positivity, fun x => ?_⟩
+  have h1 : ‖x‖ ≤ K * ‖A x‖ := ZeroHomClass.bound_of_antilipschitz A hK x
+  by_cases h0 : ‖A x‖ = 0
+  · refine ⟨0, by simp, ?_⟩
+    rw [h0, mul_zero] at h1
+    exact h1.trans (by positivity)
+  · have hp : 0 < ‖A x‖ := (norm_nonneg _).lt_of_ne' h0
+    obtain ⟨b, hb, hb'⟩ := (A x).exists_lt_apply_of_lt_opNorm (r := ‖A x‖ / 2) (by linarith)
+    refine ⟨b, hb.le, h1.trans ?_⟩
+    have h2 : ‖A x‖ / 2 < |Algebra.trace ℝ (mixedEmbedding.mixedSpace F) (x ⬝ᵥ b)| := hb'
+    have h3 : (0 : ℝ) ≤ K := K.2
+    nlinarith
+
+end PositivityTheory.ThKF0.Grow
+end
+end
+
+open NumberField IsDedekindDomain MeasureTheory Filter Topology Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes
+open GlobalTheory.WeilM GlobalTheory.AdelicU GlobalTheory.LFun GlobalTheory.IndefiniteRowSideFullHecke.WeilTensorModels GlobalTheory.ThK
+open scoped TensorProduct NNReal Matrix
+open scoped Classical
+
+theorem PositivityTheory.ThKF0.weil_rep_rapid_decay_height : ∀ (F E : Type) [Field F] [NumberField F] [Field E] [NumberField E] [Algebra F E] (σ : E →ₐ[F] E) (B : Base F E) (n d : ℕ) (X : Spc F E n) (W : Spc F E d) (M : Model σ X W) (χX χW : Chr F E) (om : Rep σ X W) (r s r' s' : ℕ), IsPair B M χX χW om r s r' s' → ∀ Φ ∈ schA F (Fin n × Fin d), ∀ N : ℕ, ∃ (C : ℝ) (k : ℕ), ∀ g h (x : Fin n × Fin d → AF F),
+    ‖om (g, h) Φ x‖ * (1 + ‖fun i => evI F (x i)‖) ^ N ≤ C * ((ht g : ℝ) * ht h) ^ k :=
+  PositivityTheory.ThKF0.Grow.weil_rep_rapid_decay_of_growth PositivityTheory.ThKF0.Grow.htBd PositivityTheory.ThKF0.Grow.finInv
+    (PositivityTheory.ThKF0.Grow.sob_of PositivityTheory.ThKF0.Grow.derivOK) PositivityTheory.ThKF0.Grow.trBd

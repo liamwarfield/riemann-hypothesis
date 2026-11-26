@@ -1,0 +1,15 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.GrothendieckRingPolynomial.ClassProductIrreducibleFold
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.GrothendieckRingPolynomial.ProdList
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ProductIrreducibleFiniteLength
+
+@[expose] public section
+
+namespace PositivityTheory.Groth
+export CompanionTheory.Groth (
+  class_of_finite_length class_congr_iso class_chosen_rep_basis prodIrr_cast
+  prodIrr_zero prodIrr_one class_of_product_equiv prodIrr_append_one
+  class_product_irreducible_fold prodList
+)
+end PositivityTheory.Groth

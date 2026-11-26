@@ -1,0 +1,271 @@
+module
+
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DualFamilyCounting.DensCut
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DensLoc
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.ClosedLocalOrbits.GaugeLatticeShifts.LocFacts
+
+@[expose] public section
+
+section -- merged from Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DualFamilyCounting.AbsNormSmallFinite
+section -- merged from Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DualFamilyCounting.DensProdValOf
+open NumberField Formalism.MainNotions.S Formalism.MainNotions.S.Lat Formalism.MainNotions.S.LocalSplitGroups Formalism.L2.SG.CntLocal
+open Classical
+
+noncomputable section
+
+namespace Formalism.L2.SG.Pf.Cnt
+
+open Formalism.HermitianLattices.Ext.L3
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+theorem alpha_split' {K F : Type} [Field K] [NumberField K] [StarRing K] [Field F] [NumberField F] [Algebra F K]
+    (𝔭 : Ideal (𝓞 F)) {a b : ℕ} (hab : a ≤ b) :
+    alphaStd K 𝔭 b = alphaStd K 𝔭 a *
+      ∏ i ∈ Finset.Icc (a + 1) b, (1 - etaF K F 𝔭 ^ i * (Ideal.absNorm 𝔭 : ℝ) ^ (-(i : ℤ))) := by
+  unfold alphaStd
+  rw [← Finset.prod_union]
+  · congr 1
+    ext i
+    simp only [Finset.mem_union, Finset.mem_Icc]
+    omega
+  · rw [Finset.disjoint_left]
+    intro i hi hi'
+    simp only [Finset.mem_Icc] at hi hi'
+    omega
+
+end Formalism.L2.SG.Pf.Cnt
+end
+end
+
+open NumberField Formalism.MainNotions.S Formalism.MainNotions.S.Lat Formalism.MainNotions.S.LocalSplitGroups Formalism.L2.SG.CntLocal
+open Classical ValuativeRel
+
+noncomputable section
+
+namespace Formalism.L2.SG.Pf.Cnt
+
+open Formalism.HermitianLattices.Ext.L3
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+theorem absNorm_small_finite (D : Formalism.BasicNotions.D7) :
+    {p : PlF D | (Ideal.absNorm p.asIdeal : ℝ) < 3}.Finite := by
+  have h : {I : Ideal (𝓞 D.host.F) | Ideal.absNorm I < 3}.Finite := by
+    have : {I : Ideal (𝓞 D.host.F) | Ideal.absNorm I < 3} =
+        ⋃ n ∈ Finset.range 3, {I : Ideal (𝓞 D.host.F) | Ideal.absNorm I = n} := by
+      ext I; simp [Finset.mem_range]
+    rw [this]
+    exact Set.Finite.biUnion (Finset.finite_toSet _) (fun n _ => Ideal.finite_setOf_absNorm_eq n)
+  refine (h.preimage (fun p _ q _ hpq => IsDedekindDomain.HeightOneSpectrum.ext hpq)).subset ?_
+  intro p hp
+  simp only [Set.mem_setOf_eq] at hp ⊢
+  exact_mod_cast hp
+
+end Formalism.L2.SG.Pf.Cnt
+end
+end
+
+section -- merged from Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DualFamilyCounting.LocalFormIntegralOnLattice
+open NumberField Formalism.MainNotions.S Formalism.MainNotions.S.Lat Formalism.MainNotions.S.LocalSplitGroups Formalism.L2.SG.CntLocal
+open Classical
+
+noncomputable section
+
+namespace Formalism.L2.SG.Pf.Cnt
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+section S1
+
+variable {D : Formalism.BasicNotions.D7} {M : ∀ p : PlF D, Loc.Model (D.s.atP p).Fp (D.s.atP p).Ep} (L : LocSp D M) (p : PlF D)
+
+theorem local_form_add_right (x y y' : L.V p) : (L.H p).h x (y + y') = (L.H p).h x y + (L.H p).h x y' := by
+  rw [(L.H p).h_herm (y + y') x, (L.H p).h_add_left, map_add (f := _), ← (L.H p).h_herm y x,
+    ← (L.H p).h_herm y' x]
+
+theorem local_form_smul_right (x y : L.V p) (a : (D.s.atP p).Ep) :
+    (L.H p).h x (a • y) = (M p).L.cj a * (L.H p).h x y := by
+  rw [(L.H p).h_herm (a • y) x, (L.H p).h_smul_left, map_mul, ← (L.H p).h_herm y x]
+
+theorem local_form_zero_left (y : L.V p) : (L.H p).h 0 y = 0 := by
+  have h := (L.H p).h_smul_left 0 0 y
+  rwa [zero_smul, zero_mul] at h
+
+theorem local_form_zero_right (x : L.V p) : (L.H p).h x 0 = 0 := by
+  rw [(L.H p).h_herm 0 x, local_form_zero_left, map_zero]
+
+theorem base_change_smul_integral {δ : ∀ p : PlF D, (D.s.atP p).Fp} (hA : Agree δ M p) (o : 𝓞 D.host.E) (x : (VS D).V) :
+    ∃ c ∈ (M p).L.O, L.bc p (o • x) = c • L.bc p x := by
+  refine ⟨(D.s.atP p).ιE (o : D.host.E), ?_, ?_⟩
+  · rw [hA.2.2.2.1]
+    exact PI.CntNotIntW.iE_mem_O D p o
+  · rw [← L.bc_smul p (o : D.host.E) x]
+    congr 1
+    first
+    | exact (algebraMap_smul D.host.E o x).symm
+    | rfl
+
+theorem local_form_integral_on_lattice (Λ : Submodule (𝓞 D.host.E) (VS D).V)
+    (hcjO : ∀ a ∈ (M p).L.O, (M p).L.cj a ∈ (M p).L.O)
+    (hint : ∀ a ∈ Λ, ∀ b ∈ Λ, (L.H p).h (L.bc p a) (L.bc p b) ∈ (M p).L.O)
+    {x y : L.V p} (hx : x ∈ lattice₂ L p Λ) (hy : y ∈ lattice₂ L p Λ) : (L.H p).h x y ∈ (M p).L.O := by
+  unfold lattice₂ at hx hy
+  induction hx using Submodule.span_induction with
+  | mem x hx0 =>
+    obtain ⟨a, ha, rfl⟩ := hx0
+    induction hy using Submodule.span_induction with
+    | mem y hy0 =>
+      obtain ⟨b, hb, rfl⟩ := hy0
+      exact hint a ha b hb
+    | zero => rw [local_form_zero_right]; exact (M p).L.O.zero_mem
+    | add y y' _ _ h1 h2 => rw [local_form_add_right]; exact add_mem h1 h2
+    | smul c y _ h1 =>
+      rw [show c • y = (c : (D.s.atP p).Ep) • y from rfl, local_form_smul_right]
+      exact mul_mem (hcjO _ c.2) h1
+  | zero => rw [local_form_zero_left]; exact (M p).L.O.zero_mem
+  | add x x' _ _ h1 h2 => rw [(L.H p).h_add_left]; exact add_mem h1 h2
+  | smul c x _ h1 =>
+    rw [show c • x = (c : (D.s.atP p).Ep) • x from rfl, (L.H p).h_smul_left]
+    exact mul_mem c.2 h1
+
+end S1
+
+set_option maxHeartbeats 1000000 in
+theorem local_self_dual_holds : LocSelfDual := by
+  intro D δ M hA L p
+  have hAp := hA p
+  obtain ⟨-, -, hcj, hO, -⟩ := hAp
+  have hLat := (VS D).standardTuple_isLattice
+  have hU := (VS D).baseLattice_isUnimodular
+  have hspan : Submodule.span D.host.E ((VS D).L0 : Set (VS D).V) = ⊤ := by
+    by_contra hspan
+    obtain ⟨φ, hφ₀, hφ⟩ := Submodule.exists_le_ker_of_lt_top _ (lt_top_iff_ne_top.mpr hspan)
+    obtain ⟨μ, hμ⟩ := LocFacts.lf_riesz φ
+    have hμ₀ : μ ≠ 0 := by
+      intro h
+      apply hφ₀
+      ext y
+      simpa [h] using (hμ y).symm
+    have hline (a : D.host.E) : a • μ ∈ (VS D).L0 := by
+      rw [← hU]
+      change a • μ ∈ Formalism.E.hdual (VS D).hT (VS D).L0
+      rw [LocFacts.lf_mem_hdual]
+      intro y hy
+      have hy₀ := LinearMap.mem_ker.mp (hφ (Submodule.subset_span hy))
+      simp [← (VS D).herm.eq (a • μ) y, LinearMap.map_smulₛₗ, hμ, hy₀]
+    obtain ⟨ψ, hψ, -⟩ := Submodule.exists_le_ker_of_notMem
+      (show μ ∉ (⊥ : Submodule D.host.E (VS D).V) by simpa using hμ₀)
+    let f := ψ.restrictScalars (𝓞 D.host.E)
+    have hmap (x : D.host.E) : x ∈ (VS D).L0.map f := by
+      refine ⟨(x / ψ μ) • μ, hline _, ?_⟩
+      change ψ ((x / ψ μ) • μ) = x
+      rw [map_smul, smul_eq_mul, div_mul_cancel₀ _ hψ]
+    obtain ⟨d, hd₀, hd⟩ := FractionalIdeal.isFractional_of_fg
+      (S := nonZeroDivisors (𝓞 D.host.E)) (hLat.fg.map f)
+    have hinj := IsFractionRing.injective (𝓞 D.host.E) D.host.E
+    have hne {a : 𝓞 D.host.E} (ha : a ≠ 0) : algebraMap (𝓞 D.host.E) D.host.E a ≠ 0 :=
+      fun h => ha (hinj (h.trans (map_zero _).symm))
+    have hinteger (x : D.host.E) : IsLocalization.IsInteger (𝓞 D.host.E) x := by
+      have hx := hd _ (hmap ((algebraMap (𝓞 D.host.E) D.host.E d)⁻¹ * x))
+      rwa [Algebra.smul_def, ← mul_assoc, mul_inv_cancel₀ (hne (nonZeroDivisors.ne_zero hd₀)),
+        one_mul] at hx
+    apply RingOfIntegers.not_isField D.host.E
+    refine ⟨⟨0, 1, zero_ne_one⟩, mul_comm, ?_⟩
+    intro a ha
+    obtain ⟨b, hb⟩ := hinteger ((algebraMap (𝓞 D.host.E) D.host.E a)⁻¹)
+    refine ⟨b, hinj ?_⟩
+    rw [map_mul, hb, map_one, mul_inv_cancel₀ (hne ha)]
+
+
+  have hform : ∀ a b : (VS D).V, (L.H p).h (L.bc p a) (L.bc p b) = (D.s.atP p).ιE ((VS D).hT b a) := by
+    intro a b; rw [L.bc_form p]; rfl
+  have hcjO : ∀ a ∈ (M p).L.O, (M p).L.cj a ∈ (M p).L.O := by
+    intro a ha; rw [hcj, hO] at *; exact LocFacts.lf_cj_mem p a ha
+
+  have hint : ∀ a ∈ (VS D).L0, ∀ b ∈ (VS D).L0, (L.H p).h (L.bc p a) (L.bc p b) ∈ (M p).L.O := by
+    intro a ha b hb
+    rw [hform]
+    have ha' : a ∈ Formalism.E.hdual (VS D).hT (VS D).L0 := by
+      have : Formalism.HermitianLatticesTheory.dual (VS D).hT (VS D).L0 = (VS D).L0 := hU
+      rw [← this] at ha; exact ha
+    obtain ⟨o, ho⟩ := Submodule.mem_one.1 ((LocFacts.lf_mem_hdual).1 ha' b hb)
+    rw [← ho, hO]
+    exact PI.CntNotIntW.iE_mem_O D p o
+  refine ⟨?_, ?_, fun x => ⟨fun hx y hy => ?_, fun h => ?_⟩⟩
+  ·
+    obtain ⟨s, hs⟩ := hLat.fg
+    have : lattice₂ L p (VS D).L0 = Submodule.span (M p).L.O (L.bc p '' (s : Set (VS D).V)) := by
+      apply le_antisymm
+      · rw [lattice₂, Submodule.span_le, ← hs]
+        rintro _ ⟨x, hx, rfl⟩
+        induction hx using Submodule.span_induction with
+        | mem y hy => exact Submodule.subset_span ⟨y, hy, rfl⟩
+        | zero => simp
+        | add y z _ _ hy hz => rw [map_add (f := _)]; exact Submodule.add_mem _ hy hz
+        | smul o y _ hy =>
+          obtain ⟨c, hc, he⟩ := base_change_smul_integral L p (hA p) o y
+          rw [he]
+          exact Submodule.smul_mem _ (⟨c, hc⟩ : (M p).L.O) hy
+      · rw [← hs]; exact Submodule.span_mono (Set.image_mono Submodule.subset_span)
+    rw [this]
+    exact Submodule.fg_span (s.finite_toSet.image _)
+  ·
+    rw [eq_top_iff, ← L.bc_span p, Submodule.span_le]
+    rintro _ ⟨v, rfl⟩
+    have hv : v ∈ Submodule.span D.host.E ((VS D).L0 : Set (VS D).V) := by rw [hspan]; trivial
+    induction hv using Submodule.span_induction with
+    | mem y hy => exact Submodule.subset_span (Submodule.subset_span ⟨y, hy, rfl⟩)
+    | zero => rw [map_zero]; exact zero_mem _
+    | add y z _ _ hy hz => rw [map_add (f := _)]; exact add_mem hy hz
+    | smul a y _ hy => rw [L.bc_smul p]; exact Submodule.smul_mem _ _ hy
+  ·
+    exact local_form_integral_on_lattice L p _ hcjO hint hx hy
+  ·
+    obtain ⟨n, g, f, hgf⟩ := Formalism.HermitianLatticesTheory.finitely_generated_projective_coords (K := D.host.E) (VS D).L0 hLat.fg
+      (IsFractionRing.injective (𝓞 D.host.E) D.host.E)
+    choose μ hμL0 hμ using fun i => LocFacts.lf_riesz_lat hLat hU (f i)
+    have hV : ∀ v : (VS D).V, v = ∑ i, (VS D).hT (μ i) v • ((g i : (VS D).L0) : (VS D).V) := by
+      let L2 : (VS D).V →ₗ[D.host.E] (VS D).V := ∑ i, ((VS D).hT (μ i)).smulRight ((g i : (VS D).L0) : (VS D).V)
+      have hL2 : ∀ v, L2 v = ∑ i, (VS D).hT (μ i) v • ((g i : (VS D).L0) : (VS D).V) := by
+        intro v; simp [L2]
+      have heq : LinearMap.id = L2 := by
+        apply LinearMap.ext_on hspan
+        intro y hy
+        have e1 := congrArg (fun z : (VS D).L0 => (z : (VS D).V)) (hgf ⟨y, hy⟩)
+        rw [LinearMap.id_apply, hL2]
+        refine e1.trans ?_
+        rw [Submodule.coe_sum]
+        refine Finset.sum_congr rfl fun i _ => ?_
+        rw [Submodule.coe_smul, ← algebraMap_smul D.host.E, hμ i ⟨y, hy⟩]
+      intro v
+      rw [← hL2, ← heq, LinearMap.id_apply]
+    have hVp : ∀ w : L.V p, w = ∑ i, (L.H p).h w (L.bc p (μ i)) • L.bc p ((g i : (VS D).L0) : (VS D).V) := by
+      intro w
+      have hw : w ∈ Submodule.span (D.s.atP p).Ep (Set.range (L.bc p)) := by rw [L.bc_span p]; trivial
+      induction hw using Submodule.span_induction with
+      | mem w hw =>
+        obtain ⟨v, rfl⟩ := hw
+        have e : ∀ i, (L.H p).h (L.bc p v) (L.bc p (μ i)) = (D.s.atP p).ιE ((VS D).hT (μ i) v) := fun i => hform _ _
+        simp only [e, ← L.bc_smul p]
+        set_option synthInstance.maxHeartbeats 100000 in
+          rw [← map_sum, ← hV v]
+      | zero => simp [local_form_zero_left]
+      | add w w' _ _ h1 h2 =>
+        simp only [(L.H p).h_add_left, add_smul, Finset.sum_add_distrib]
+        rw [← h1, ← h2]
+      | smul a w _ h1 =>
+        simp only [(L.H p).h_smul_left, mul_smul]
+        rw [← Finset.smul_sum, ← h1]
+    have hmem : (∑ i, (L.H p).h x (L.bc p (μ i)) • L.bc p ((g i : (VS D).L0) : (VS D).V)) ∈ lattice₂ L p (VS D).L0 := by
+      refine Submodule.sum_mem _ fun i _ => ?_
+      have hc : (L.H p).h x (L.bc p (μ i)) ∈ (M p).L.O := h _ (Submodule.subset_span ⟨μ i, hμL0 i, rfl⟩)
+      have hg : L.bc p ((g i : (VS D).L0) : (VS D).V) ∈ lattice₂ L p (VS D).L0 := Submodule.subset_span ⟨_, (g i).2, rfl⟩
+      exact Submodule.smul_mem _ (⟨_, hc⟩ : (M p).L.O) hg
+    have hxe := hVp x
+    rw [← hxe] at hmem
+    exact hmem
+
+end Formalism.L2.SG.Pf.Cnt
+end
+end

@@ -1,0 +1,20 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.CuspidalNormLeOfAlternatingSumScaledUnipFD
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.BlkEquivInl
+public import GroundTheory.AutomorphicForms.CuspidalDiscreteness.ExistsNormRconvLeSiegel
+public import GroundTheory.AutomorphicForms.ReductionSiegel
+
+@[expose] public section
+
+open NumberField MeasureTheory GlobalTheory.CuspRep GlobalTheory.HCF Topology
+open scoped ContDiff
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.cuspidal_norm_le_of_alternatingSum_scaledUnipFD : ∀ (E : Type) [Field E] [NumberField E] [_root_.NumberField.IsTotallyComplex E] (a r : ℕ), 0 < r → r < a →
+    ∀ φ : GA E a → ℂ, (∀ γ g, φ (ratGL E a γ * g) = φ g) → IsCuspidal φ → Continuous φ →
+    ∀ M : ℕ, 0 < M → ∀ (x : GA E a) (m : ℕ) (B : ℝ),
+      (∀ y : Fin m → BlockIx a r → Ad E, (∀ i, y i ∈ GroundTheory.Automorphic.scaledUnipFD E a r M) →
+        ‖∑ ε : Fin m → Bool, (GroundTheory.Automorphic.altSign ε : ℂ) * φ (unip (GroundTheory.Automorphic.altPoint y ε) * x)‖ ≤ B) →
+      ‖φ x‖ ≤ B := by
+  first | exact @GlobalTheory.CuspTail.norm_le_of_altSum_scaledUnipFD | exact GlobalTheory.CuspTail.norm_le_of_altSum_scaledUnipFD | (intros; apply GlobalTheory.CuspTail.norm_le_of_altSum_scaledUnipFD <;> assumption)

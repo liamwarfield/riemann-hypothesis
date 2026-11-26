@@ -1,10 +1,9 @@
-# Added for the shared build cache (see ../CACHE.md). The rest of this file, up to the
-# next such comment, is unchanged from grh-lean commit 72fead1.
+# Cache infrastructure; the original submission starts below this block.
 platformIndependent = true
 
-name = "GRH"
+name = "tree"
 srcDir = "src"
-defaultTargets = ["Lib", "New", "Main"]
+defaultTargets = ["CompanionTheory", "Development", "Formalism", "GroundTheory", "GroundTheoryFields", "Lemmata", "PositivityTheory", "ReciprocityTheory", "Supplements", "Main"]
 moreLeanArgs = ["--tstack=400000"]
 
 [leanOptions]
@@ -17,54 +16,66 @@ maxHeartbeats = 4000000
 [[require]]
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4"
-rev = "56a005855ea17e0b0958f73ec801ae140b0a1679"
-
-# Added for Tau Ceti (see CACHE.md): https://github.com/TauCetiProject/TauCeti at a toolchain
-# tag. Its cached oleans are only usable if it was built against the Mathlib commit above, so
-# the two pins move together; `lake exe cache get` checks this (scripts/tauceti-cache-get.py).
-[[require]]
-name = "TauCeti"
-git = "https://github.com/TauCetiProject/TauCeti"
-rev = "v4.35.0+patch1"
-
-# The rest of this file, up to the next "Added" comment, is unchanged from grh-lean commit 72fead1.
+rev = "fc4f59e577feb1a4956671bc04ac18aaaf8cd842"
 
 [[lean_lib]]
-name = "Lib"
-globs = ["Lib.+"]
+name = "CompanionTheory"
+globs = ["CompanionTheory.+"]
 
 [[lean_lib]]
-name = "New"
-globs = ["New.+"]
+name = "Development"
+globs = ["Development.+"]
+
+[[lean_lib]]
+name = "Formalism"
+globs = ["Formalism.+"]
+
+[[lean_lib]]
+name = "GroundTheory"
+globs = ["GroundTheory.ArithmeticGeometry.+", "GroundTheory.AutomorphicForms.+", "GroundTheory.Brauer.+", "GroundTheory.FunctionField.+", "GroundTheory.HeightsAndTheta.+", "GroundTheory.IdeleRoots.+", "GroundTheory.PAdicHodge.+", "GroundTheory.PowerSubgroups.+", "GroundTheory.ProfiniteCohomology.+", "GroundTheory.TateCohomology.+"]
+
+[[lean_lib]]
+name = "GroundTheoryFields"
+globs = ["GroundTheory.LocalFields.+", "GroundTheory.GlobalFields.+"]
+leanOptions = {synthInstance.maxHeartbeats = 400000}
+
+[[lean_lib]]
+name = "Lemmata"
+globs = ["Lemmata.+"]
+
+[[lean_lib]]
+name = "PositivityTheory"
+globs = ["PositivityTheory.+"]
+
+[[lean_lib]]
+name = "ReciprocityTheory"
+globs = ["ReciprocityTheory.+"]
+
+[[lean_lib]]
+name = "Supplements"
+globs = ["Supplements.+"]
 
 [[lean_lib]]
 name = "Main"
 roots = ["Statements", "Main"]
+# --- Everything below this line was added for Comparator; it is not part of the submission ---
 
 [[lean_lib]]
 name = "Challenge"
-srcDir = ".."
+roots = ["Challenge"]
 
-# Added for the shared build cache. It is not part of the original project.
+# Project cache entrypoint. The original submission above is unchanged.
 [[lean_exe]]
 name = "cache"
 root = "scripts.Cache"
 srcDir = ".."
 
-# Stock Lake also reads this file as its cache-service configuration (LAKE_CONFIG).
+# Stock Lake also reads this file as its cache-service configuration.
 [cache]
-defaultService = "grh-lean"
+defaultService = "riemann-hypothesis"
 
 [[cache.service]]
-name = "grh-lean"
+name = "riemann-hypothesis"
 kind = "s3"
 artifactEndpoint = "https://rh-cache.taucetiproject.org/artifacts"
-revisionEndpoint = "https://rh-cache.taucetiproject.org/grh-lean/revisions"
-
-# Added for Tau Ceti: its public, anonymous artifact cache. `lake exe cache get` fetches from it
-# the oleans of the Tau Ceti modules imported under src (scripts/tauceti-cache-get.py).
-[[cache.service]]
-name = "tauceti-public"
-kind = "s3"
-artifactEndpoint = "https://cache.taucetiproject.org/artifacts"
-revisionEndpoint = "https://cache.taucetiproject.org/revisions"
+revisionEndpoint = "https://rh-cache.taucetiproject.org/revisions"

@@ -1,0 +1,208 @@
+module
+
+public import Development.AbelianVarietyTheory.Definitions.NonGaloisDescent.Langlands
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.GaloisRepOfPolarizedCuspidal
+public import Development.AbelianVarietyTheory.Definitions.NonGaloisDescent.NonemptyEquivProdIrrZero
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.LocalLanglandsExists
+noncomputable section
+
+open NumberField IsDedekindDomain ValuativeRel Matrix Polynomial
+open Formalism.ConjugateSelfDual ReciprocityTheory.Gal
+open GlobalTheory.PRep GlobalTheory.SmGL GlobalTheory.SplitWeil GlobalTheory.LocGL GlobalTheory.WeilDeligne
+
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+namespace GlobalTheory.Published
+
+open GlobalTheory.LocLanglands
+
+def LocalLanglandsExists : Prop :=
+  ∀ (E Ω : Type) [Field E] [NumberField E] [Field Ω] [Algebra E Ω] [IsAlgClosure E Ω] (A : ValuationSubring Ω)
+    (w : HeightOneSpectrum (𝓞 E)) (h : IsPlaceOver A w), ∃ rc : IrrGL (k := w.adicCompletion E) → WD h, IsRecLit h rc
+
+end GlobalTheory.Published
+
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.DepthZeroCuspidalLL
+noncomputable section
+
+open NumberField IsDedekindDomain ValuativeRel Matrix Polynomial
+open Formalism.ConjugateSelfDual ReciprocityTheory.Gal
+open GlobalTheory.PRep GlobalTheory.SmGL GlobalTheory.SplitWeil GlobalTheory.LocGL GlobalTheory.WeilDeligne
+
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+namespace GlobalTheory.Published
+
+open GlobalTheory.LocLanglands
+
+def DepthZeroCuspidalLL : Prop :=
+  ∀ (E Ω : Type) [Field E] [NumberField E] [Field Ω] [Algebra E Ω] [IsAlgClosure E Ω] (A : ValuationSubring Ω)
+    (w : HeightOneSpectrum (𝓞 E)) (h : IsPlaceOver A w) (rc : IrrGL (k := w.adicCompletion E) → WD h), IsRecLit h rc →
+    ∀ x : IrrGL (k := w.adicCompletion E), x.IsCusp →
+      (fixed x.rep (KOne (w.adicCompletion E) (Fin x.1)) ≠ ⊥ ↔ IsTameWD (rc x))
+
+end GlobalTheory.Published
+
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.SquareIntegrableSegment
+noncomputable section
+
+open GlobalTheory.PRep GlobalTheory.SmGL GlobalTheory.SplitWeil GlobalTheory.LocGL ValuativeRel
+
+namespace GlobalTheory.Published
+
+def SquareIntegrableSegment : Prop :=
+  ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k] [CharZero k]
+    (δ : IrrGL (k := k)), UnitaryDual.IsSquareIntegrable δ → ∃ Δ : Segment k, IsLSeg Δ δ.rep
+
+end GlobalTheory.Published
+
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.DepthZeroTypeInertia
+noncomputable section
+
+open NumberField IsDedekindDomain Formalism.ConjugateSelfDual ReciprocityTheory.Gal Polynomial GlobalTheory.WeilDeligne GlobalTheory.LocGL GlobalTheory.LocLanglands GlobalTheory.GLq
+
+namespace GlobalTheory.Published
+
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+def DepthZeroTypeInertia : Prop :=
+  ∀ (E E' Ω : Type) [Field E] [NumberField E] [Field E'] [NumberField E'] [Field Ω] [Algebra E E'] [Algebra E Ω]
+    [Algebra E' Ω] [IsScalarTower E E' Ω] [IsAlgClosure E Ω] [IsAlgClosure E' Ω] (g : ℕ) [Fact g.Prime]
+    (A : ValuationSubring Ω) (w : HeightOneSpectrum (𝓞 E)) (h : IsPlaceOver A w)
+    (w' : HeightOneSpectrum (𝓞 E')) (h' : IsPlaceOver A w')
+    (rc : IrrGL (k := w.adicCompletion E) → WD h), IsRec h rc →
+    ∀ (i : ℚ_[g] ≃+* w.adicCompletion E), Continuous i →
+    ∀ n : ℕ, 0 < n → ((g : ℕ) : 𝓞 E') ∉ w'.asIdeal ^ 2 → normV w' = g ^ n →
+    ∀ a' : Weil h' →* (w'.adicCompletion E')ˣ, IsLocalArtin h' a' →
+    ∀ (K : Type) [Field K] [Algebra (ZMod g) K] (red : 𝓞 E' →+* K), Function.Surjective red →
+      RingHom.ker red = w'.asIdeal →
+    ∀ θ : Kˣ →* ℂˣ, IsRegularChar g n θ →
+    ∀ τ : FDRep ℂ (Gn g n), IsCusp τ.character →
+      (∀ y : Gn g n, Irreducible (y : Mt g n).charpoly → ∀ z : Kˣ, aeval (z : K) (y : Mt g n).charpoly = 0 →
+        τ.character y = (-1) ^ (n - 1) * ∑ j ∈ Finset.range n, ((θ (z ^ g ^ j) : ℂˣ) : ℂ)) →
+    ∀ σ : GlobalTheory.SmGL.IrrRep (GL (Fin n) (w.adicCompletion E)),
+      GlobalTheory.SerSys.TameGen.Inflates (σ.ρ.comp (Matrix.GeneralLinearGroup.map i.toRingHom)) τ →
+      (rc (cls σ)).mono0 ∧
+      ∀ (t : Ine (F := E') A) (x : 𝓞 E') (z : Kˣ), red x = z →
+        Valued.v ((a' (ineIncl h' t) : w'.adicCompletion E') - algebraMap E' (w'.adicCompletion E') (x : E')) < 1 →
+        (rc (cls σ)).inePol (AlgEquiv.restrictScalars E (t : G E' Ω)) =
+          ∏ j ∈ Finset.range n, (X - C ((θ (z ^ g ^ j) : ℂˣ) : ℂ))
+
+end GlobalTheory.Published
+
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.ExhUnipRadOne
+open GlobalTheory.PRep GlobalTheory.SmGL GlobalTheory.SplitWeil GlobalTheory.LocGL GlobalTheory.LocGL.ProjLine ValuativeRel
+
+noncomputable section
+namespace GlobalTheory.LocGL
+variable {k : Type} [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k]
+
+theorem exh_unipRad_one {s : ℕ} {d : Fin s → ℕ} (e : (Σ a : Fin s, Fin (d a)) ≃ Fin 1) : unipRad k e = ⊥ := by
+  refine (Subgroup.eq_bot_iff_forall _).2 fun u hu => ?_
+  have h := det_eq_one_of_mem_unipRad k hu
+  have h2 : (u : Matrix (Fin 1) (Fin 1) k).det = 1 := by
+    simpa using congrArg Units.val h
+  ext i j
+  rw [Subsingleton.elim i 0, Subsingleton.elim j 0]
+  simpa using h2
+
+theorem exh_deg_one (c : IrrCl (GL (Fin 1) k)) : ∃ 𝔪 : Multiset (Segment k), IsL 𝔪 (IrrGL.rep ⟨1, c⟩) := by
+  have hc : IrrGL.IsCusp (⟨1, c⟩ : IrrGL (k := k)) := ⟨one_pos, c.rep.smooth, fun s d e he => absurd (exh_unipRad_one e) he⟩
+  exact ⟨_, (single_spec hc).2.2.2⟩
+
+theorem exh_equiv_zero {m : Fin 0 → Type} [∀ a, Fintype (m a)] [∀ a, DecidableEq (m a)] (e : (Σ a, m a) ≃ Fin 0)
+    {W V : Type} [AddCommGroup W] [Module ℂ W] [AddCommGroup V] [Module ℂ V] (ρ : Representation ℂ (Levi k m) W)
+    (E : W ≃ₗ[ℂ] ℂ) (π : Representation ℂ (GL (Fin 0) k) V) (hirr : π.IsIrreducible) :
+    Nonempty ((parInd e ρ).Equiv π) := by
+  have hg : ∀ g : GL (Fin 0) k, g = 1 := fun g => Units.ext (Subsingleton.elim _ _)
+  have hnt : ∃ v : V, v ≠ 0 := by
+    by_contra h
+    push Not at h
+    have : (⊥ : Subrepresentation π) = ⊤ := by
+      ext v; rw [h v]; exact ⟨fun _ => Submodule.zero_mem _, fun _ => Submodule.zero_mem _⟩
+    exact bot_ne_top this
+  obtain ⟨v, hv⟩ := hnt
+  let S : Subrepresentation π := ⟨Submodule.span ℂ {v}, fun g w hw => by simpa [hg g] using hw⟩
+  have hS : S = ⊤ := (eq_bot_or_eq_top S).resolve_left fun h => hv (by
+    have : v ∈ S := Submodule.mem_span_singleton_self v
+    rw [h] at this; exact this)
+  have hspan : ∀ w : V, ∃ a : ℂ, a • v = w := fun w => by
+    have : w ∈ S := by rw [hS]; trivial
+    exact Submodule.mem_span_singleton.1 this
+  let f : (parInd e ρ).IntertwiningMap π :=
+    { toFun := fun φ => E (φ.1.1 1) • v
+      map_add' := fun φ ψ => by
+        show E (φ.1.1 1 + ψ.1.1 1) • v = _
+        rw [map_add (f := _), add_smul]
+      map_smul' := fun a φ => by
+        show E (a • φ.1.1 1) • v = a • (E (φ.1.1 1) • v)
+        rw [map_smul, smul_eq_mul, mul_smul]
+      isIntertwining' := fun g => by rw [hg g, map_one, map_one]; rfl }
+  have hinj : Function.Injective f := fun φ ψ h => by
+    have h1 : E (φ.1.1 1) • v = E (ψ.1.1 1) • v := h
+    have h2 := E.injective (smul_left_injective ℂ hv h1)
+    exact Subtype.ext (Subtype.ext (funext fun g => by rw [hg g]; exact h2))
+  have hsurj : Function.Surjective f := fun w => by
+    obtain ⟨a, rfl⟩ := hspan w
+    refine ⟨⟨⟨fun _ => E.symm a, fun p g => ?_⟩, ?_⟩, ?_⟩
+    · have : p = 1 := Subtype.ext (hg _)
+      subst this; simp
+    · exact mem_smoothPart_of_nhds (Filter.univ_mem' fun g => by rw [hg g]; simp)
+    · show E (E.symm a) • v = a • v
+      simp
+  exact ⟨equivOfBijective f ⟨hinj, hsurj⟩⟩
+
+theorem exh_deg_zero (c : IrrCl (GL (Fin 0) k)) : IsL (0 : Multiset (Segment k)) (IrrGL.rep ⟨0, c⟩) := by
+  let x : Fin 0 → IrrGL (k := k) := Fin.elim0
+  have hd : ∑ a, (x a).1 = 0 := by simp
+  refine ⟨0, x, hd, ⟨Fin.elim0, ⟨rfl, fun i => i.elim0⟩, fun i => i.elim0⟩, ?_⟩
+  obtain ⟨φ⟩ := exh_equiv_zero (stdBlocks (fun a => (x a).1) hd) (piTensor fun a => (x a).rep)
+    (PiTensorProduct.isEmptyEquiv (Fin 0)) c.rep.ρ c.rep.irr
+  exact (isCosocle_self c.rep.irr).of_equiv (.refl _) φ.symm
+
+theorem exh_le_one (x : IrrGL (k := k)) (hx : x.1 ≤ 1) : ∃ 𝔪 : Multiset (Segment k), IsL 𝔪 x.rep := by
+  obtain ⟨n, c⟩ := x
+  obtain rfl | rfl : n = 0 ∨ n = 1 := by simp at hx; omega
+  · exact ⟨0, exh_deg_zero c⟩
+  · exact exh_deg_one c
+
+end GlobalTheory.LocGL
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.LocalArtinExists
+noncomputable section
+
+open NumberField IsDedekindDomain ValuativeRel Matrix Polynomial
+open Formalism.ConjugateSelfDual ReciprocityTheory.Gal
+open GlobalTheory.PRep GlobalTheory.SmGL GlobalTheory.SplitWeil GlobalTheory.LocGL GlobalTheory.WeilDeligne
+
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+namespace GlobalTheory.Published
+
+open GlobalTheory.LocLanglands
+
+def LocalArtinExists : Prop :=
+  ∀ (E Ω : Type) [Field E] [NumberField E] [Field Ω] [Algebra E Ω] [IsAlgClosure E Ω] (A : ValuationSubring Ω)
+    (w : HeightOneSpectrum (𝓞 E)) (h : IsPlaceOver A w), ∃ a : Weil h →* (w.adicCompletion E)ˣ, IsLocalArtin h a
+
+end GlobalTheory.Published
+
+end
+end

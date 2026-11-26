@@ -1,0 +1,13 @@
+module
+
+public import Formalism.SelfDualUnimodular.LocalLatticeDictionary.SemiGenusLocal
+public import Formalism.SelfDualUnimodular.LocalLatticeDictionary.AlgebraMapNeZero
+
+@[expose] public section
+
+namespace Formalism.L2.SG.Pf.LatDictZ
+
+theorem lattice_genus : LatDictZ.LamGenus :=
+  Z0.lamGenus_of (Z0.BR.semiGenus_of Z0.SGC.semi_genus_local)
+
+end Formalism.L2.SG.Pf.LatDictZ

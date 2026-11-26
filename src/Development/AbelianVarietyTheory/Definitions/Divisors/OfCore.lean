@@ -1,0 +1,111 @@
+module
+
+public import Development.AbelianVarietyTheory.Definitions.GaloisGeometry.NormalFam
+public import Development.AbelianVarietyTheory.Definitions.Divisors.TanRel
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Definitions.Divisors.OfCore
+noncomputable section
+
+open Formalism.BasicNotions Formalism.BasicNotions.TH Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes Formalism.MainNotions.StandardLattice Formalism.MainNotions.S MeasureTheory IsDedekindDomain NumberField Matrix
+open Formalism.L2.Theta Formalism.L2.DIV Formalism.L2.Indef Formalism.DivisionValues Polynomial
+open Formalism.IndefR Formalism.IndefR.Links Formalism.IndefR.Lev Formalism.IndefR.Mult Formalism.IndefR.Datum Formalism.IndefR.Cx
+open scoped TensorProduct InnerProductSpace
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+namespace GlobalTheory
+
+variable {D : D7} {G : Type} [Group G] [Fintype G] {Pl0 T : Type} {A : FamIn D.what₂.LL G Pl0 T D.R.m}
+  {Ks : Type} [Field Ks] [NumberField Ks] [Algebra Ks D.what₂.LL]
+
+structure Core5 (R : RealDat D A Ks) (F : Face D A) : Prop where
+  lev : R.toLevCh.Is A.μ0
+  grp : R.IsGrp F
+  fam : R.IsFam
+  models : R.IsModels
+  thP : R.IsThP
+
+theorem Core5.of_core {R : RealDat D A Ks} {F : Face D A} (h : GlobalTheory.Hk3.Core R F) : Core5 R F :=
+  ⟨h.lev, h.grp, h.fam, h.models, h.thP⟩
+
+end GlobalTheory
+
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Definitions.Divisors.MapInclKMemTwCentResOne
+noncomputable section
+open ReciprocityTheory.DiscreteGroups.LocalClassField Matrix
+open scoped TensorProduct Classical
+namespace GlobalTheory.LKRes.Model
+variable (p : ℕ) [Fact p.Prime] (K : IntermediateField ℚ_[p] (PadicAlgCl p))
+
+theorem sigKQ_inclK (r : ℕ) (a : K) : sigKQ p K r (inclK p K r a) = inclK p K r a := by
+  change Algebra.TensorProduct.map (AlgHom.id ℚ_[p] K) (frobQ p r) (a ⊗ₜ[ℚ_[p]] (1 : Qr p r)) = a ⊗ₜ[ℚ_[p]] (1 : Qr p r)
+  rw [Algebra.TensorProduct.map_tmul, map_one, AlgHom.id_apply]
+
+theorem sigKQ_inclQ (r : ℕ) (b : Qr p r) : sigKQ p K r (inclQ p K r b) = inclQ p K r (frobQ p r b) := by
+  change Algebra.TensorProduct.map (AlgHom.id ℚ_[p] K) (frobQ p r) ((1 : K) ⊗ₜ[ℚ_[p]] b) = (1 : K) ⊗ₜ[ℚ_[p]] frobQ p r b
+  rw [Algebra.TensorProduct.map_tmul, map_one]
+
+theorem frobQ_norm (r : ℕ) (b : Qr p r) : ‖((frobQ p r b : Qr p r) : PadicAlgCl p)‖ = ‖(b : PadicAlgCl p)‖ :=
+  norm_map_GK p (Q0 p) (frobK p (Q0 p)) b
+
+theorem frobQ_intR (r : ℕ) (b : Qr p r) (hb : b ∈ GlobalTheory.LKLoc.intR p (Q0 p) r) :
+    frobQ p r b ∈ GlobalTheory.LKLoc.intR p (Q0 p) r := by
+  simp only [GlobalTheory.LKLoc.intR, Subring.mem_comap] at *
+  have := (mem_Obar_iff (p := p)).1 hb
+  exact (mem_Obar_iff (p := p)).2 (by
+    show ‖((frobQ p r b : Qr p r) : PadicAlgCl p)‖ ≤ 1
+    rw [frobQ_norm]; exact this)
+
+theorem sigKQ_intKQ (r : ℕ) (x : KQ p K r) (hx : x ∈ intKQ p K r) : sigKQ p K r x ∈ intKQ p K r := by
+  have : intKQ p K r ≤ (intKQ p K r).comap (sigKQ p K r).toRingHom := by
+    refine (Subring.closure_le).2 ?_
+    rintro _ (⟨a, rfl⟩ | ⟨b, rfl⟩)
+    · simp only [SetLike.mem_coe, Subring.mem_comap, AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
+      rw [sigKQ_inclK]; exact Subring.subset_closure (Or.inl ⟨a, rfl⟩)
+    · simp only [SetLike.mem_coe, Subring.mem_comap, AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
+      rw [sigKQ_inclQ]; exact Subring.subset_closure (Or.inr ⟨⟨_, frobQ_intR p r b.1 b.2⟩, rfl⟩)
+  exact this hx
+
+theorem sigRes_Kres (n r : ℕ) (g : GL (Fin n) (KQ p K r)) (hg : g ∈ Kres p K n r) :
+    sigRes p K n r g ∈ Kres p K n r := by
+  obtain ⟨h, rfl⟩ := hg
+  refine ⟨GeneralLinearGroup.map ((sigKQ p K r).toRingHom.restrict (intKQ p K r) (intKQ p K r)
+    (fun x hx => sigKQ_intKQ p K r x hx)) h, ?_⟩
+  ext i j
+  simp [sigRes, GeneralLinearGroup.map]
+
+def mulMap (r : ℕ) : KQ p K r →ₐ[ℚ_[p]] PadicAlgCl p :=
+  Algebra.TensorProduct.productMap K.val (Qr p r).val
+
+theorem mulMap_intKQ (r : ℕ) (x : KQ p K r) (hx : x ∈ intKQ p K r) : ‖mulMap p K r x‖ ≤ 1 := by
+  have : intKQ p K r ≤ (Obar p).toSubring.comap (mulMap p K r).toRingHom := by
+    refine (Subring.closure_le).2 ?_
+    rintro _ (⟨a, rfl⟩ | ⟨b, rfl⟩)
+    · simp only [SetLike.mem_coe, Subring.mem_comap, AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
+      change (mulMap p K r (a.1 ⊗ₜ[ℚ_[p]] (1 : Qr p r))) ∈ Obar p
+      show (a.1 : PadicAlgCl p) * 1 ∈ Obar p
+      rw [mul_one]; exact a.2
+    · simp only [SetLike.mem_coe, Subring.mem_comap, AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
+      change (mulMap p K r ((1 : K) ⊗ₜ[ℚ_[p]] b.1)) ∈ Obar p
+      show 1 * (b.1 : PadicAlgCl p) ∈ Obar p
+      rw [one_mul]; exact b.2
+  exact (mem_Obar_iff (p := p)).1 (this hx)
+
+theorem sigHT_KHT (m n r : ℕ) (Kw : Fin m → IntermediateField ℚ_[p] (PadicAlgCl p)) (g : GHT p m n r Kw)
+    (hg : g ∈ KHT p m n r Kw) : sigHT p m n r Kw g ∈ KHT p m n r Kw := by
+  refine ⟨?_, fun i hi => sigRes_Kres p (Kw i) n r _ (hg.2 i hi)⟩
+  obtain ⟨h, e⟩ := hg.1
+  refine ⟨GeneralLinearGroup.map ((frobQ p r).toRingHom.restrict (GlobalTheory.LKLoc.intR p (Q0 p) r)
+    (GlobalTheory.LKLoc.intR p (Q0 p) r) (fun x hx => frobQ_intR p r x hx)) h, ?_⟩
+  show _ = GlobalTheory.LKLoc.sig p (Q0 p) 1 r g.1
+  rw [← e]
+  ext i j
+  rfl
+
+end GlobalTheory.LKRes.Model
+end
+end

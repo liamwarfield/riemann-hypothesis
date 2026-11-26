@@ -1,0 +1,263 @@
+module
+
+public import Formalism.GradedWeylDivisibility.FockSpaceTableaux.ClosedEqNabla
+public import Formalism.GradedWeylDivisibility.FockSpaceTableaux.FockQRowDivAdj
+
+@[expose] public section
+
+section -- merged from Formalism.GradedWeylDivisibility.FockSpaceTableaux.WeylRationalOf
+open MvPolynomial
+
+noncomputable section
+
+namespace Formalism.GradedWeylDivisibility
+
+private theorem rowGen_map_intCast {r n : ℕ} (a b : Fin r) (f : MvPolynomial (Fin r × Fin n) ℤ) :
+    rowGen ℚ a b (map (Int.castRingHom ℚ) f) =
+      Polynomial.map (map (Int.castRingHom ℚ)) (rowGen ℤ a b f) := by
+  induction f using MvPolynomial.induction_on
+  next c =>
+    simp [rowGen]
+  next p q hp hq =>
+    rw [_root_.map_add (f := _), _root_.map_add (f := _), _root_.map_add (f := _), hp, hq, Polynomial.map_add (f := _)]
+  next p v hp =>
+    rw [_root_.map_mul, map_X, _root_.map_mul, _root_.map_mul, Polynomial.map_mul, hp]
+    congr 1
+    simp only [rowGen, aeval_X]
+    split_ifs <;> simp
+
+private theorem rowDiv_map_intCast {r n : ℕ} (a b : Fin r) (k : ℕ) (f : MvPolynomial (Fin r × Fin n) ℤ) :
+    rowDiv ℚ a b k (map (Int.castRingHom ℚ) f) = map (Int.castRingHom ℚ) (rowDiv ℤ a b k f) := by
+  unfold rowDiv
+  rw [rowGen_map_intCast, Polynomial.coeff_map]
+
+private theorem map_intCast_applyWord {r n : ℕ} (w : List (Fin r × Fin r × ℕ))
+    (f : MvPolynomial (Fin r × Fin n) ℤ) :
+    map (Int.castRingHom ℚ) (applyWord ℤ w f) = applyWord ℚ w (map (Int.castRingHom ℚ) f) := by
+  induction w with
+  | nil => rfl
+  | cons x w ih =>
+    show map (Int.castRingHom ℚ) (rowDiv ℤ x.1 x.2.1 x.2.2 (applyWord ℤ w f)) =
+      rowDiv ℚ x.1 x.2.1 x.2.2 (applyWord ℚ w (map (Int.castRingHom ℚ) f))
+    rw [← rowDiv_map_intCast, ih]
+
+private theorem map_intCast_hw {r n : ℕ} (hn : n ≤ r) (ν : Fin n → ℕ) :
+    map (Int.castRingHom ℚ) (hw ℤ hn ν) = hw ℚ hn ν := by
+  unfold hw
+  rw [_root_.map_prod]
+  refine Finset.prod_congr rfl (fun s _ => ?_)
+  rw [_root_.map_pow]
+  congr 1
+  unfold lpMinor
+  rw [RingHom.map_det]
+  congr 1
+  ext p q
+  simp [RingHom.mapMatrix_apply]
+
+theorem lclosedeq_weyl_denom {r n : ℕ} (hn : n ≤ r) (ν : Fin n → ℕ)
+    (F : MvPolynomial (Fin r × Fin n) ℚ) (hF : F ∈ weyl ℚ r n hn ν) :
+    ∃ c : ℤ, c ≠ 0 ∧ ∃ u ∈ weyl ℤ r n hn ν, map (Int.castRingHom ℚ) u = (c : ℚ) • F := by
+  unfold weyl at hF
+  induction hF using Submodule.span_induction with
+  | mem x hx =>
+    obtain ⟨w, rfl⟩ := hx
+    refine ⟨1, one_ne_zero, applyWord ℤ w (hw ℤ hn ν), Submodule.subset_span ⟨w, rfl⟩, ?_⟩
+    rw [map_intCast_applyWord, map_intCast_hw]
+    simp
+  | zero => exact ⟨1, one_ne_zero, 0, Submodule.zero_mem _, by simp⟩
+  | add x y _ _ hx hy =>
+    obtain ⟨c, hc, u, hu, hu'⟩ := hx
+    obtain ⟨d, hd, v, hv, hv'⟩ := hy
+    refine ⟨c * d, mul_ne_zero hc hd, d • u + c • v,
+      Submodule.add_mem _ (Submodule.smul_mem _ _ hu) (Submodule.smul_mem _ _ hv), ?_⟩
+    rw [_root_.map_add (f := _), MvPolynomial.smul_eq_C_mul u d, MvPolynomial.smul_eq_C_mul v c,
+      _root_.map_mul, _root_.map_mul, map_C, map_C, hu', hv']
+    simp only [MvPolynomial.smul_eq_C_mul, eq_intCast, Int.cast_mul, MvPolynomial.C_mul]
+    ring
+  | smul q x _ hx =>
+    obtain ⟨c, hc, u, hu, hu'⟩ := hx
+    refine ⟨(q.den : ℤ) * c, mul_ne_zero (by exact_mod_cast q.den_nz) hc, q.num • u,
+      Submodule.smul_mem _ _ hu, ?_⟩
+    rw [MvPolynomial.smul_eq_C_mul u q.num, _root_.map_mul, map_C, hu']
+    have hq : q * (q.den : ℚ) = (q.num : ℚ) := Rat.mul_den_eq_num q
+    simp only [MvPolynomial.smul_eq_C_mul, eq_intCast, Int.cast_mul, Int.cast_natCast,
+      MvPolynomial.C_mul, ← hq]
+    ring
+
+private theorem colAddGen_map_intCast {r n : ℕ} (l j : Fin n) (f : MvPolynomial (Fin r × Fin n) ℤ) :
+    colAddGen ℚ (r := r) l j (map (Int.castRingHom ℚ) f) =
+      map (Int.castRingHom ℚ) (colAddGen ℤ (r := r) l j f) := by
+  induction f using MvPolynomial.induction_on
+  next c =>
+    simp [colAddGen]
+  next p q hp hq =>
+    rw [_root_.map_add (f := _), _root_.map_add (f := _), _root_.map_add (f := _), hp, hq, _root_.map_add (f := _)]
+  next p v hp =>
+    rw [_root_.map_mul, map_X, _root_.map_mul, _root_.map_mul, _root_.map_mul, hp]
+    congr 1
+    simp only [colAddGen, aeval_X]
+    split_ifs <;> simp
+
+private theorem map_intCast_mem_dualWeyl {r n : ℕ} (ν : Fin n → ℕ) (f : MvPolynomial (Fin r × Fin n) ℤ)
+    (hf : f ∈ dualWeyl ℤ r n ν) : map (Int.castRingHom ℚ) f ∈ dualWeyl ℚ r n ν := by
+  simp only [dualWeyl, Submodule.mem_inf, Submodule.mem_iInf, LinearMap.mem_ker,
+    LinearMap.sub_apply, AlgHom.toLinearMap_apply, sub_eq_zero,
+    mem_weightedHomogeneousSubmodule] at hf ⊢
+  obtain ⟨h1, h2⟩ := hf
+  refine ⟨?_, ?_⟩
+  · intro d hd
+    apply h1
+    intro h0
+    apply hd
+    rw [coeff_map, h0, _root_.map_zero]
+  · intro l j hlj
+    rw [colAddGen_map_intCast, h2 l j hlj, map_rename]
+
+theorem weyl_module_rational : WeylRationalOf := by
+  unfold WeylRationalOf WeylRational
+  intro h r n hn ν hν f hf
+  have hfQ : map (Int.castRingHom ℚ) f ∈ weyl ℚ r n hn ν := by
+    rw [h r n hn ν hν]
+    exact map_intCast_mem_dualWeyl ν f hf
+  obtain ⟨c, hc, u, hu, hmap⟩ := lclosedeq_weyl_denom hn ν _ hfQ
+  refine ⟨c, hc, ?_⟩
+  have huf : u = c • f := by
+    apply MvPolynomial.map_injective _ (RingHom.injective_int (Int.castRingHom ℚ))
+    rw [hmap, _root_.map_zsmul]
+    exact Int.cast_smul_eq_zsmul ℚ c _
+  rw [← huf]
+  exact hu
+
+end Formalism.GradedWeylDivisibility
+end
+end
+
+section -- merged from Formalism.GradedWeylDivisibility.FockSpaceTableaux.HWLineTall
+open MvPolynomial
+
+noncomputable section
+
+namespace Formalism.GradedWeylDivisibility
+
+theorem highest_weight_line_tall : HWLineTall := by
+  intro K _ _ r n ν ⟨s, hs, hνs⟩ f hf hdiv
+  obtain ⟨hhom, hcol⟩ := (dualWeylPoint K r n ν f).mp hf
+  refine lhwline_vanish f (fun a b hab => lhwline_rowGen_eq a b f (hdiv a b hab)) hcol ?_
+  intro D hD
+  exact lhwline_diag_tall ν s hs hνs f hhom D hD
+
+end Formalism.GradedWeylDivisibility
+end
+end
+
+section -- merged from Formalism.GradedWeylDivisibility.FockSpaceTableaux.WeylEqNablaQ
+open MvPolynomial
+
+noncomputable section
+
+namespace Formalism.GradedWeylDivisibility
+
+theorem weylEqNablaQ_of (h : ClosedEqNabla) : WeylEqNablaQ := by
+  intro r n hn ν hν
+  refine h r n hn ν hν (weyl ℚ r n hn ν) (weylLeDual ℚ r n hn ν hν)
+    (fun a b k f hf => weylRowDivStable ℚ r n hn ν a b k f hf) ?_
+
+  exact Submodule.subset_span ⟨[], rfl⟩
+
+end Formalism.GradedWeylDivisibility
+end
+end
+
+section -- merged from Formalism.GradedWeylDivisibility.FockSpaceTableaux.RowDivClosedGraded
+open MvPolynomial
+
+noncomputable section
+
+namespace Formalism.GradedWeylDivisibility
+
+theorem row_divided_closed_graded : RowDivClosedGraded := by
+  intro r n M hM f hf μ
+  obtain ⟨h, hhM, hh⟩ := lgraded_multi M hM μ Finset.univ f hf
+  convert hhM using 1
+  ext m
+  rw [coeff_weightedHomogeneousComponent, hh]
+  congr 1
+  apply propext
+  constructor
+  · intro hm a _
+    rw [← lgraded_weight_rowW, hm]
+  · intro hm
+    funext a
+    rw [lgraded_weight_rowW]
+    exact hm a (Finset.mem_univ a)
+
+end Formalism.GradedWeylDivisibility
+end
+end
+
+section -- merged from Formalism.GradedWeylDivisibility.FockSpaceTableaux.HWInClosed
+open MvPolynomial
+
+noncomputable section
+
+namespace Formalism.GradedWeylDivisibility
+
+theorem hwInClosed_of (h1 : HWLine) (h2 : RowDivClosedGraded) : HWInClosed := by
+  intro r n hn ν hν M hMle hM hne
+  obtain ⟨v, hvM, hv0, hkill⟩ := lhwin_exists_killed h2 M hM hne
+  obtain ⟨c, hc⟩ := h1 ℚ r n hn ν hν v (hMle hvM) hkill
+  have hc0 : c ≠ 0 := by
+    rintro rfl
+    exact hv0 (by simpa using hc)
+  have e : hw ℚ hn ν = c⁻¹ • v := by
+    rw [hc, smul_smul, inv_mul_cancel₀ hc0, one_smul]
+  rw [e]
+  exact M.smul_mem _ hvM
+
+end Formalism.GradedWeylDivisibility
+end
+end
+
+section -- merged from Formalism.GradedWeylDivisibility.FockSpaceTableaux.FockQBilin
+open MvPolynomial
+
+noncomputable section
+
+namespace Formalism.GradedWeylDivisibility
+
+theorem fischerInnerRatBilinear : FockQBilin := fun _ f f' g c =>
+  ⟨lfockq_add_left f f' g, lfockq_smul_left c f g⟩
+
+end Formalism.GradedWeylDivisibility
+end
+end
+
+section -- merged from Formalism.GradedWeylDivisibility.FockSpaceTableaux.FockQPos
+open MvPolynomial
+
+noncomputable section
+
+namespace Formalism.GradedWeylDivisibility
+
+theorem fischerInnerRatPos : FockQPos :=
+  fun _ f g => ⟨lfockq_symm f g, fun hf => lfockq_self_pos f hf⟩
+
+end Formalism.GradedWeylDivisibility
+end
+end
+
+namespace Formalism.GradedWeylDivisibility
+
+theorem hwLine : HWLine := highest_weight_line
+theorem hwLineTall : HWLineTall := highest_weight_line_tall
+theorem fockQPos : FockQPos := fischerInnerRatPos
+theorem fockQBilin : FockQBilin := fischerInnerRatBilinear
+theorem fockQRowDivAdj : FockQRowDivAdj := fock_space_row_divided_adjoint
+theorem rowDivClosedGraded : RowDivClosedGraded := row_divided_closed_graded
+theorem hwInClosed : HWInClosed := hwInClosed_of hwLine rowDivClosedGraded
+theorem closedEqNabla : ClosedEqNabla := closedEqNabla_of hwInClosed fockQPos fockQBilin fockQRowDivAdj
+theorem weylEqNablaQ : WeylEqNablaQ := weylEqNablaQ_of closedEqNabla
+
+theorem weylRational : WeylRational := weyl_module_rational weylEqNablaQ
+
+end Formalism.GradedWeylDivisibility

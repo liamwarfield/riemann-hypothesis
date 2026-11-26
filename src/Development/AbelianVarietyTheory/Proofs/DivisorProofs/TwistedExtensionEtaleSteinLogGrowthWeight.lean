@@ -1,0 +1,490 @@
+module
+
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.TwistedExtensionEtaleSteinSqIntegrable
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.HoloLimitIncreasingWeights
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.HoloLimitIncreasingWeights
+open MeasureTheory Filter Topology Metric ReciprocityTheory.L2DbarEstimates ReciprocityTheory.L2DbarEstimates.Y GlobalTheory.OTY GlobalTheory.Published.L2Extension
+open scoped ENNReal ContDiff
+
+namespace GlobalTheory
+
+noncomputable section
+
+theorem holo_limit_increasing_weights : ∀ (n : ℕ) (M : Type) [TopologicalSpace M] [T2Space M] [SecondCountableTopology M] [MeasurableSpace M] [BorelSpace M], ∀ (X : EtaleStein n M) (F0 : M → ℂ) (om : M → ℝ) (c : ℝ) (p : ℕ → M → ℝ) (q : M → ℝ) (F : ℕ → M → ℂ) (B : ℝ≥0∞), Continuous F0 → Continuous om → 0 < c → (∀ x, c ≤ om x ∧ om x ≤ 1) → (∀ k, SmoothR n X.z (p k)) → (∀ x, Antitone (fun k => p k x)) → (∀ x, Tendsto (fun k => p k x) atTop (𝓝 (q x))) → (∀ k, Holo n X.z (F k)) → B < ⊤ → (∀ k, ∫⁻ x, ENNReal.ofReal (‖F0 x - F k x‖ ^ 2 * (om x * Real.exp (-p k x))) ∂vol n X.z ≤ B) → ∃ G : M → ℂ, Holo n X.z G ∧ ∫⁻ x, ENNReal.ofReal (‖F0 x - G x‖ ^ 2 * (om x * Real.exp (-q x))) ∂vol n X.z ≤ B := by
+  intro n M _ _ _ _ _ X F0 om c p q Fk B hF0 hom hc hombd hp hpanti hpq hF hBtop hB
+  have hz := X.isLocalHomeomorph
+  have hpc : ∀ k, Continuous (p k) := fun k => by
+    have := Complex.continuous_re.comp (Smooth.continuous n X.z hz _ (hp k))
+    exact this.congr fun x => by simp
+  have hcont : ∀ G : M → ℂ, Holo n X.z G → Continuous G := fun G hG =>
+    Smooth.continuous n X.z hz _ (Holo.smooth n X.z _ hG)
+  have hC : ReciprocityTheory.L2DbarEstimates.I.HoloClosedNeed n M :=
+    ReciprocityTheory.L2DbarEstimates.F.holoClosedNeed n M (regMAll n M)
+  have hE : ReciprocityTheory.L2DbarEstimates.I.EvalNeed n M := ReciprocityTheory.L2DbarEstimates.F.evalNeed n M C.mv
+  set Iw : ℕ → (M → ℂ) → ℝ≥0∞ := fun k G =>
+    ∫⁻ x, ENNReal.ofReal (‖F0 x - G x‖ ^ 2 * (om x * Real.exp (-p k x))) ∂vol n X.z with hIw
+  set μ : Measure M := (vol n X.z).withDensity (fun x => ENNReal.ofReal (Real.exp (-p 0 x)))
+    with hμ
+  have hkey : ∀ f : M → ℂ, AEStronglyMeasurable f μ →
+      wint n X.z f (p 0) = eLpNorm f 2 μ ^ (2 : ℝ) := fun f hf => by
+    rw [ReciprocityTheory.L2DbarEstimates.I.fx_wint_eq_withDensity n X.z (p 0) (hpc 0).measurable f,
+      ReciprocityTheory.L2DbarEstimates.I.fx_lintegral_enorm_sq_eq,
+      eLpNorm_eq_eLpNorm' (by norm_num) (by norm_num) hf]
+    norm_num [hμ]
+  have hN : ∀ (v : Lp ℂ 2 μ) (G : M → ℂ), (v : M → ℂ) =ᵐ[μ] G →
+      wint n X.z G (p 0) = ENNReal.ofReal (‖v‖ ^ 2) := fun v G h => by
+    rw [hkey G ((Lp.stronglyMeasurable v).aestronglyMeasurable.congr h),
+      ReciprocityTheory.L2DbarEstimates.I.fx_lp_norm_sq_eq μ v G h]
+
+  have hmono : ∀ G k k', k ≤ k' → Iw k G ≤ Iw k' G := fun G k k' h => by
+    refine lintegral_mono fun x => ENNReal.ofReal_le_ofReal ?_
+    have h1 : Real.exp (-p k x) ≤ Real.exp (-p k' x) :=
+      Real.exp_le_exp.mpr (neg_le_neg (hpanti x h))
+    have h0 : 0 ≤ om x := hc.le.trans (hombd x).1
+    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left h1 h0) (by positivity)
+
+  have hmeas : ∀ G : M → ℂ, Continuous G → ∀ (w : M → ℝ), Continuous w →
+      Measurable fun x => ENNReal.ofReal (‖F0 x - G x‖ ^ 2 * (om x * Real.exp (-w x))) :=
+    fun G hG w hw => (ENNReal.continuous_ofReal.comp (((hF0.sub hG).norm.pow 2).mul
+      (hom.mul (Real.continuous_exp.comp hw.neg)))).measurable
+
+  have hbd : ∀ G : M → ℂ, Continuous G → wint n X.z (fun x => G x - Fk 0 x) (p 0) ≤
+      ENNReal.ofReal (2 / c) * (Iw 0 G + Iw 0 (Fk 0)) := fun G hG => by
+    rw [hIw, ← lintegral_add_left (hmeas G hG _ (hpc 0)),
+      ← lintegral_const_mul' _ _ ENNReal.ofReal_ne_top]
+    refine lintegral_mono fun x => ?_
+    have ha : 0 ≤ ‖F0 x - G x‖ ^ 2 * (om x * Real.exp (-p 0 x)) := by
+      have := hc.le.trans (hombd x).1; positivity
+    have hb : 0 ≤ ‖F0 x - Fk 0 x‖ ^ 2 * (om x * Real.exp (-p 0 x)) := by
+      have := hc.le.trans (hombd x).1; positivity
+    rw [← ENNReal.ofReal_add ha hb, ← ENNReal.ofReal_mul (by positivity)]
+    refine ENNReal.ofReal_le_ofReal ?_
+    set s := ‖F0 x - G x‖
+    set t := ‖F0 x - Fk 0 x‖
+    set e := Real.exp (-p 0 x)
+    have he : 0 < e := Real.exp_pos _
+    have hu : ‖G x - Fk 0 x‖ ≤ s + t := by
+      calc ‖G x - Fk 0 x‖ = ‖(F0 x - Fk 0 x) - (F0 x - G x)‖ := by congr 1; ring
+        _ ≤ t + s := norm_sub_le _ _
+        _ = s + t := add_comm _ _
+    have hu2 : ‖G x - Fk 0 x‖ ^ 2 ≤ 2 * (s ^ 2 + t ^ 2) := by
+      have h0 := norm_nonneg (G x - Fk 0 x)
+      nlinarith [sq_nonneg (s - t), norm_nonneg (F0 x - G x), norm_nonneg (F0 x - Fk 0 x)]
+    have hoc : 1 ≤ om x / c := (one_le_div hc).mpr (hombd x).1
+    have hst : 0 ≤ s ^ 2 + t ^ 2 := by positivity
+    calc ‖G x - Fk 0 x‖ ^ 2 * e ≤ 2 * (s ^ 2 + t ^ 2) * e := by gcongr
+      _ ≤ 2 * (s ^ 2 + t ^ 2) * e * (om x / c) := le_mul_of_one_le_right (by positivity) hoc
+      _ = 2 / c * (s ^ 2 * (om x * e) + t ^ 2 * (om x * e)) := by field_simp
+
+  have hIfin : ∀ k, Iw 0 (Fk k) ≤ B := fun k => (hmono (Fk k) 0 k (Nat.zero_le k)).trans (hB k)
+  have hfin : ENNReal.ofReal (2 / c) * (B + B) < ⊤ :=
+    ENNReal.mul_lt_top ENNReal.ofReal_lt_top (ENNReal.add_lt_top.mpr ⟨hBtop, hBtop⟩)
+  have hbdB : ∀ G : M → ℂ, Continuous G → Iw 0 G ≤ B →
+      wint n X.z (fun x => G x - Fk 0 x) (p 0) ≤ ENNReal.ofReal (2 / c) * (B + B) :=
+    fun G hG h => (hbd G hG).trans (by gcongr; exact hIfin 0)
+
+  have hEv : ∀ x, ∃ C : ℝ, 0 ≤ C ∧ ∀ (G₁ G₂ : M → ℂ), Holo n X.z G₁ → Holo n X.z G₂ →
+      ∀ w : Lp ℂ 2 μ, (w : M → ℂ) =ᵐ[μ] (fun x => G₁ x - G₂ x) → ‖G₁ x - G₂ x‖ ≤ C * ‖w‖ := by
+    intro x
+    obtain ⟨C, hC⟩ := hE X (p 0) x (hp 0)
+    refine ⟨Real.sqrt (max C 0), Real.sqrt_nonneg _, fun G₁ G₂ h₁ h₂ w hw => ?_⟩
+    have h := hC _ (Holo.sub n X.z _ _ h₁ h₂)
+    rw [hN w _ hw] at h
+    have h' : ENNReal.ofReal (‖G₁ x - G₂ x‖ ^ 2) ≤ ENNReal.ofReal (max C 0 * ‖w‖ ^ 2) := by
+      rw [ENNReal.ofReal_mul (le_max_right _ _)]
+      exact h.trans (by gcongr; exact le_max_left _ _)
+    rw [ENNReal.ofReal_le_ofReal_iff (by positivity)] at h'
+    rw [← pow_le_pow_iff_left₀ (norm_nonneg _) (by positivity) two_ne_zero, mul_pow,
+      Real.sq_sqrt (le_max_right _ _)]
+    exact h'
+  choose Cev hCev0 hCev using hEv
+  have hmem : ∀ G : M → ℂ, Continuous G → Iw 0 G ≤ B → MemLp (fun x => G x - Fk 0 x) 2 μ :=
+    fun G hG h => by
+    have h1 := ((hkey _ (hG.sub (hcont _ (hF 0))).measurable.aestronglyMeasurable).symm.trans_le
+      (hbdB G hG h)).trans_lt hfin
+    exact (ENNReal.rpow_lt_top_iff_of_pos (by norm_num)).mp h1
+  let K : ℕ → Set (Lp ℂ 2 μ) := fun k => {v | ∃ G : M → ℂ, Holo n X.z G ∧
+    (v : M → ℂ) =ᵐ[μ] (fun x => G x - Fk 0 x) ∧ Iw k G ≤ B}
+  have hanti : Antitone K := by
+    intro k k' h v hv
+    obtain ⟨G, hG, hvG, hI⟩ := hv
+    exact ⟨G, hG, hvG, (hmono G k k' h).trans hI⟩
+  have hne : ∀ k, (K k).Nonempty := fun k =>
+    ⟨(hmem (Fk k) (hcont _ (hF k)) (hIfin k)).toLp _, Fk k, hF k, MemLp.coeFn_toLp _, hB k⟩
+
+  have hclosed : ∀ k, IsClosed (K k) := by
+    intro k
+    refine IsSeqClosed.isClosed fun vs v hvs hlimv => ?_
+    have hvs' : ∀ i, ∃ G : M → ℂ, Holo n X.z G ∧
+        (vs i : M → ℂ) =ᵐ[μ] (fun x => G x - Fk 0 x) ∧ Iw k G ≤ B := hvs
+    choose G hG hvG hIG using hvs'
+    have hvm : Measurable (v : M → ℂ) := (Lp.stronglyMeasurable v).measurable
+    have hF0m : Measurable (Fk 0) := (hcont _ (hF 0)).measurable
+    have hd : ∀ i, (⇑(vs i - v) : M → ℂ) =ᵐ[μ]
+        fun x => G i x - ((v : M → ℂ) x + Fk 0 x) := fun i => by
+      filter_upwards [Lp.coeFn_sub (vs i) v, hvG i] with x h1 h2
+      rw [h1, Pi.sub_apply, h2]; ring
+    have hlim0 : Tendsto (fun i => ‖vs i - v‖) atTop (𝓝 0) :=
+      tendsto_iff_norm_sub_tendsto_zero.mp hlimv
+    have hw : Tendsto (fun i => wint n X.z (fun x => G i x - ((v : M → ℂ) x + Fk 0 x)) (p 0))
+        atTop (𝓝 0) := by
+      have he : (fun i => wint n X.z (fun x => G i x - ((v : M → ℂ) x + Fk 0 x)) (p 0)) =
+          fun i => ENNReal.ofReal (‖vs i - v‖ ^ 2) := funext fun i => hN _ _ (hd i)
+      rw [he]
+      have : Tendsto (fun i => ENNReal.ofReal (‖vs i - v‖ ^ 2)) atTop
+          (𝓝 (ENNReal.ofReal ((0 : ℝ) ^ 2))) :=
+        (ENNReal.continuous_ofReal.tendsto _).comp (hlim0.pow 2)
+      simpa using this
+    obtain ⟨Gl, hGl, hfG⟩ :=
+      hC X (p 0) G (fun x => (v : M → ℂ) x + Fk 0 x) (hp 0) hG (hvm.add hF0m) hw
+    have hfGμ : (fun x => (v : M → ℂ) x + Fk 0 x) =ᵐ[μ] Gl :=
+      (withDensity_absolutelyContinuous _ _).ae_le hfG
+    have hvGl : (v : M → ℂ) =ᵐ[μ] fun x => Gl x - Fk 0 x := by
+      filter_upwards [hfGμ] with x hx
+      rw [← hx]; ring
+    have hd2 : ∀ i, (⇑(vs i - v) : M → ℂ) =ᵐ[μ] fun x => G i x - Gl x := fun i => by
+      filter_upwards [hd i, hfGμ] with x h1 h2
+      rw [h1, h2]
+    have hpt : ∀ x, Tendsto (fun i => G i x) atTop (𝓝 (Gl x)) := by
+      intro x
+      rw [tendsto_iff_norm_sub_tendsto_zero]
+      refine squeeze_zero (fun i => norm_nonneg _)
+        (fun i => hCev x (G i) Gl (hG i) hGl _ (hd2 i)) ?_
+      simpa using hlim0.const_mul (Cev x)
+    refine ⟨Gl, hGl, hvGl, ?_⟩
+    have hf : ∀ x, Tendsto (fun i => ENNReal.ofReal (‖F0 x - G i x‖ ^ 2 *
+        (om x * Real.exp (-p k x)))) atTop
+        (𝓝 (ENNReal.ofReal (‖F0 x - Gl x‖ ^ 2 * (om x * Real.exp (-p k x))))) := fun x =>
+      (ENNReal.continuous_ofReal.tendsto _).comp
+        (((tendsto_const_nhds.sub (hpt x)).norm.pow 2).mul_const _)
+    calc Iw k Gl = ∫⁻ x, liminf (fun i => ENNReal.ofReal (‖F0 x - G i x‖ ^ 2 *
+          (om x * Real.exp (-p k x)))) atTop ∂vol n X.z := by
+          refine lintegral_congr fun x => ?_
+          exact ((hf x).liminf_eq).symm
+      _ ≤ liminf (fun i => Iw k (G i)) atTop :=
+          lintegral_liminf_le fun i => hmeas _ (hcont _ (hG i)) _ (hpc k)
+      _ ≤ B := liminf_le_of_frequently_le' (Frequently.of_forall hIG)
+  have hmid : ∀ k, ∀ v ∈ K k, ∀ w ∈ K k, (2 : ℂ)⁻¹ • (v + w) ∈ K k := by
+    rintro k v ⟨G, hG, hvG, hIv⟩ w ⟨G', hG', hwG, hIw'⟩
+    refine ⟨fun x => (2 : ℂ)⁻¹ * (G x + G' x),
+      Holo.mul n X.z _ _ (Holo.const n X.z _) (Holo.add n X.z _ _ hG hG'), ?_, ?_⟩
+    · filter_upwards [Lp.coeFn_smul (2 : ℂ)⁻¹ (v + w), Lp.coeFn_add v w, hvG, hwG]
+        with x h1 h2 h3 h4
+      rw [h1, Pi.smul_apply, h2, Pi.add_apply, h3, h4, smul_eq_mul]; ring
+    · have hhalf : ENNReal.ofReal (1 / 2) * (B + B) = B := by
+        rw [← two_mul, ← mul_assoc, ← ENNReal.ofReal_ofNat 2,
+          ← ENNReal.ofReal_mul (by norm_num)]
+        norm_num
+      calc Iw k (fun x => (2 : ℂ)⁻¹ * (G x + G' x))
+          ≤ ENNReal.ofReal (1 / 2) * (Iw k G + Iw k G') := by
+            rw [hIw, ← lintegral_add_left (hmeas G (hcont _ hG) _ (hpc k)),
+              ← lintegral_const_mul' _ _ ENNReal.ofReal_ne_top]
+            refine lintegral_mono fun x => ?_
+            have h0 : 0 ≤ om x * Real.exp (-p k x) := by
+              have := hc.le.trans (hombd x).1; positivity
+            rw [← ENNReal.ofReal_add (by positivity) (by positivity),
+              ← ENNReal.ofReal_mul (by norm_num)]
+            refine ENNReal.ofReal_le_ofReal ?_
+            have hs : F0 x - (2 : ℂ)⁻¹ * (G x + G' x) =
+                (2 : ℂ)⁻¹ * ((F0 x - G x) + (F0 x - G' x)) := by ring
+            have hn : ‖F0 x - (2 : ℂ)⁻¹ * (G x + G' x)‖ ≤
+                (‖F0 x - G x‖ + ‖F0 x - G' x‖) / 2 := by
+              rw [hs, norm_mul, norm_inv, Complex.norm_two]
+              have := norm_add_le (F0 x - G x) (F0 x - G' x)
+              linarith
+            have hn2 : ‖F0 x - (2 : ℂ)⁻¹ * (G x + G' x)‖ ^ 2 ≤
+                (‖F0 x - G x‖ ^ 2 + ‖F0 x - G' x‖ ^ 2) / 2 := by
+              have h0' := norm_nonneg (F0 x - (2 : ℂ)⁻¹ * (G x + G' x))
+              nlinarith [sq_nonneg (‖F0 x - G x‖ - ‖F0 x - G' x‖),
+                mul_le_mul hn hn h0' (by positivity)]
+            nlinarith [mul_le_mul_of_nonneg_right hn2 h0]
+        _ ≤ ENNReal.ofReal (1 / 2) * (B + B) := by gcongr
+        _ = B := hhalf
+  have hbdd : Bornology.IsBounded (K 0) := by
+    set R := (ENNReal.ofReal (2 / c) * (B + B)).toReal with hRdef
+    refine (Metric.isBounded_closedBall (x := (0 : Lp ℂ 2 μ)) (r := R + 1)).subset ?_
+    rintro v ⟨G, hG, hvG, hI⟩
+    rw [Metric.mem_closedBall, dist_zero_right]
+    have h1 := (hN v _ hvG).symm.trans_le (hbdB G (hcont _ hG) hI)
+    rw [ENNReal.ofReal_le_iff_le_toReal hfin.ne] at h1
+    have hR : 0 ≤ R := ENNReal.toReal_nonneg
+    nlinarith [norm_nonneg v, sq_nonneg (‖v‖ - 1)]
+  obtain ⟨v, hv⟩ := cvx (Lp ℂ 2 μ) K hanti hne hclosed hmid hbdd
+  obtain ⟨G, hG, hvG, -⟩ := hv 0
+  have hIk : ∀ k, Iw k G ≤ B := fun k => by
+    obtain ⟨G', hG', hvG', hI'⟩ := hv k
+    have heq : G = G' := funext fun x => by
+      have h0 : (⇑(0 : Lp ℂ 2 μ) : M → ℂ) =ᵐ[μ] fun x => G x - G' x := by
+        filter_upwards [Lp.coeFn_zero ℂ 2 μ, hvG, hvG'] with x h1 h2 h3
+        rw [h1, Pi.zero_apply]
+        linear_combination h2 - h3
+      have h1 := hCev x G G' hG hG' 0 h0
+      rw [norm_zero, mul_zero] at h1
+      exact sub_eq_zero.mp (norm_le_zero_iff.mp h1)
+    rw [heq]; exact hI'
+  refine ⟨G, hG, ?_⟩
+  have hmon : ∀ x, Monotone fun k =>
+      ENNReal.ofReal (‖F0 x - G x‖ ^ 2 * (om x * Real.exp (-p k x))) := fun x k k' h => by
+    refine ENNReal.ofReal_le_ofReal ?_
+    have h1 := Real.exp_le_exp.mpr (neg_le_neg (hpanti x h))
+    have h0 := hc.le.trans (hombd x).1
+    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left h1 h0) (by positivity)
+  have hlimx : ∀ x, Tendsto (fun k =>
+      ENNReal.ofReal (‖F0 x - G x‖ ^ 2 * (om x * Real.exp (-p k x)))) atTop
+      (𝓝 (ENNReal.ofReal (‖F0 x - G x‖ ^ 2 * (om x * Real.exp (-q x))))) := fun x =>
+    (ENNReal.continuous_ofReal.tendsto _).comp
+      ((((Real.continuous_exp.tendsto _).comp (hpq x).neg).const_mul _).const_mul _)
+  have hT := lintegral_tendsto_of_tendsto_of_monotone
+    (μ := vol n X.z) (fun k => (hmeas G (hcont _ hG) _ (hpc k)).aemeasurable)
+    (ae_of_all _ hmon) (ae_of_all _ hlimx)
+  exact le_of_tendsto' hT hIk
+
+end
+
+end GlobalTheory
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DivisorProofs.HoloLimitIncreasingWeightsStatement
+open MeasureTheory Filter Topology Metric ReciprocityTheory.L2DbarEstimates ReciprocityTheory.L2DbarEstimates.Y GlobalTheory.OTY GlobalTheory.Published.L2Extension
+open scoped ENNReal ContDiff
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_holo_l2_bound_of_increasing_weights : ∀ (n : ℕ) (M : Type) [TopologicalSpace M] [T2Space M] [SecondCountableTopology M] [MeasurableSpace M] [BorelSpace M], ∀ (X : EtaleStein n M) (F0 : M → ℂ) (om : M → ℝ) (c : ℝ) (p : ℕ → M → ℝ) (q : M → ℝ) (F : ℕ → M → ℂ) (B : ℝ≥0∞), Continuous F0 → Continuous om → 0 < c → (∀ x, c ≤ om x ∧ om x ≤ 1) → (∀ k, SmoothR n X.z (p k)) → (∀ x, Antitone (fun k => p k x)) → (∀ x, Tendsto (fun k => p k x) atTop (𝓝 (q x))) → (∀ k, Holo n X.z (F k)) → B < ⊤ → (∀ k, ∫⁻ x, ENNReal.ofReal (‖F0 x - F k x‖ ^ 2 * (om x * Real.exp (-p k x))) ∂vol n X.z ≤ B) → ∃ G : M → ℂ, Holo n X.z G ∧ ∫⁻ x, ENNReal.ofReal (‖F0 x - G x‖ ^ 2 * (om x * Real.exp (-q x))) ∂vol n X.z ≤ B := by
+  first | exact @GlobalTheory.holo_limit_increasing_weights | exact GlobalTheory.holo_limit_increasing_weights | (intros; apply GlobalTheory.holo_limit_increasing_weights <;> assumption)
+end
+end
+
+open MeasureTheory Filter Topology Metric ReciprocityTheory.L2DbarEstimates ReciprocityTheory.L2DbarEstimates.Y GlobalTheory.OTY GlobalTheory.Published.L2Extension
+open scoped ENNReal ContDiff
+
+namespace GlobalTheory.LogGrowth
+
+noncomputable section
+
+theorem db_const_fun {M : Type*} [TopologicalSpace M] (n : ℕ) (z : M → V n) (k : Fin n) (c : ℂ) :
+    db n z k (fun _ => c) = fun _ => 0 := by
+  funext x
+  unfold db
+  split_ifs <;> simp [wdb, Function.comp_def]
+
+theorem d_const_fun {M : Type*} [TopologicalSpace M] (n : ℕ) (z : M → V n) (j : Fin n) (c : ℂ) (x : M) :
+    d n z j (fun _ => c) x = 0 := by
+  unfold d
+  split_ifs <;> simp [wd, Function.comp_def]
+
+theorem levi_const_fun {M : Type*} [TopologicalSpace M] (n : ℕ) (z : M → V n) (c : ℝ) (x : M)
+    (ξ : Fin n → ℂ) : Levi n z (fun _ => c) x ξ = 0 := by
+  simp only [Levi, db_const_fun, d_const_fun, zero_mul, Finset.sum_const_zero]
+
+theorem ckR_two_of_smoothR {M : Type*} [TopologicalSpace M] (n : ℕ) (z : M → V n) (f : M → ℝ)
+    (h : SmoothR n z f) : CkR n z 2 f := fun e he => (h e he).of_le (by exact_mod_cast lse_two_le_infty)
+
+theorem smoothR_const {M : Type*} [TopologicalSpace M] (n : ℕ) (z : M → V n) (c : ℝ) :
+    SmoothR n z (fun _ => c) := fun e _ => by
+  simpa [Function.comp_def] using (contDiffOn_const : ContDiffOn ℝ ∞ (fun _ : V n => (c : ℂ)) e.target)
+
+theorem levi_add_const {M : Type*} [TopologicalSpace M] (n : ℕ) (z : M → V n) (f : M → ℝ) (c : ℝ)
+    (hf : SmoothR n z f) (x : M) (ξ : Fin n → ℂ) :
+    Levi n z (fun y => f y + c) x ξ = Levi n z f x ξ := by
+  have := levi_add n z f (fun _ => c) (ckR_two_of_smoothR n z f hf)
+    (ckR_two_of_smoothR n z _ (smoothR_const n z c)) x ξ
+  rw [this, levi_const_fun, add_zero]
+
+theorem logShift_lse {n : ℕ} {M : Type} [TopologicalSpace M] [T2Space M] [SecondCountableTopology M]
+    [MeasurableSpace M] [BorelSpace M] (X : EtaleStein n M) (k : ℕ) :
+    SmoothR n X.z (fun x => Real.log (1 + Real.exp (X.e x) / ((k : ℝ) + 1))) ∧
+      LeviNonneg n X.z (fun x => Real.log (1 + Real.exp (X.e x) / ((k : ℝ) + 1))) := by
+  have hk : (0 : ℝ) < (k : ℝ) + 1 := by positivity
+  have hsub : SmoothR n X.z (fun y => X.e y + (-Real.log ((k : ℝ) + 1))) := by
+    rw [lse_smoothR_iff_real]
+    intro e he
+    exact ((lse_smoothR_iff_real n X.z X.e).1 X.smooth_e e he).add contDiffOn_const
+  have h := lse n M X.z X.isLocalHomeomorph 2 0
+    ![fun _ => 0, fun y => X.e y + (-Real.log ((k : ℝ) + 1))] (fun j => j.elim0) ?_ ?_
+    (fun j => j.elim0) ?_
+  · have hfun : (fun x => Real.log (∑ i, Real.exp ((![fun _ => (0 : ℝ), fun y => X.e y + (-Real.log ((k : ℝ) + 1))] : Fin 2 → M → ℝ) i x) +
+        ∑ j : Fin 0, ‖(j.elim0 : M → ℂ) x‖ ^ 2)) =
+        fun x => Real.log (1 + Real.exp (X.e x) / ((k : ℝ) + 1)) := by
+      funext x
+      simp [Fin.sum_univ_two, Real.exp_add, Real.exp_neg, Real.exp_log hk, div_eq_mul_inv]
+    rw [hfun] at h
+    exact h
+  · intro i
+    fin_cases i
+    · exact smoothR_const n X.z 0
+    · exact hsub
+  · intro i
+    fin_cases i
+    · intro x ξ
+      simp [levi_const_fun]
+    · intro x ξ
+      show 0 ≤ (Levi n X.z (fun y => X.e y + (-Real.log ((k : ℝ) + 1))) x ξ).re
+      rw [levi_add_const n X.z X.e _ X.smooth_e]
+      exact X.levi_e x ξ
+  · intro x
+    simp
+    positivity
+
+end
+
+end GlobalTheory.LogGrowth
+
+namespace GlobalTheory.LogGrowth
+
+noncomputable section
+
+theorem twisted_extension_logGrowth : ∀ (n : ℕ) (M : Type) [TopologicalSpace M] [T2Space M] [SecondCountableTopology M] [MeasurableSpace M] [BorelSpace M], ∀ (X : EtaleStein n M) (φ ψ : M → ℝ) (G : M → ℂ) (Ω : Set M) (δ T : ℝ) (θ : ℝ → ℝ), SmoothR n X.z φ → SmoothR n X.z ψ → (∀ x, ψ x ≤ 0) → 0 < δ → 300 ≤ T → IsCut T θ → (∀ α ∈ Set.Icc (1 : ℝ) (1 + δ), LeviNonneg n X.z (fun x => φ x + α * ψ x)) → IsOpen Ω → Measurable G → (∀ e : OpenPartialHomeomorph M (V n), IsChart n X.z e → DifferentiableOn ℂ (G ∘ e.symm) (e.target ∩ e.symm ⁻¹' Ω)) → (∀ x, δ * ψ x ≤ -T + 1 → x ∈ Ω) → (∃ (N : ℕ) (C : ℝ), ∀ x, -ψ x ≤ N * X.e x + C) → wint n X.z (fun x => (θ (δ * ψ x) : ℂ) * G x) φ < ⊤ → ∃ F : M → ℂ, Holo n X.z F ∧ ∫⁻ x, ENNReal.ofReal (‖(θ (δ * ψ x) : ℂ) * G x - F x‖ ^ 2 * (wT T (δ * ψ x) * Real.exp (-(φ x + ψ x)))) ∂vol n X.z ≤ 30 * ∫⁻ x in {x | -T - 1 ≤ δ * ψ x ∧ δ * ψ x ≤ -T + 1}, ENNReal.ofReal (‖G x‖ ^ 2 * Real.exp (-(φ x + ψ x))) ∂vol n X.z := by
+  intro n M _ _ _ _ _ X φ ψ G Ω δ T θ hφ hψ hψ0 hδ hT hθ hlevi hΩ hG hGhol hΩψ hgrow hfin
+  obtain ⟨N, C, hNC⟩ := hgrow
+  set B : ℝ≥0∞ := 30 * ∫⁻ x in {x | -T - 1 ≤ δ * ψ x ∧ δ * ψ x ≤ -T + 1},
+    ENNReal.ofReal (‖G x‖ ^ 2 * Real.exp (-(φ x + ψ x))) ∂vol n X.z with hB
+  by_cases hBtop : B = ⊤
+  · refine ⟨fun _ => 0, fun e _ => differentiableOn_const 0, ?_⟩
+    rw [hBtop]
+    exact le_top
+  have hBlt : B < ⊤ := lt_top_iff_ne_top.2 hBtop
+  set Lk : ℕ → M → ℝ := fun k x => Real.log (1 + Real.exp (X.e x) / ((k : ℝ) + 1)) with hLk
+  have hL : ∀ k, SmoothR n X.z (Lk k) ∧ LeviNonneg n X.z (Lk k) := fun k => logShift_lse X k
+  have hN0 : (0 : ℝ) ≤ N := Nat.cast_nonneg N
+  have hL0 : ∀ k x, 0 ≤ Lk k x := by
+    intro k x
+    apply Real.log_nonneg
+    have : 0 ≤ Real.exp (X.e x) / ((k : ℝ) + 1) := by positivity
+    linarith
+  have hLlow : ∀ (k : ℕ) (x : M), X.e x - Real.log ((k : ℝ) + 1) ≤ Lk k x := by
+    intro k x
+    have hk : (0 : ℝ) < (k : ℝ) + 1 := by positivity
+    have ha : 0 < Real.exp (X.e x) / ((k : ℝ) + 1) := by positivity
+    calc X.e x - Real.log ((k : ℝ) + 1) = Real.log (Real.exp (X.e x) / ((k : ℝ) + 1)) := by
+          rw [Real.log_div (Real.exp_pos _).ne' hk.ne', Real.log_exp]
+      _ ≤ Lk k x := Real.log_le_log ha (by linarith)
+  have hφR := (lse_smoothR_iff_real n X.z φ).1 hφ
+  have hψR := (lse_smoothR_iff_real n X.z ψ).1 hψ
+  have hsmk : ∀ k, SmoothR n X.z (fun x => φ x + N * Lk k x) := by
+    intro k
+    rw [lse_smoothR_iff_real]
+    intro e he
+    exact (hφR e he).add (contDiffOn_const.mul ((lse_smoothR_iff_real n X.z _).1 (hL k).1 e he))
+  have hpk : ∀ k, SmoothR n X.z (fun x => (φ x + N * Lk k x) + ψ x) := by
+    intro k
+    rw [lse_smoothR_iff_real]
+    intro e he
+    exact ((lse_smoothR_iff_real n X.z _).1 (hsmk k) e he).add (hψR e he)
+  have hstep : ∀ k : ℕ, ∃ F : M → ℂ, Holo n X.z F ∧
+      ∫⁻ x, ENNReal.ofReal (‖(θ (δ * ψ x) : ℂ) * G x - F x‖ ^ 2 *
+        (wT T (δ * ψ x) * Real.exp (-((φ x + N * Lk k x) + ψ x)))) ∂vol n X.z ≤ B := by
+    intro k
+    have hlev : ∀ α ∈ Set.Icc (1 : ℝ) (1 + δ),
+        LeviNonneg n X.z (fun x => (φ x + N * Lk k x) + α * ψ x) := by
+      intro α hα x ξ
+      have hfun : (fun x => (φ x + N * Lk k x) + α * ψ x) =
+          fun y => (fun x => φ x + α * ψ x) y + (fun x => (N : ℝ) * Lk k x) y := by
+        funext y; ring
+      have hc1 : SmoothR n X.z (fun x => φ x + α * ψ x) := by
+        rw [lse_smoothR_iff_real]
+        intro e he
+        exact (hφR e he).add (contDiffOn_const.mul (hψR e he))
+      rw [hfun, levi_add n X.z (fun x => φ x + α * ψ x) (fun x => (N : ℝ) * Lk k x)
+        (ckR_two_of_smoothR n X.z _ hc1)
+        (ckR_two_of_smoothR n X.z _ (by
+          rw [lse_smoothR_iff_real]
+          intro e he
+          exact contDiffOn_const.mul ((lse_smoothR_iff_real n X.z _).1 (hL k).1 e he))),
+        levi_const_mul n X.z (N : ℝ) (Lk k) (ckR_two_of_smoothR n X.z _ (hL k).1)]
+      rw [Complex.add_re, Complex.re_ofReal_mul]
+      exact add_nonneg (hlevi α hα x ξ) (mul_nonneg hN0 ((hL k).2 x ξ))
+    have hfin' : wint n X.z (fun x => (θ (δ * ψ x) : ℂ) * G x)
+        (fun x => (φ x + N * Lk k x) + ψ x) < ⊤ := by
+      unfold wint at hfin ⊢
+      have hK : ∀ x, ENNReal.ofReal (‖(θ (δ * ψ x) : ℂ) * G x‖ ^ 2 *
+          Real.exp (-((φ x + N * Lk k x) + ψ x))) ≤
+          ENNReal.ofReal (Real.exp (C + N * Real.log ((k : ℝ) + 1))) *
+            ENNReal.ofReal (‖(θ (δ * ψ x) : ℂ) * G x‖ ^ 2 * Real.exp (-φ x)) := by
+        intro x
+        rw [← ENNReal.ofReal_mul (Real.exp_pos _).le]
+        apply ENNReal.ofReal_le_ofReal
+        have h2 : (N : ℝ) * X.e x - N * Real.log ((k : ℝ) + 1) ≤ N * Lk k x := by
+          have := mul_le_mul_of_nonneg_left (hLlow k x) hN0
+          linarith [mul_sub (N : ℝ) (X.e x) (Real.log ((k : ℝ) + 1))]
+        have h3 : Real.exp (-((φ x + N * Lk k x) + ψ x)) ≤
+            Real.exp (C + N * Real.log ((k : ℝ) + 1)) * Real.exp (-φ x) := by
+          rw [← Real.exp_add]
+          apply Real.exp_le_exp.2
+          linarith [hNC x]
+        calc ‖(θ (δ * ψ x) : ℂ) * G x‖ ^ 2 * Real.exp (-((φ x + N * Lk k x) + ψ x))
+            ≤ ‖(θ (δ * ψ x) : ℂ) * G x‖ ^ 2 *
+              (Real.exp (C + N * Real.log ((k : ℝ) + 1)) * Real.exp (-φ x)) :=
+              mul_le_mul_of_nonneg_left h3 (sq_nonneg _)
+          _ = _ := by ring
+      calc _ ≤ ∫⁻ x, ENNReal.ofReal (Real.exp (C + N * Real.log ((k : ℝ) + 1))) *
+            ENNReal.ofReal (‖(θ (δ * ψ x) : ℂ) * G x‖ ^ 2 * Real.exp (-φ x)) ∂vol n X.z :=
+            lintegral_mono hK
+        _ = ENNReal.ofReal (Real.exp (C + N * Real.log ((k : ℝ) + 1))) *
+            ∫⁻ x, ENNReal.ofReal (‖(θ (δ * ψ x) : ℂ) * G x‖ ^ 2 * Real.exp (-φ x)) ∂vol n X.z :=
+            lintegral_const_mul' _ _ ENNReal.ofReal_ne_top
+        _ < ⊤ := ENNReal.mul_lt_top ENNReal.ofReal_lt_top hfin
+    obtain ⟨F, hF, hFle⟩ := GlobalTheory.T.twistedExtension_etaleStein_sqIntegrable n M X (fun x => φ x + N * Lk k x) ψ G Ω δ T θ (hsmk k)
+      hψ hψ0 hδ hT hθ hlev hΩ hG hGhol hΩψ hfin'
+    refine ⟨F, hF, hFle.trans ?_⟩
+    rw [hB]
+    refine mul_le_mul_of_nonneg_left (lintegral_mono fun x => ?_) (zero_le)
+    apply ENNReal.ofReal_le_ofReal
+    apply mul_le_mul_of_nonneg_left _ (sq_nonneg _)
+    apply Real.exp_le_exp.2
+    have := mul_nonneg hN0 (hL0 k x)
+    linarith
+  choose F hFholo hFle using hstep
+  have hz := X.isLocalHomeomorph
+  have hψc : Continuous ψ := by
+    have h := Smooth.continuous n X.z hz _ hψ
+    simpa [Function.comp_def] using Complex.continuous_re.comp h
+  have hF0 := (GlobalTheory.T.cutoff_holo_smooth_dbar_formula n M X ψ G Ω δ (-T + 1) θ hψ hθ.1 hθ.2.2.1 hΩ hGhol hΩψ).1
+  have hF0c := Smooth.continuous n X.z hz _ hF0
+  have hden : ∀ x, 0 < 1 + min ((δ * ψ x) ^ 2) ((T + 1) ^ 2) := fun x =>
+    add_pos_of_pos_of_nonneg one_pos (le_min (sq_nonneg _) (sq_nonneg _))
+  have homc : Continuous (fun x => wT T (δ * ψ x)) := by
+    unfold wT
+    exact Continuous.div continuous_const (continuous_const.add
+      (((continuous_const.mul hψc).pow 2).min continuous_const)) fun x => (hden x).ne'
+  have hc : (0 : ℝ) < 1 / (1 + (T + 1) ^ 2) := by positivity
+  have hbd : ∀ x, 1 / (1 + (T + 1) ^ 2) ≤ wT T (δ * ψ x) ∧ wT T (δ * ψ x) ≤ 1 := by
+    intro x
+    unfold wT
+    constructor
+    · exact one_div_le_one_div_of_le (hden x) (by linarith [min_le_right ((δ * ψ x) ^ 2) ((T + 1) ^ 2)])
+    · rw [div_le_one (hden x)]
+      linarith [le_min (sq_nonneg (δ * ψ x)) (sq_nonneg (T + 1))]
+  have hanti : ∀ x, Antitone (fun k => (φ x + N * Lk k x) + ψ x) := by
+    intro x k k' hkk
+    have hk : (0 : ℝ) < (k : ℝ) + 1 := by positivity
+    have hkk' : (k : ℝ) + 1 ≤ (k' : ℝ) + 1 := by exact_mod_cast Nat.add_le_add_right hkk 1
+    have h1 : Lk k' x ≤ Lk k x := by
+      apply Real.log_le_log (by have : 0 ≤ Real.exp (X.e x) / ((k' : ℝ) + 1) := by positivity
+                                linarith)
+      have := div_le_div_of_nonneg_left (Real.exp_pos (X.e x)).le hk hkk'
+      linarith
+    have := mul_le_mul_of_nonneg_left h1 hN0
+    show (φ x + N * Lk k' x) + ψ x ≤ (φ x + N * Lk k x) + ψ x
+    linarith
+  have htend : ∀ x, Tendsto (fun k => (φ x + N * Lk k x) + ψ x) atTop (𝓝 (φ x + ψ x)) := by
+    intro x
+    have h1 : Tendsto (fun k : ℕ => Real.exp (X.e x) / ((k : ℝ) + 1)) atTop (𝓝 0) := by
+      have h2 := (tendsto_const_div_atTop_nhds_zero_nat (Real.exp (X.e x))).comp
+        (tendsto_add_atTop_nat 1)
+      refine h2.congr fun k => ?_
+      simp [Function.comp]
+    have h3 : Tendsto (fun k : ℕ => Lk k x) atTop (𝓝 (Real.log (1 + 0))) :=
+      ((Real.continuousAt_log (by norm_num)).tendsto).comp (tendsto_const_nhds.add h1)
+    rw [add_zero, Real.log_one] at h3
+    have h4 := ((tendsto_const_nhds (x := φ x)).add (h3.const_mul (N : ℝ))).add_const (ψ x)
+    simpa using h4
+  obtain ⟨Gf, hGf, hGle⟩ := GlobalTheory.T.exists_holo_l2_bound_of_increasing_weights n M X (fun x => (θ (δ * ψ x) : ℂ) * G x)
+    (fun x => wT T (δ * ψ x)) (1 / (1 + (T + 1) ^ 2)) (fun k x => (φ x + N * Lk k x) + ψ x)
+    (fun x => φ x + ψ x) F B hF0c homc hc hbd hpk hanti htend hFholo hBlt hFle
+  exact ⟨Gf, hGf, hGle⟩
+
+end
+
+end GlobalTheory.LogGrowth

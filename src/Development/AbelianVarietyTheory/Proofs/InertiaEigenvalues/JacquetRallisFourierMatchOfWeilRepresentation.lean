@@ -1,0 +1,880 @@
+module
+
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.HermitianBlockInvariantsIffIsometry
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.FourierDescendedFunctionEqPartialFourier
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.PartialFourierPreservesTestFixesUnit
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.IdelicAbsDetPowDiagonalUniformizerMul
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.JacquetRallisLinearOrbitalIntegralDescent
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.UnitaryOrbitalDescent
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.ExistsUnitaryGroupTorusCutoff
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.ExistsUnitaryGroupTorusCutoff
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+
+namespace GlobalTheory.JR.TorusCutOff
+
+private lemma charpoly_separable_of_isGen {F E : Type} [NontriviallyNormedField F]
+    [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E]
+    [_root_.GlobalTheory.JR.Unram F E] (A : _root_.GlobalTheory.JR.Et F E) (r : ℕ)
+    (τ : A.K) (p : Fin r → F) (hτ : A.IsGen τ p)
+    (j : A.L ≃ₗ[E] (Fin r → E)) (M : Matrix (Fin r) (Fin r) E)
+    (hM : ∀ z, j (algebraMap A.K A.L τ * z) = M *ᵥ j z) :
+    M.charpoly.Separable := by
+  haveI : Module.Finite E A.L :=
+    Module.Finite.equiv (A.push).out.equiv
+  rcases Nat.eq_zero_or_pos r with rfl | hr
+  · rw [Matrix.charpoly, Matrix.det_isEmpty]
+    exact Polynomial.separable_one
+  haveI : Nonempty (Fin r) := ⟨⟨0, hr⟩⟩
+  obtain ⟨hli, hfin, -⟩ := hτ
+  haveI : CharZero F := _root_.GlobalTheory.JR.Unram.charZero E
+  let b : Module.Basis (Fin r) F A.K :=
+    basisOfLinearIndependentOfCardEqFinrank hli (by simp [hfin])
+  let pb : PowerBasis F A.K := ⟨τ, r, b, fun i => by simp [b]⟩
+  have h1 : (LinearMap.mul F A.K τ).charpoly = minpoly F τ := by
+    rw [← LinearMap.charpoly_toMatrix _ b]
+    exact charpoly_leftMulMatrix pb
+  let e := (A.push).out.equiv
+  let f : Module.End E A.L :=
+    LinearMap.mul E A.L (algebraMap A.K A.L τ)
+  have key : ∀ w, e ((LinearMap.mul F A.K τ).baseChange E w) = f (e w) := by
+    intro w
+    induction w using TensorProduct.induction_on with
+    | zero => simp
+    | tmul c k => simp [e, f, IsBaseChange.equiv_tmul, mul_smul_comm]
+    | add w₁ w₂ h₁ h₂ => simp only [map_add (f := _), h₁, h₂]
+  have h3 : e.conj ((LinearMap.mul F A.K τ).baseChange E) = f := by
+    apply LinearMap.ext
+    intro y
+    rw [LinearEquiv.conj_apply]
+    simp [key]
+  have h4 : M.charpoly = f.charpoly := by
+    have : Matrix.toLin' M = j.conj f := by
+      apply LinearMap.ext
+      intro v
+      obtain ⟨z, rfl⟩ := j.surjective v
+      simp [LinearEquiv.conj_apply, f, hM]
+    rw [← Matrix.charpoly_toLin', this, LinearEquiv.charpoly_conj]
+  rw [h4, ← h3, LinearEquiv.charpoly_conj, LinearMap.charpoly_baseChange, h1]
+  refine Polynomial.Separable.map ?_
+  rw [PerfectField.separable_iff_squarefree]
+  exact (minpoly.isRadical F τ).squarefree (minpoly.ne_zero (Algebra.IsIntegral.isIntegral τ))
+
+private lemma map_mul_of_commute_generator {F E : Type} [NontriviallyNormedField F]
+    [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E]
+    (A : _root_.GlobalTheory.JR.Et F E) (τ : A.K) (hτ : Algebra.adjoin F {τ} = ⊤)
+    (φ : A.L →ₗ[E] A.L)
+    (hφ : ∀ w, φ (algebraMap A.K A.L τ * w) =
+      algebraMap A.K A.L τ * φ w) :
+    ∀ y w, φ (y * w) = y * φ w := by
+  have hK : ∀ k : A.K, ∀ w, φ (algebraMap A.K A.L k * w) =
+      algebraMap A.K A.L k * φ w := by
+    intro k
+    have hk : k ∈ Algebra.adjoin F {τ} := by rw [hτ]; trivial
+    induction hk using Algebra.adjoin_induction with
+    | mem k hk => rw [Set.mem_singleton_iff.1 hk]; exact hφ
+    | algebraMap c =>
+      intro w
+      rw [← IsScalarTower.algebraMap_apply, ← Algebra.smul_def, ← Algebra.smul_def,
+        ← algebraMap_smul E c w, ← algebraMap_smul E c (φ w), map_smul]
+    | add k₁ k₂ _ _ h₁ h₂ => intro w; rw [map_add (f := _), add_mul, map_add (f := _), h₁, h₂, add_mul]
+    | mul k₁ k₂ _ _ h₁ h₂ => intro w; rw [RingHom.map_mul, mul_assoc, h₁, h₂, ← mul_assoc]
+  intro y
+  obtain ⟨u, rfl⟩ := (A.push).out.equiv.surjective y
+  induction u using TensorProduct.induction_on with
+  | zero => intro w; simp
+  | tmul c k =>
+    intro w
+    rw [IsBaseChange.equiv_tmul, smul_mul_assoc, map_smul, smul_mul_assoc]
+    simp only [AlgHom.toLinearMap_apply, IsScalarTower.coe_toAlgHom']
+    rw [hK]
+  | add u₁ u₂ h₁ h₂ => intro w; rw [map_add (f := _), add_mul, map_add (f := _), h₁, h₂, add_mul]
+
+private lemma adjoin_eq_whole_of_isGen {F E : Type} [NontriviallyNormedField F]
+    [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E]
+    (A : _root_.GlobalTheory.JR.Et F E) (r : ℕ) (τ : A.K) (p : Fin r → F)
+    (hτ : A.IsGen τ p) : Algebra.adjoin F {τ} = ⊤ := by
+  obtain ⟨hli, hfin, -⟩ := hτ
+  rcases Nat.eq_zero_or_pos r with rfl | hr
+  · haveI : Subsingleton A.K := Module.finrank_zero_iff.1 hfin
+    refine eq_top_iff.2 fun k _ => ?_
+    rw [Subsingleton.elim k 1]
+    exact Subalgebra.one_mem _
+  haveI : Nonempty (Fin r) := ⟨⟨0, hr⟩⟩
+  let b : Module.Basis (Fin r) F A.K :=
+    basisOfLinearIndependentOfCardEqFinrank hli (by simp [hfin])
+  let pb : PowerBasis F A.K := ⟨τ, r, b, fun i => by simp [b]⟩
+  exact pb.adjoin_gen_eq_top
+
+private lemma exists_uHom_eq_of_mulVec_eq {F E : Type} [NontriviallyNormedField F]
+    [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E]
+    (A : _root_.GlobalTheory.JR.Et F E) (r : ℕ) (x : A.K)
+    (j : A.L ≃ₗ[E] (Fin r → E)) (hx : A.IsIsom x j)
+    (t : Matrix.unitaryGroup (Fin r) E) (y : A.L)
+    (hy : ∀ z, t.1 *ᵥ j z = j (y * z)) :
+    ∃ s, A.uHom hx s = t := by
+  have hform : ∀ a b, star (j a) ⬝ᵥ j b = Algebra.trace E A.L
+      (algebraMap A.K A.L x * star a * b) := hx
+  have hpres : ∀ v w : Fin r → E, star (t.1 *ᵥ v) ⬝ᵥ (t.1 *ᵥ w) = star v ⬝ᵥ w := by
+    intro v w
+    rw [Matrix.star_mulVec, Matrix.dotProduct_mulVec, Matrix.vecMul_vecMul,
+      ← Matrix.star_eq_conjTranspose, t.2.1, Matrix.vecMul_one]
+  have hnd : ∀ w : Fin r → E, (∀ a, star (j a) ⬝ᵥ w = 0) → w = 0 := by
+    intro w hw
+    funext i
+    have := hw (j.symm (Pi.single i 1))
+    simpa using this
+  have hc : star y * y = 1 := by
+    have h0 : ∀ b, (star y * y - 1) * b = 0 := by
+      intro b
+      apply j.injective
+      rw [map_zero]
+      apply hnd
+      intro a
+      have h := hpres (j a) (j b)
+      rw [hy, hy, hform, hform] at h
+      rw [hform, sub_mul, mul_sub, map_sub, sub_eq_zero, one_mul, ← h, star_mul]
+      congr 1
+      ring
+    simpa [sub_eq_zero] using h0 1
+  have hs : y ∈ unitary A.L := ⟨hc, by rw [mul_comm]; exact hc⟩
+  refine ⟨⟨y, hs⟩, Subtype.ext ?_⟩
+  rw [_root_.GlobalTheory.JR.Et.uHom_apply]
+  apply Matrix.toLin'.injective
+  apply LinearMap.ext
+  intro v
+  obtain ⟨z, rfl⟩ := j.surjective v
+  rw [Matrix.toLin'_apply, Matrix.toLin'_apply,
+    _root_.GlobalTheory.JR.Et.mulMat_mulVec_apply, hy]
+
+private lemma isClosedEmbedding_uHom {F E : Type} [NontriviallyNormedField F]
+    [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E]
+    [_root_.GlobalTheory.JR.Unram F E] (A : _root_.GlobalTheory.JR.Et F E) (r : ℕ)
+    (x : A.K) (j : A.L ≃ₗ[E] (Fin r → E))
+    (hx : A.IsIsom x j) [IsTopologicalRing A.L]
+    [ContinuousStar A.L] [ContinuousStar E] :
+    IsClosedEmbedding (A.uHom hx) := by
+  haveI : LocallyCompactSpace F :=
+    _root_.GlobalTheory.JR.Unram.lcF E
+  haveI : ProperSpace F := ProperSpace.of_locallyCompactSpace F
+  haveI : Module.Finite F E := Module.finite_of_finrank_pos (by
+    rw [_root_.GlobalTheory.JR.Unram.finrank_eq (F := F) (E := E)]; norm_num)
+  haveI : IsModuleTopology F E := isModuleTopologyOfFiniteDimensional
+  have hj : Continuous j :=
+    IsModuleTopology.continuous_of_linearMap (R := F) (j.toLinearMap.restrictScalars F)
+  have hjs : Continuous j.symm :=
+    IsModuleTopology.continuous_of_linearMap (R := F) (j.symm.toLinearMap.restrictScalars F)
+  haveI : T2Space A.L :=
+    (Homeomorph.mk j.toEquiv hj hjs).isEmbedding.t2Space
+  set u := A.uHom hx with hu
+  have hu_mulVec : ∀ s v, (u s).1 *ᵥ v = j (s.1 * j.symm v) := by
+    intro s v
+    rw [hu, _root_.GlobalTheory.JR.Et.uHom_apply,
+      _root_.GlobalTheory.JR.Et.mulMat_mulVec]
+  let f : Matrix (Fin r) (Fin r) E → A.L := fun m => j.symm (m *ᵥ j 1)
+  have hf : Continuous f := hjs.comp (continuous_id.matrix_mulVec continuous_const)
+  have hg : Continuous (fun s => (u s).1) := by
+    refine continuous_pi fun i => continuous_pi fun k => ?_
+    have : (fun s => (u s).1 i k) = fun s => (j (s.1 * j.symm (Pi.single k 1))) i := by
+      funext s
+      rw [← hu_mulVec]
+      simp [Matrix.mulVec_single]
+    rw [this]
+    exact (continuous_apply i).comp (hj.comp (continuous_subtype_val.mul continuous_const))
+  have hfg : ∀ s, f (u s).1 = s.1 := by
+    intro s
+    simp [f, hu_mulVec]
+  have hemb : IsEmbedding (fun s => (u s).1) :=
+    IsEmbedding.of_comp hg hf (by
+      have : f ∘ (fun s => (u s).1) = Subtype.val := funext hfg
+      rw [this]
+      exact IsEmbedding.subtypeVal)
+  have hrange : Set.range (fun s => (u s).1) =
+      {m | f m ∈ unitary A.L} ∩ ⋂ v, {m | m *ᵥ v = j (f m * j.symm v)} := by
+    ext m
+    constructor
+    · rintro ⟨s, rfl⟩
+      refine ⟨by simp [hfg], Set.mem_iInter.2 fun v => ?_⟩
+      simp only [Set.mem_setOf_eq, hfg, hu_mulVec]
+    · rintro ⟨h₁, h₂⟩
+      refine ⟨⟨f m, h₁⟩, ?_⟩
+      apply Matrix.toLin'.injective
+      apply LinearMap.ext
+      intro v
+      rw [Matrix.toLin'_apply, Matrix.toLin'_apply, hu_mulVec]
+      exact (Set.mem_iInter.1 h₂ v).symm
+  have hclosed : IsClosed (Set.range (fun s => (u s).1)) := by
+    rw [hrange]
+    exact (isClosed_unitary.preimage hf).inter (isClosed_iInter fun v =>
+      isClosed_eq (continuous_id.matrix_mulVec continuous_const)
+        (hj.comp (hf.mul continuous_const)))
+  have hval : IsClosedEmbedding
+      (Subtype.val : Matrix.unitaryGroup (Fin r) E → Matrix (Fin r) (Fin r) E) :=
+    (isClosed_unitary (R := Matrix (Fin r) (Fin r) E)).isClosedEmbedding_subtypeVal
+  exact (IsClosedEmbedding.of_comp_iff hval).1 ⟨hemb, hclosed⟩
+
+theorem _root_.GlobalTheory.JR.TorusCutOff.exists_unitary_cutoff : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [_root_.GlobalTheory.JR.Unram F E] (A : _root_.GlobalTheory.JR.Et F E) (r : ℕ) (τ : A.K) (p : Fin r → F), A.IsGen τ p → ∀ (x : A.K) (j : A.L ≃ₗ[E] (Fin r → E)) (hx : A.IsIsom x j) (Ax : selfAdjoint (Matrix (Fin r) (Fin r) E)), (∀ z, j (algebraMap A.K A.L τ * z) = Ax.1 *ᵥ j z) → ∀ (ν : Measure (unitary A.L)), ν.IsHaarMeasure → ∀ Z : Set (Matrix (Fin r) (Fin r) E), IsCompact Z → ∃ α : Matrix.unitaryGroup (Fin r) E → ℝ, IsLocallyConstant α ∧ HasCompactSupport α ∧ (∀ g, 0 ≤ α g) ∧ ∀ g : Matrix.unitaryGroup (Fin r) E, g.1 * Ax.1 * star g.1 ∈ Z → ∫ t, α (g * (A.uHom hx t)⁻¹) ∂ν = 1 := by
+  intro F E _ _ _ _ _ A r τ p hτ x j hx Ax hAx ν _ Z hZ
+  haveI : LocallyCompactSpace E :=
+    _root_.GlobalTheory.JR.Unram.lcE F
+  haveI : IsUltrametricDist E := _root_.GlobalTheory.JR.Unram.ultraE F
+  haveI : ContinuousStar E := ⟨(AddMonoidHomClass.isometry_of_norm (starAddEquiv : E ≃+ E)
+    (_root_.GlobalTheory.JR.Unram.norm_star F)).continuous⟩
+  haveI : Module.Finite F E := Module.finite_of_finrank_pos (by
+    rw [_root_.GlobalTheory.JR.Unram.finrank_eq (F := F) (E := E)]; norm_num)
+  haveI : Module.Finite E A.L :=
+    Module.Finite.equiv (A.push).out.equiv
+  haveI : Module.Finite F A.L := Module.Finite.trans E _
+  haveI : IsTopologicalRing A.L := IsModuleTopology.isTopologicalRing F _
+  haveI : ContinuousStar A.L := by
+    refine ⟨?_⟩
+    let σ : A.L →ₗ[F] A.L :=
+      { toFun := star
+        map_add' := star_add
+        map_smul' := fun a y => by
+          rw [Algebra.smul_def, star_mul, IsScalarTower.algebraMap_apply F E A.L,
+            A.star_E,
+            _root_.GlobalTheory.JR.Unram.star_fix,
+            ← IsScalarTower.algebraMap_apply, ← Algebra.commutes, ← Algebra.smul_def]
+          rfl }
+    exact IsModuleTopology.continuous_of_linearMap (R := F) σ
+  haveI : LocallyCompactSpace (Matrix (Fin r) (Fin r) E) :=
+    (inferInstance : LocallyCompactSpace (Fin r → Fin r → E))
+  haveI : TotallyDisconnectedSpace (Matrix (Fin r) (Fin r) E) :=
+    (inferInstance : TotallyDisconnectedSpace (Fin r → Fin r → E))
+  haveI : LocallyCompactSpace (Matrix.unitaryGroup (Fin r) E) :=
+    (isClosed_unitary (R := Matrix (Fin r) (Fin r) E)).isClosedEmbedding_subtypeVal.locallyCompactSpace
+  have hsep : Ax.1.charpoly.Separable :=
+    charpoly_separable_of_isGen A r τ p hτ j Ax.1 hAx
+  have hcent : ∀ t : Matrix.unitaryGroup (Fin r) E, t.1 * Ax.1 = Ax.1 * t.1 →
+      ∃ s, A.uHom hx s = t := by
+    intro t ht
+    let φ : A.L →ₗ[E] A.L :=
+      j.symm.toLinearMap ∘ₗ Matrix.toLin' t.1 ∘ₗ j.toLinearMap
+    have hφ : ∀ w, φ (algebraMap A.K A.L τ * w) =
+        algebraMap A.K A.L τ * φ w := by
+      intro w
+      apply j.injective
+      simp only [φ, LinearMap.comp_apply, LinearEquiv.coe_coe, Matrix.toLin'_apply,
+        LinearEquiv.apply_symm_apply]
+      rw [hAx, hAx, LinearEquiv.apply_symm_apply, Matrix.mulVec_mulVec, ht,
+        ← Matrix.mulVec_mulVec]
+    have hmul := map_mul_of_commute_generator A τ
+      (adjoin_eq_whole_of_isGen A r τ p hτ) φ hφ
+    refine exists_uHom_eq_of_mulVec_eq A r x j hx t (φ 1) (fun z => ?_)
+    have h1 : j (φ z) = t.1 *ᵥ j z := by simp [φ]
+    rw [← h1, mul_comm, ← hmul, mul_one]
+  have hemb : IsClosedEmbedding (A.uHom hx) :=
+    isClosedEmbedding_uHom A r x j hx
+  obtain ⟨C, hC, hCg⟩ :=
+    (_root_.GlobalTheory.OrbCpt.orbit_cpt F E r).2 Ax.1 Ax.2 hsep Z hZ
+  let i : unitary A.L →* Matrix.unitaryGroup (Fin r) E :=
+    (A.uHom hx).comp invMonoidHom
+  have hi : IsClosedEmbedding i := hemb.comp (Homeomorph.inv _).isClosedEmbedding
+  obtain ⟨α, h₁, h₂, h₃, h₄⟩ := _root_.GlobalTheory.CutOff.exists_cutoff
+    (Matrix.unitaryGroup (Fin r) E) (unitary A.L) i hi ν C hC
+  refine ⟨α, h₁, h₂, h₃, fun g hg => ?_⟩
+  obtain ⟨c, hc, t, ht, rfl⟩ := hCg g hg
+  obtain ⟨s, rfl⟩ := hcent t ht
+  have := h₄ c hc s⁻¹
+  simpa [i, mul_assoc] using this
+
+end GlobalTheory.JR.TorusCutOff
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.ExistsUnitaryGroupTorusCutoffStatement
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_unitary_group_torus_cutoff : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E] (A : Et F E) (r : ℕ) (τ : A.K) (p : Fin r → F), A.IsGen τ p → ∀ (x : A.K) (j : A.L ≃ₗ[E] (Fin r → E)) (hx : A.IsIsom x j) (Ax : selfAdjoint (Matrix (Fin r) (Fin r) E)), (∀ z, j (algebraMap A.K A.L τ * z) = Ax.1 *ᵥ j z) → ∀ (ν : Measure (unitary A.L)), ν.IsHaarMeasure → ∀ Z : Set (Matrix (Fin r) (Fin r) E), IsCompact Z → ∃ α : Matrix.unitaryGroup (Fin r) E → ℝ, IsLocallyConstant α ∧ HasCompactSupport α ∧ (∀ g, 0 ≤ α g) ∧ ∀ g : Matrix.unitaryGroup (Fin r) E, g.1 * Ax.1 * star g.1 ∈ Z → ∫ t, α (g * (A.uHom hx t)⁻¹) ∂ν = 1 := by
+  first | exact @GlobalTheory.JR.TorusCutOff.exists_unitary_cutoff | exact GlobalTheory.JR.TorusCutOff.exists_unitary_cutoff | (intros; apply GlobalTheory.JR.TorusCutOff.exists_unitary_cutoff <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.OrbitalIntegralDescendedEqUnitary
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.OrbitalIntegralDescendedEqUnitary
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+
+noncomputable section
+
+namespace GlobalTheory.JR.DescOrb
+
+variable {F E : Type} [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E]
+
+theorem mulMat_comm (A : Et F E) {r : ℕ} (τ : A.K) (j : A.L ≃ₗ[E] (Fin r → E)) (Ax : Matrix (Fin r) (Fin r) E)
+    (hA : ∀ z, j (algebraMap A.K A.L τ * z) = Ax *ᵥ j z) (t : A.L) :
+    Ax * A.mulMat j t = A.mulMat j t * Ax := by
+  apply Matrix.toLin'.injective
+  apply LinearMap.ext
+  intro v
+  obtain ⟨z, rfl⟩ := j.surjective v
+  simp only [Matrix.toLin'_apply, ← Matrix.mulVec_mulVec, Et.mulMat_mulVec_apply, ← hA]
+  congr 1; ring
+
+theorem actU_actU {r : ℕ} (g h : unitaryGroup (Fin r) E) (X : Hn r F E) :
+    actU g (actU h X) = actU (g * h) X := by
+  refine Prod.ext (Subtype.ext ?_) (Prod.ext ?_ rfl)
+  · show g.1 * (h.1 * X.1.1 * star h.1) * star g.1 = (g.1 * h.1) * X.1.1 * star (g.1 * h.1)
+    rw [star_mul]; simp only [Matrix.mul_assoc]
+  · show g.1 *ᵥ (h.1 *ᵥ X.2.1) = (g.1 * h.1) *ᵥ X.2.1
+    rw [Matrix.mulVec_mulVec]
+
+end GlobalTheory.JR.DescOrb
+
+namespace GlobalTheory.JR.DescOrb
+
+variable {F E : Type} [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E]
+
+theorem continuous_mulMat [hU : Unram F E] (A : Et F E) {r : ℕ} (j : A.L ≃ₗ[E] (Fin r → E)) :
+    Continuous fun t : A.L => A.mulMat j t := by
+  haveI := hU.lcF
+  haveI := EtMeas.finite_L A
+  haveI : IsTopologicalRing A.L := IsModuleTopology.isTopologicalRing F A.L
+  have hj : Continuous (j : A.L → Fin r → E) :=
+    IsModuleTopology.continuous_of_linearMap ((j : A.L →ₗ[E] (Fin r → E)).restrictScalars F)
+  refine continuous_matrix fun i k => ?_
+  simp only [Et.mulMat, LinearMap.toMatrix'_apply, LinearMap.coe_comp, Function.comp_apply, LinearMap.mulLeft_apply,
+    LinearEquiv.coe_coe]
+  exact (continuous_apply i).comp (hj.comp (continuous_id.mul continuous_const))
+
+set_option synthInstance.maxHeartbeats 200000 in
+theorem orbL_descFn : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E] (A : Et F E) (r : ℕ) (M : Meas r F E) (τ : A.K) (x : A.K) (j : A.L ≃ₗ[E] (Fin r → E)) (hx : A.IsIsom x j) (Ax : selfAdjoint (Matrix (Fin r) (Fin r) E)), (∀ z, j (algebraMap A.K A.L τ * z) = Ax.1 *ᵥ j z) → ∀ (lam : F) (ν : Measure (unitary A.L)), ν.IsHaarMeasure → ∀ (α : Matrix.unitaryGroup (Fin r) E → ℝ), IsLocallyConstant α → (∀ g, 0 ≤ α g) → ∀ Z : Set (Matrix (Fin r) (Fin r) E), (∀ g : Matrix.unitaryGroup (Fin r) E, g.1 * Ax.1 * star g.1 ∈ Z → ∫ t, α (g * (A.uHom hx t)⁻¹) ∂ν = 1) → ∀ f₀ : Hn r F E → ℂ, Continuous f₀ → (∀ X, f₀ X ≠ 0 → X.1.1 ∈ Z) → ∀ y : A.L, (letI := M.mU; Integrable (fun g => f₀ (actU g (Ax, j y, lam))) M.μU) → A.orbL ν (A.descFn M Ax j lam α f₀) y = orbU M f₀ (Ax, j y, lam) := by
+  intro F E _ _ _ _ hU A r M τ x j hx Ax hA lam ν hν α hα hα0 Z hZ f₀ hf₀ hf₀Z y hint
+  letI := M.mU
+  haveI := M.bU
+  haveI := M.haarU
+  haveI := hU.ultraE; haveI := hU.lcE; haveI := hU.ultraF; haveI := hU.lcF
+  haveI : ProperSpace E := ProperSpace.of_locallyCompactSpace E
+  haveI : NormedStarGroup E := ⟨fun y => (hU.norm_star y).le⟩
+  haveI : SecondCountableTopology (Matrix (Fin r) (Fin r) E) :=
+    inferInstanceAs (SecondCountableTopology (Fin r → Fin r → E))
+  haveI : LocallyCompactSpace (Matrix (Fin r) (Fin r) E) :=
+    inferInstanceAs (LocallyCompactSpace (Fin r → Fin r → E))
+  haveI : LocallyCompactSpace (unitaryGroup (Fin r) E) :=
+    (isClosed_unitary (R := Matrix (Fin r) (Fin r) E)).locallyCompactSpace
+  haveI : SecondCountableTopology (unitaryGroup (Fin r) E) :=
+    (isClosed_unitary (R := Matrix (Fin r) (Fin r) E)).isClosedEmbedding_subtypeVal.isEmbedding.secondCountableTopology
+  haveI := EtMeas.finite_L A
+  obtain ⟨_, _, _, _, -⟩ := EtMeas.top_facts F A.L
+  haveI : IsTopologicalRing A.L := IsModuleTopology.isTopologicalRing F A.L
+  haveI : ContinuousStar A.L := ⟨IsModuleTopology.continuous_of_linearMap (EtMeas.starF A)⟩
+  haveI : LocallyCompactSpace (unitary A.L) := (isClosed_unitary (R := A.L)).locallyCompactSpace
+  haveI : SecondCountableTopology (unitary A.L) :=
+    (isClosed_unitary (R := A.L)).isClosedEmbedding_subtypeVal.isEmbedding.secondCountableTopology
+  haveI : SigmaFinite ν := inferInstance
+  haveI : SigmaFinite M.μU := inferInstance
+  haveI : M.μU.IsMulRightInvariant := (GlobalTheory.T.unitaryGroup_positiveCharacter_trivial_and_unimodular F E r).2 M
+  have huc : Continuous (A.uHom hx) := continuous_induced_rng.2 ((continuous_mulMat A j).comp continuous_subtype_val)
+  have hinvc : Continuous fun g : unitaryGroup (Fin r) E => g⁻¹ := continuous_inv
+
+  set X : Hn r F E := (Ax, j y, lam) with hXdef
+  have hcomm : ∀ t : unitary A.L, ((A.uHom hx t : Matrix (Fin r) (Fin r) E)) * Ax.1 = Ax.1 * A.uHom hx t := fun t =>
+    (mulMat_comm A τ j Ax.1 hA t).symm
+  have hshift : ∀ t : unitary A.L, ((Ax, j (t.1 * y), lam) : Hn r F E) = actU (A.uHom hx t) X := by
+    intro t
+    refine Prod.ext (Subtype.ext ?_) (Prod.ext ?_ rfl)
+    · show Ax.1 = (A.uHom hx t : Matrix (Fin r) (Fin r) E) * Ax.1 * star (A.uHom hx t : Matrix (Fin r) (Fin r) E)
+      rw [hcomm, Matrix.mul_assoc, Unitary.mul_star_self_of_mem (A.uHom hx t).2, Matrix.mul_one]
+    · show j (t.1 * y) = (A.uHom hx t : Matrix (Fin r) (Fin r) E) *ᵥ j y
+      rw [Et.uHom_apply, Et.mulMat_mulVec_apply]
+  have step1 : ∀ t : unitary A.L, A.descFn M Ax j lam α f₀ (t.1 * y) =
+      ∫ g, f₀ (actU g X) * (α (g * (A.uHom hx t)⁻¹) : ℂ) ∂M.μU := by
+    intro t
+    have h := integral_mul_right_eq_self (μ := M.μU)
+      (fun g => f₀ (actU g X) * (α (g * (A.uHom hx t)⁻¹) : ℂ)) (A.uHom hx t)
+    simp only [mul_inv_cancel_right] at h
+    rw [← h]
+    show (∫ g, f₀ (actU g ((Ax, j (t.1 * y), lam) : Hn r F E)) * (α g : ℂ) ∂M.μU) = _
+    simp only [hshift t, actU_actU]
+  have hact : Continuous fun g : unitaryGroup (Fin r) E => actU g X := by
+    refine Continuous.prodMk ?_ (Continuous.prodMk ?_ continuous_const)
+    · exact (((continuous_subtype_val.matrix_mul continuous_const).matrix_mul
+        (continuous_subtype_val.star))).subtype_mk _
+    · exact continuous_subtype_val.matrix_mulVec continuous_const
+  have hcont : Continuous (Function.uncurry fun (t : unitary A.L) (g : unitaryGroup (Fin r) E) =>
+      f₀ (actU g X) * (α (g * (A.uHom hx t)⁻¹) : ℂ)) :=
+    (hf₀.comp (hact.comp continuous_snd)).mul (Complex.continuous_ofReal.comp
+      (hα.continuous.comp (continuous_snd.mul (hinvc.comp (huc.comp continuous_fst)))))
+  have hαint : ∀ g : unitaryGroup (Fin r) E, f₀ (actU g X) ≠ 0 →
+      Integrable (fun t => α (g * (A.uHom hx t)⁻¹)) ν := by
+    intro g hg
+    by_contra hn
+    have h1 := integral_undef hn
+    rw [hZ g (hf₀Z _ hg)] at h1
+    exact one_ne_zero h1
+  have hInt : Integrable (Function.uncurry fun (t : unitary A.L) (g : unitaryGroup (Fin r) E) =>
+      f₀ (actU g X) * (α (g * (A.uHom hx t)⁻¹) : ℂ)) (ν.prod M.μU) := by
+    rw [integrable_prod_iff' hcont.aestronglyMeasurable]
+    refine ⟨Eventually.of_forall fun g => ?_, ?_⟩
+    · by_cases hg : f₀ (actU g X) = 0
+      · simp [Function.uncurry, hg]
+      · exact ((hαint g hg).ofReal).const_mul (f₀ (actU g X))
+    · refine hint.norm.congr (Eventually.of_forall fun g => ?_)
+      simp only [Function.uncurry_apply_pair, norm_mul, Complex.norm_real, Real.norm_eq_abs]
+      rw [integral_const_mul]
+      by_cases hg : f₀ (actU g X) = 0
+      · simp [hg]
+      · rw [integral_congr_ae (Eventually.of_forall fun t => abs_of_nonneg (hα0 _)), hZ g (hf₀Z _ hg), mul_one]
+  show ∫ t : unitary A.L, A.descFn M Ax j lam α f₀ (t.1 * y) ∂ν = ∫ g, f₀ (actU g X) ∂M.μU
+  simp_rw [step1]
+  rw [integral_integral_swap hInt]
+  refine integral_congr_ae (Eventually.of_forall fun g => ?_)
+  simp only
+  rw [integral_const_mul, integral_complex_ofReal]
+  by_cases hg : f₀ (actU g X) = 0
+  · simp [hg]
+  · rw [hZ g (hf₀Z _ hg)]; simp
+
+end GlobalTheory.JR.DescOrb
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.OrbitalIntegralDescendedEqUnitaryStatement
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.orbitalIntegral_descended_eq_unitary : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E] (A : Et F E) (r : ℕ) (M : Meas r F E) (τ : A.K) (x : A.K) (j : A.L ≃ₗ[E] (Fin r → E)) (hx : A.IsIsom x j) (Ax : selfAdjoint (Matrix (Fin r) (Fin r) E)), (∀ z, j (algebraMap A.K A.L τ * z) = Ax.1 *ᵥ j z) → ∀ (lam : F) (ν : Measure (unitary A.L)), ν.IsHaarMeasure → ∀ (α : Matrix.unitaryGroup (Fin r) E → ℝ), IsLocallyConstant α → (∀ g, 0 ≤ α g) → ∀ Z : Set (Matrix (Fin r) (Fin r) E), (∀ g : Matrix.unitaryGroup (Fin r) E, g.1 * Ax.1 * star g.1 ∈ Z → ∫ t, α (g * (A.uHom hx t)⁻¹) ∂ν = 1) → ∀ f₀ : Hn r F E → ℂ, Continuous f₀ → (∀ X, f₀ X ≠ 0 → X.1.1 ∈ Z) → ∀ y : A.L, (letI := M.mU; Integrable (fun g => f₀ (actU g (Ax, j y, lam))) M.μU) → A.orbL ν (A.descFn M Ax j lam α f₀) y = orbU M f₀ (Ax, j y, lam) := by
+  first | exact @GlobalTheory.JR.DescOrb.orbL_descFn | exact GlobalTheory.JR.DescOrb.orbL_descFn | (intros; apply GlobalTheory.JR.DescOrb.orbL_descFn <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.IsLocallyConstantCompactSupportDescendedFunction
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.IsLocallyConstantCompactSupportDescendedFunction
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+
+theorem GlobalTheory.JR.descFn_isTest : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E] (A : Et F E) (r : ℕ) (M : Meas r F E) (Ax : selfAdjoint (Matrix (Fin r) (Fin r) E)) (j : A.L ≃ₗ[E] (Fin r → E)) (lam : F) (α : Matrix.unitaryGroup (Fin r) E → ℝ), IsLocallyConstant α → HasCompactSupport α → ∀ f : Hn r F E → ℂ, IsTest f → IsTest (A.descFn M Ax j lam α f) := by
+  intro F E _ _ _ _ _ A r M Ax j lam α hαl hαc f hf
+
+  have hstar : Continuous (star : E → E) := by
+    have : Isometry (starAddEquiv : E ≃+ E) :=
+      (AddMonoidHomClass.isometry_iff_norm (starAddEquiv : E ≃+ E)).2 (fun x => Unram.norm_star F x)
+    exact this.continuous
+  haveI : ContinuousStar E := ⟨hstar⟩
+  haveI : LocallyCompactSpace F := Unram.lcF E
+  haveI : ProperSpace F := ProperSpace.of_locallyCompactSpace F
+  haveI : IsTopologicalAddGroup A.L := IsModuleTopology.topologicalAddGroup F A.L
+  haveI : FiniteDimensional F E := Module.finite_of_finrank_eq_succ (Unram.finrank_eq (F := F) (E := E))
+  have hj : Continuous j := IsModuleTopology.continuous_of_linearMap ((j : A.L →ₗ[E] (Fin r → E)).restrictScalars F)
+  have hjs : Continuous j.symm :=
+    LinearMap.continuous_of_finiteDimensional ((j.symm : (Fin r → E) →ₗ[E] A.L).restrictScalars F)
+
+  have hact : Continuous (fun p : A.L × Matrix.unitaryGroup (Fin r) E => (actU p.2 (Ax, j p.1, lam) : Hn r F E)) := by
+    have hg : Continuous (fun p : A.L × Matrix.unitaryGroup (Fin r) E => (p.2 : Matrix (Fin r) (Fin r) E)) :=
+      continuous_subtype_val.comp continuous_snd
+    have c1 : Continuous (fun p : A.L × Matrix.unitaryGroup (Fin r) E =>
+        (p.2 : Matrix (Fin r) (Fin r) E) * Ax.1 * star (p.2 : Matrix (Fin r) (Fin r) E)) :=
+      (hg.mul continuous_const).mul hg.star
+    have c2 : Continuous (fun p : A.L × Matrix.unitaryGroup (Fin r) E =>
+        (p.2 : Matrix (Fin r) (Fin r) E) *ᵥ j p.1) :=
+      Continuous.matrix_mulVec hg (hj.comp continuous_fst)
+    exact Continuous.prodMk (Continuous.subtype_mk c1 _) (Continuous.prodMk c2 continuous_const)
+  set Φ : A.L × Matrix.unitaryGroup (Fin r) E → ℂ := fun p => f (actU p.2 (Ax, j p.1, lam)) * (α p.2 : ℂ) with hΦ
+  have hΦl : IsLocallyConstant Φ := by
+    refine IsLocallyConstant.mul (hf.1.comp_continuous hact) ?_
+    exact (hαl.comp_continuous continuous_snd).comp (fun x : ℝ => (x : ℂ))
+  have hdesc : ∀ y, A.descFn M Ax j lam α f y = (letI := M.mU; ∫ g, Φ (y, g) ∂M.μU) := fun y => rfl
+  refine ⟨?_, ?_⟩
+  · rw [IsLocallyConstant.iff_eventually_eq]
+    intro y0
+    have key : ∀ᶠ y in 𝓝 y0, ∀ g ∈ tsupport α, Φ (y, g) = Φ (y0, g) := by
+      refine hαc.isCompact.eventually_forall_of_forall_eventually ?_
+      intro g _
+      have h1 := (IsLocallyConstant.iff_eventually_eq Φ).1 hΦl (y0, g)
+      have h2 : ∀ᶠ z : A.L × Matrix.unitaryGroup (Fin r) E in 𝓝 (y0, g), Φ (y0, z.2) = Φ (y0, g) := by
+        have h3 : Tendsto (fun z : A.L × Matrix.unitaryGroup (Fin r) E => ((y0, z.2) : A.L × _)) (𝓝 (y0, g)) (𝓝 (y0, g)) := by
+          have : Continuous (fun z : A.L × Matrix.unitaryGroup (Fin r) E => ((y0, z.2) : A.L × _)) :=
+            continuous_const.prodMk continuous_snd
+          simpa using this.tendsto (y0, g)
+        exact h3.eventually h1
+      filter_upwards [h1, h2] with z hz1 hz2
+      rw [hz1, hz2]
+    filter_upwards [key] with y hy
+    rw [hdesc, hdesc]
+    congr 1
+    funext g
+    by_cases hg : g ∈ tsupport α
+    · exact hy g hg
+    · have : α g = 0 := image_eq_zero_of_notMem_tsupport hg
+      simp [hΦ, this]
+  · let S : Set (Fin r → E) := Prod.fst '' (Prod.snd '' tsupport f)
+    let Kset : Set A.L := (fun p : Matrix.unitaryGroup (Fin r) E × (Fin r → E) => j.symm (star (p.1 : Matrix (Fin r) (Fin r) E) *ᵥ p.2)) '' (tsupport α ×ˢ S)
+    have hS : IsCompact S :=
+      (hf.2.isCompact.image continuous_snd).image continuous_fst
+    have hK : IsCompact Kset := by
+      refine (hαc.isCompact.prod hS).image ?_
+      refine hjs.comp ?_
+      exact Continuous.matrix_mulVec ((continuous_subtype_val.comp continuous_fst).star) continuous_snd
+    have hKc : IsClosed Kset := by
+      have h1 : IsClosed (j '' Kset) := (hK.image hj).isClosed
+      have h2 : Kset = j ⁻¹' (j '' Kset) := (Set.preimage_image_eq _ j.injective).symm
+      rw [h2]
+      exact h1.preimage hj
+    refine HasCompactSupport.intro' hK hKc ?_
+    intro y hy
+    by_contra hne
+    rw [hdesc] at hne
+    have : ∃ g, Φ (y, g) ≠ 0 := by
+      by_contra hall
+      push_neg at hall
+      apply hne
+      have : (fun g => Φ (y, g)) = fun _ => 0 := funext hall
+      rw [this]
+      simp
+    obtain ⟨g, hg⟩ := this
+    have hfg : f (actU g (Ax, j y, lam)) ≠ 0 := left_ne_zero_of_mul hg
+    have hαg : (α g : ℂ) ≠ 0 := right_ne_zero_of_mul hg
+    have hαg' : α g ≠ 0 := by exact_mod_cast hαg
+    apply hy
+    refine ⟨(g, g.1 *ᵥ j y), ⟨subset_tsupport _ hαg', ?_⟩, ?_⟩
+    · exact ⟨(actU g (Ax, j y, lam)).2, ⟨actU g (Ax, j y, lam), subset_tsupport _ hfg, rfl⟩, rfl⟩
+    · simp only [Matrix.mulVec_mulVec]
+      have hu : star (g.1 : Matrix (Fin r) (Fin r) E) * g.1 = 1 := Matrix.UnitaryGroup.star_mul_self g
+      rw [hu, Matrix.one_mulVec, LinearEquiv.symm_apply_apply]
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.IsLocallyConstantCompactSupportDescendedFunctionStatement
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.isLocallyConstantCompactSupport_descendedFunction : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E] (A : Et F E) (r : ℕ) (M : Meas r F E) (Ax : selfAdjoint (Matrix (Fin r) (Fin r) E)) (j : A.L ≃ₗ[E] (Fin r → E)) (lam : F) (α : Matrix.unitaryGroup (Fin r) E → ℝ), IsLocallyConstant α → HasCompactSupport α → ∀ f : Hn r F E → ℂ, IsTest f → IsTest (A.descFn M Ax j lam α f) := by
+  first | exact @GlobalTheory.JR.descFn_isTest | exact GlobalTheory.JR.descFn_isTest | (intros; apply GlobalTheory.JR.descFn_isTest <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.UnitaryOrbitalDescent
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+
+namespace GlobalTheory.JR
+
+theorem unitary_orbital_descent : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E] (A : Et F E) (ψ : AddChar F ℂ), IsStdChar ψ → ∀ (m : A.Meas ψ) (r : ℕ) (M : Meas r F E) (τ : A.K) (p : Fin r → F) (lam : F), A.IsGen τ p → ∀ (x : A.Kˣ) (j : A.L ≃ₗ[E] (Fin r → E)), A.IsIsom x j → ∀ Ax : selfAdjoint (Matrix (Fin r) (Fin r) E), (∀ z, j (algebraMap A.K A.L τ * z) = Ax.1 *ᵥ j z) → ∀ f : Hn r F E → ℂ, IsTest f → ∃ φ : A.L → ℂ, IsTest φ ∧ ∀ y : A.L, IsUnit y → orbU M f (Ax, j y, lam) = A.orbL m.ν φ y ∧ orbU M (fourU M ψ f) (Ax, j y, lam) = A.orbL m.ν (fourB (m.μL x) (A.kerL ψ x) φ) y := by
+  intro F E _ _ _ _ _ A ψ hψ m r M τ p lam hgen x j hx Ax hAx f hf
+  have hν : m.ν.IsHaarMeasure := m.nat.1
+  set Z : Set (Matrix (Fin r) (Fin r) E) := (fun X : Hn r F E => X.1.1) '' tsupport f with hZdef
+  have hZ : IsCompact Z := hf.2.image (continuous_subtype_val.comp continuous_fst)
+  obtain ⟨α, hαlc, hαcs, hα0, hα1⟩ := GlobalTheory.T.exists_unitary_group_torus_cutoff F E A r τ p hgen (x : A.K) j hx Ax hAx m.ν hν Z hZ
+  have hsuppf : ∀ X, f X ≠ 0 → X.1.1 ∈ Z := fun X hX => ⟨X, subset_tsupport f hX, rfl⟩
+  have hsuppF : ∀ X, fourU M ψ f X ≠ 0 → X.1.1 ∈ Z := by
+    intro X hX
+    by_contra hZ'
+    apply hX
+    have h0 : ∀ c, f (X.1, c, X.2.2) = 0 := fun c => by
+      by_contra hc
+      exact hZ' (hsuppf (X.1, c, X.2.2) hc)
+    simp [fourU, h0]
+  have hFtest : IsTest (fourU M ψ f) := (GlobalTheory.T.partialFourier_preserves_test_fixes_unit F E r M ψ hψ).2.1 f hf
+  have hint : ∀ f₀ : Hn r F E → ℂ, IsTest f₀ → ∀ y : A.L, IsUnit y →
+      (letI := M.mU; Integrable (fun g => f₀ (actU g (Ax, j y, lam))) M.μU) := by
+    intro f₀ hf₀ y hy
+    letI := M.mU
+    haveI := M.bU
+    haveI := M.haarU
+    have ha : IsUnit ((x : A.K) * A.NL y) := x.isUnit.mul (hy.map (Algebra.norm A.K))
+    have hD := ((GlobalTheory.T.jacquetRallis_invK_regular_iff_isUnit F E A r τ p lam hgen).2 ((x : A.K) * A.NL y)).2.mpr ha
+    obtain ⟨Ax', hAx', hinv⟩ := (GlobalTheory.T.hermitianBlock_invariants_iff_isometry F E A r τ p lam hgen).2 x j hx
+    have hAA : Ax' = Ax := by
+      apply Subtype.ext
+      apply Matrix.toLin'.injective
+      apply LinearMap.ext
+      intro v
+      obtain ⟨z, rfl⟩ := j.surjective v
+      simp only [Matrix.toLin'_apply, ← hAx', ← hAx]
+    subst hAA
+    have ht := (GlobalTheory.T.jacquetRallis_orbitalIntegrand_isLocallyConstantCompactSupport F E r M).2 f₀ hf₀ _ _ hD (hinv y)
+    exact ht.1.continuous.integrable_of_hasCompactSupport ht.2
+  refine ⟨A.descFn M Ax j lam α f, GlobalTheory.T.isLocallyConstantCompactSupport_descendedFunction F E A r M Ax j lam α hαlc hαcs f hf, fun y hy => ⟨?_, ?_⟩⟩
+  · exact (GlobalTheory.T.orbitalIntegral_descended_eq_unitary F E A r M τ x j hx Ax hAx lam m.ν hν α hαlc hα0 Z hα1 f hf.1.continuous hsuppf y
+      (hint f hf y hy)).symm
+  · rw [GlobalTheory.T.fourier_descendedFunction_eq_partialFourier F E A ψ hψ r M x j hx (m.μL x) (m.sdL x) Ax lam α hαlc hαcs f hf]
+    exact (GlobalTheory.T.orbitalIntegral_descended_eq_unitary F E A r M τ x j hx Ax hAx lam m.ν hν α hαlc hα0 Z hα1 _ hFtest.1.continuous hsuppF y
+      (hint _ hFtest y hy)).symm
+
+end GlobalTheory.JR
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.UnitaryOrbitalDescentStatement
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_test_orbU_eq_orbL : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E] (A : Et F E) (ψ : AddChar F ℂ), IsStdChar ψ → ∀ (m : A.Meas ψ) (r : ℕ) (M : Meas r F E) (τ : A.K) (p : Fin r → F) (lam : F), A.IsGen τ p → ∀ (x : A.Kˣ) (j : A.L ≃ₗ[E] (Fin r → E)), A.IsIsom x j → ∀ Ax : selfAdjoint (Matrix (Fin r) (Fin r) E), (∀ z, j (algebraMap A.K A.L τ * z) = Ax.1 *ᵥ j z) → ∀ f : Hn r F E → ℂ, IsTest f → ∃ φ : A.L → ℂ, IsTest φ ∧ ∀ y : A.L, IsUnit y → orbU M f (Ax, j y, lam) = A.orbL m.ν φ y ∧ orbU M (fourU M ψ f) (Ax, j y, lam) = A.orbL m.ν (fourB (m.μL x) (A.kerL ψ x) φ) y := by
+  first | exact @GlobalTheory.JR.unitary_orbital_descent | exact GlobalTheory.JR.unitary_orbital_descent | (intros; apply GlobalTheory.JR.unitary_orbital_descent <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.ExistsEtaleHermitianPairIsGenCompanion
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.LocallyCompactModuleTopology
+open Polynomial TensorProduct
+
+noncomputable section
+
+namespace GlobalTheory.JR.EtExist
+
+variable (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E]
+
+def conjAlg [h : Unram F E] : E →ₐ[F] E :=
+  { starRingEnd E with commutes' := fun x => h.star_fix x }
+
+theorem conjAlg_apply [Unram F E] (y : E) : conjAlg F E y = star y := rfl
+
+variable (K : Type) [CommRing K] [Algebra F K]
+
+def conjT [Unram F E] : E ⊗[F] K →ₐ[F] E ⊗[F] K := Algebra.TensorProduct.map (conjAlg F E) (AlgHom.id F K)
+
+theorem conjT_conjT [Unram F E] (z : E ⊗[F] K) : conjT F E K (conjT F E K z) = z := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a b => simp [conjT, conjAlg_apply]
+  | add a b ha hb => simp [ha, hb]
+
+@[reducible] def starT [Unram F E] : StarRing (E ⊗[F] K) where
+  star := conjT F E K
+  star_involutive := conjT_conjT F E K
+  star_mul a b := by
+    change conjT F E K (a * b) = conjT F E K b * conjT F E K a
+    rw [map_mul, mul_comm]
+  star_add a b := map_add (conjT F E K) a b
+
+theorem locallyCompact_moduleTopology [LocallyCompactSpace F] [Module.Finite F K] :
+    @LocallyCompactSpace K (moduleTopology F K) := by
+  letI : TopologicalSpace K := moduleTopology F K
+  haveI : IsModuleTopology F K := ⟨rfl⟩
+  let b := (Module.finBasis F K).equivFun
+  have h1 : Continuous b := IsModuleTopology.continuous_of_linearMap b.toLinearMap
+  haveI : ContinuousAdd K := IsModuleTopology.toContinuousAdd F K
+  have h2 : Continuous b.symm := IsModuleTopology.continuous_of_linearMap b.symm.toLinearMap
+  let e : K ≃ₜ (Fin (Module.finrank F K) → F) := { b.toEquiv with continuous_toFun := h1, continuous_invFun := h2 }
+  exact e.isClosedEmbedding.locallyCompactSpace
+
+def ofAlgebra [h : Unram F E] [Module.Finite F K] [IsReduced K] : Et F E :=
+  letI : TopologicalSpace K := moduleTopology F K
+  haveI : IsModuleTopology F K := ⟨rfl⟩
+  letI : TopologicalSpace (E ⊗[F] K) := moduleTopology F (E ⊗[F] K)
+  letI : Algebra K (E ⊗[F] K) := Algebra.TensorProduct.rightAlgebra
+  { K := K
+    L := E ⊗[F] K
+    trK := IsModuleTopology.isTopologicalRing F K
+    lcK := haveI := h.lcF; locallyCompact_moduleTopology F K
+    mK := borel K
+    bK := @BorelSpace.mk _ _ (borel K) rfl
+    stL := starT F E K
+    mtL := ⟨rfl⟩
+    mL := borel (E ⊗[F] K)
+    bL := @BorelSpace.mk _ _ (borel (E ⊗[F] K)) rfl
+    push := inferInstance
+    star_K := fun x => by
+      change conjT F E K (1 ⊗ₜ x) = 1 ⊗ₜ x
+      simp [conjT]
+    star_E := fun y => by
+      change conjT F E K (y ⊗ₜ 1) = star y ⊗ₜ 1
+      simp [conjT, conjAlg_apply] }
+
+theorem exists_isGen [Unram F E] (r : ℕ) (p : Fin r → F)
+    (hs : (X ^ r + ∑ i, C (p i) * X ^ (i : ℕ) : F[X]).Separable) : ∃ (A : Et F E) (τ : A.K), A.IsGen τ p := by
+  set P : F[X] := X ^ r + ∑ i, C (p i) * X ^ (i : ℕ) with hP
+  have hlt : (∑ i, C (p i) * X ^ (i : ℕ) : F[X]).degree < r := degree_sum_fin_lt p
+  have hm : P.Monic := monic_X_pow_add hlt
+  have hd : P.natDegree = r := by
+    have : P.degree = r := by
+      rw [hP, degree_add_eq_left_of_degree_lt (by rwa [degree_X_pow]), degree_X_pow]
+    exact natDegree_eq_of_degree_eq_some this
+  let pb := AdjoinRoot.powerBasis' hm
+  haveI : Module.Finite F (AdjoinRoot P) := pb.finite
+  haveI : IsReduced (AdjoinRoot P) :=
+    (Ideal.isRadical_iff_quotient_reduced _).1
+      ((isRadical_iff_span_singleton).1 hs.squarefree.isRadical)
+  refine ⟨ofAlgebra F E (AdjoinRoot P), AdjoinRoot.root P, ?_, ?_, ?_⟩
+  · change LinearIndependent F (fun i : Fin r => AdjoinRoot.root P ^ (i : ℕ))
+    have := pb.basis.linearIndependent.comp (Fin.cast (show r = pb.dim from hd.symm)) (Fin.cast_injective _)
+    have e : (fun i : Fin r => AdjoinRoot.root P ^ (i : ℕ)) = pb.basis ∘ Fin.cast (show r = pb.dim from hd.symm) := by
+      funext i
+      rw [Function.comp_apply, pb.basis_eq_pow]
+      rfl
+    rw [e]; exact this
+  · change Module.finrank F (AdjoinRoot P) = r
+    rw [pb.finrank]; exact hd
+  · change AdjoinRoot.root P ^ r + ∑ i, p i • AdjoinRoot.root P ^ (i : ℕ) = 0
+    have := AdjoinRoot.aeval_eq (f := P) P
+    rw [AdjoinRoot.mk_self] at this
+    have h2 : aeval (AdjoinRoot.root P) (X ^ r + ∑ i, C (p i) * X ^ (i : ℕ) : F[X]) = 0 := this
+    set_option synthInstance.maxHeartbeats 100000 in
+      simp only [map_add (f := _), map_pow, map_sum, map_mul, aeval_X, aeval_C] at h2
+    simpa only [Algebra.smul_def] using h2
+
+end GlobalTheory.JR.EtExist
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.ExistsEtaleHermitianPairIsGenCompanion
+open Polynomial Matrix MeasureTheory Filter Topology
+
+noncomputable section
+
+namespace GlobalTheory.JR
+
+theorem charpoly_companion {k : Type} [Field k] {r : ℕ} (p : Fin r → k) :
+    (companion p).charpoly = X ^ r + ∑ i, C (p i) * X ^ (i : ℕ) := by
+  set P : k[X] := X ^ r + ∑ i, C (p i) * X ^ (i : ℕ) with hP
+  have hlt : (∑ i, C (p i) * X ^ (i : ℕ) : k[X]).degree < r := degree_sum_fin_lt p
+  have hm : P.Monic := monic_X_pow_add hlt
+  have hd : P.natDegree = r := by
+    have : P.degree = r := by
+      rw [hP, degree_add_eq_left_of_degree_lt (by rwa [degree_X_pow]), degree_X_pow]
+    exact natDegree_eq_of_degree_eq_some this
+  let pb := AdjoinRoot.powerBasis' hm
+  have hdim : pb.dim = r := hd
+  let b : Module.Basis (Fin r) k (AdjoinRoot P) := pb.basis.reindex (finCongr hdim)
+  have hb : ∀ i : Fin r, b i = AdjoinRoot.root P ^ (i : ℕ) := by
+    intro i
+    simp only [b, Module.Basis.reindex_apply, pb.basis_eq_pow]
+    rfl
+  have hroot : AdjoinRoot.root P ^ r = ∑ i, (- p i) • b i := by
+    have h0 := AdjoinRoot.aeval_eq (f := P) P
+    rw [AdjoinRoot.mk_self] at h0
+    have h2 : aeval (AdjoinRoot.root P) (X ^ r + ∑ i, C (p i) * X ^ (i : ℕ) : k[X]) = 0 := h0
+    set_option synthInstance.maxHeartbeats 100000 in
+      simp only [map_add (f := _), map_pow, map_sum, map_mul, aeval_X, aeval_C] at h2
+    rw [eq_neg_of_add_eq_zero_left h2, ← Finset.sum_neg_distrib]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [hb, neg_smul, Algebra.smul_def]
+  have hmat : companion p = Algebra.leftMulMatrix b (AdjoinRoot.root P) := by
+    ext i j
+    rw [Algebra.leftMulMatrix_eq_repr_mul, hb, ← pow_succ']
+    simp only [companion, Matrix.of_apply]
+    by_cases hj : (j : ℕ) + 1 = r
+    · rw [if_pos hj, hj, hroot, ← b.equivFun_symm_apply, ← b.equivFun_apply, LinearEquiv.apply_symm_apply]
+    · rw [if_neg hj]
+      have hlt' : (j : ℕ) + 1 < r := lt_of_le_of_ne j.2 hj
+      have : AdjoinRoot.root P ^ ((j : ℕ) + 1) = b ⟨(j : ℕ) + 1, hlt'⟩ := by rw [hb]
+      rw [this, b.repr_self, Finsupp.single_apply]
+      by_cases hi : (i : ℕ) = (j : ℕ) + 1
+      · rw [if_pos hi, if_pos (Fin.ext hi.symm)]
+      · rw [if_neg hi, if_neg (fun h => hi (congrArg Fin.val h).symm)]
+  have hP0 : P ≠ 0 := hm.ne_zero
+  haveI : Module.Finite k (AdjoinRoot P) := pb.finite
+  rw [hmat, Algebra.leftMulMatrix_apply, LinearMap.charpoly_toMatrix, ← LinearMap.charpoly_toMatrix _ pb.basis,
+    ← Algebra.leftMulMatrix_apply]
+  have hg : pb.gen = AdjoinRoot.root P := rfl
+  rw [← hg, charpoly_leftMulMatrix, hg, AdjoinRoot.minpoly_root hP0, hm.leadingCoeff, inv_one, C_1, mul_one]
+
+theorem exists_et_isGen_companion : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E]
+    [NormedAlgebra F E] [StarRing E] [Unram F E] (r : ℕ) (p : Fin r → F),
+    (companion p).charpoly.Separable → ∃ (A : Et F E) (τ : A.K), A.IsGen τ p := by
+  intro F E _ _ _ _ _ r p hs
+  rw [charpoly_companion] at hs
+  exact EtExist.exists_isGen F E r p hs
+
+end GlobalTheory.JR
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.ExistsEtaleHermitianPairIsGenCompanionStatement
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_etaleHermitianPair_isGen_companion : ∀ (F E : Type) [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E] (r : ℕ) (p : Fin r → F), (companion p).charpoly.Separable → ∃ (A : Et F E) (τ : A.K), A.IsGen τ p := by
+  first | exact @GlobalTheory.JR.exists_et_isGen_companion | exact GlobalTheory.JR.exists_et_isGen_companion | (intros; apply GlobalTheory.JR.exists_et_isGen_companion <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.JacquetRallisFourierMatchOfWeilRepresentation
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+
+namespace GlobalTheory.JR
+
+theorem fourierMatchAt_of_weil (hW : WeilEt) (hR : RankOne) (hG : GammaOne) {r : ℕ} {F E : Type}
+    [NontriviallyNormedField F] [NontriviallyNormedField E] [NormedAlgebra F E] [StarRing E] [Unram F E]
+    (M : Meas r F E) (ψ : AddChar F ℂ) (hψ : IsStdChar ψ) (f' : Gl r F → ℂ) (f : Hn r F E → ℂ)
+    (hf' : IsTest f') (hf : IsTest f) (hm : Match M f' f) (a : Inv r F) (ha : Delta a ≠ 0)
+    (hsep : (companion a.1).charpoly.Separable) :
+    MatchAt M (fourG M ψ f') (fourU M ψ f) a := by
+  obtain ⟨A, τ, hτ⟩ := GlobalTheory.T.exists_etaleHermitianPair_isGen_companion F E r a.1 hsep
+  obtain ⟨hbij, hmom⟩ := GlobalTheory.T.jacquetRallis_invK_regular_iff_isUnit F E A r τ a.1 a.2.2 hτ
+  obtain ⟨a₀, ha₀⟩ := hbij.2 a.2.1
+  have ha₀' : (fun i : Fin r => Algebra.trace F A.K (τ ^ (i : ℕ) * a₀)) = a.2.1 := ha₀
+  have hinv : A.invK τ a.1 a.2.2 a₀ = a := by
+    simp only [Et.invK, ha₀']
+  have hu₀ : IsUnit a₀ := (hmom a₀).2.mp (by rw [hinv]; exact ha)
+  obtain ⟨⟨m⟩, -⟩ := GlobalTheory.T.exists_selfDual_measures_and_absK_scale F E A ψ hψ
+  obtain ⟨-, -, -, -, -, -, ⟨S, -, hS⟩, -⟩ := GlobalTheory.T.etaleHermitianPair_structure_facts F E A
+  obtain ⟨φ', κ, hφ', hlin⟩ := GlobalTheory.T.jacquetRallis_linear_orbitalIntegral_descent F E A ψ hψ m r M τ a.1 a.2.2 hτ f' hf'
+  obtain ⟨-, -, huniq, -⟩ := GlobalTheory.T.unitary_action_hermitian_invariants_transitive F E r
+  obtain ⟨-, horbU, -, -⟩ := GlobalTheory.T.jacquetRallisOrbitalIntegrals_invariant_locallyConstant F E r M
+  obtain ⟨hL11a, hL11b⟩ := GlobalTheory.T.hermitianBlock_invariants_iff_isometry F E A r τ a.1 a.2.2 hτ
+  have key : ∀ x : A.Kˣ, ∃ φx : A.L → ℂ, IsTest φx ∧
+      ((∃ j : A.L ≃ₗ[E] (Fin r → E), A.IsIsom (x : A.K) j) →
+        ∃ (j : A.L ≃ₗ[E] (Fin r → E)) (Ax : selfAdjoint (Matrix (Fin r) (Fin r) E)), A.IsIsom (x : A.K) j ∧
+          (∀ y, HasInv ((Ax, j y, a.2.2) : Hn r F E) (A.invK τ a.1 a.2.2 ((x : A.K) * A.NL y))) ∧
+          ∀ y : A.L, IsUnit y → orbU M f (Ax, j y, a.2.2) = A.orbL m.ν φx y ∧
+            orbU M (fourU M ψ f) (Ax, j y, a.2.2) = A.orbL m.ν (fourB (m.μL x) (A.kerL ψ x) φx) y) ∧
+      ((¬ ∃ j : A.L ≃ₗ[E] (Fin r → E), A.IsIsom (x : A.K) j) → φx = 0) := by
+    intro x
+    by_cases hx : ∃ j : A.L ≃ₗ[E] (Fin r → E), A.IsIsom (x : A.K) j
+    · obtain ⟨j, hj⟩ := hx
+      obtain ⟨Ax, hAx, hinvAx⟩ := hL11b (x : A.K) j hj
+      obtain ⟨φx, hφx, hrel⟩ := GlobalTheory.T.exists_test_orbU_eq_orbL F E A ψ hψ m r M τ a.1 a.2.2 hτ x j hj Ax hAx f hf
+      exact ⟨φx, hφx, fun _ => ⟨j, Ax, hj, hinvAx, hrel⟩, fun h => absurd ⟨j, hj⟩ h⟩
+    · exact ⟨0, ⟨IsLocallyConstant.const 0, HasCompactSupport.zero⟩, fun h => absurd h hx, fun _ => rfl⟩
+  choose φ hφt hφi hφ0 using key
+  choose γ Wr hWr using fun x : A.Kˣ => hW F E A ψ hψ x (m.μL x) (m.sdL x)
+  have hunit : ∀ (x : A.Kˣ) (y : A.L), IsUnit y → IsUnit ((x : A.K) * A.NL y) := fun x y hy =>
+    x.isUnit.mul (hy.map (Algebra.norm A.K))
+  have hyp : ∀ x ∈ S, ∀ y : A.L, IsUnit y → κ * A.orbK m.μK φ' (x * A.NL y) = A.orbL m.ν (φ x) y := by
+    intro x _ y hy
+    have hb := hunit x y hy
+    rw [← (hlin _ hb).1]
+    by_cases hx : ∃ j : A.L ≃ₗ[E] (Fin r → E), A.IsIsom (x : A.K) j
+    · obtain ⟨j, Ax, -, hinvAx, hrel⟩ := hφi x hx
+      rw [← (hrel y hy).1]
+      exact (hm _ ((hmom _).2.mpr hb)).1 _ (hinvAx y)
+    · rw [hφ0 x hx]
+      have h0 : orbG M f' (sec (A.invK τ a.1 a.2.2 ((x : A.K) * A.NL y))) = 0 := by
+        apply (hm _ ((hmom _).2.mpr hb)).2
+        rintro ⟨X, hX⟩
+        obtain ⟨j, hj, -⟩ := hL11a _ X hb hX (x : A.K) y hy rfl
+        exact hx ⟨j, hj⟩
+      rw [h0]
+      simp [Et.orbL]
+  have hRk := hR F E A ψ hψ m S hS γ Wr (fun x _ => hWr x) φ' φ κ hφ' (fun x _ => hφt x) hyp
+  have hG1 : ∀ (x : A.Kˣ) (j : A.L ≃ₗ[E] (Fin r → E)), A.IsIsom (x : A.K) j → γ x = 1 :=
+    fun x j hj => hG F E A ψ hψ x (m.μL x) (m.sdL x) A.etaK (γ x) (Wr x) (hWr x) r j hj
+  obtain ⟨x, ⟨hxS, y, hy, hxy⟩, -⟩ := hS hu₀.unit
+  have hxy' : a₀ = x * A.NL y := by simpa using hxy
+  have hb := hunit x y hy
+  have hlhs : orbG M (fourG M ψ f') (sec a) =
+      γ x * A.orbL m.ν (fourB (m.μL x) (A.kerL ψ x) (φ x)) y := by
+    calc orbG M (fourG M ψ f') (sec a)
+        = orbG M (fourG M ψ f') (sec (A.invK τ a.1 a.2.2 ((x : A.K) * A.NL y))) := by rw [← hxy', hinv]
+      _ = κ * A.orbK m.μK (A.fourK m.μK ψ φ') ((x : A.K) * A.NL y) := (hlin _ hb).2
+      _ = _ := hRk x hxS y hy
+  constructor
+  · intro X hX
+    have hX' : HasInv X (A.invK τ a.1 a.2.2 a₀) := by rw [hinv]; exact hX
+    obtain ⟨j₁, hj₁, -⟩ := hL11a a₀ X hu₀ hX' (x : A.K) y hy hxy'
+    obtain ⟨j, Ax, hj, hinvAx, hrel⟩ := hφi x ⟨j₁, hj₁⟩
+    have hXa : HasInv ((Ax, j y, a.2.2) : Hn r F E) a := by
+      have := hinvAx y
+      rw [← hxy', hinv] at this
+      exact this
+    obtain ⟨g, hg, -⟩ := huniq _ X a ha hXa hX
+    rw [hlhs, hG1 x j hj, one_mul, ← (hrel y hy).2, ← hg, horbU]
+  · intro hno
+    have hx : ¬ ∃ j : A.L ≃ₗ[E] (Fin r → E), A.IsIsom (x : A.K) j := by
+      intro hx
+      obtain ⟨j, Ax, -, hinvAx, -⟩ := hφi x hx
+      have := hinvAx y
+      rw [← hxy', hinv] at this
+      exact hno ⟨_, this⟩
+    rw [hlhs, hφ0 x hx]
+    simp [fourB, Et.orbL]
+
+theorem fourierMatch_of_weil : WeilEt → RankOne → GammaOne → ∀ r, FourierMatch r := by
+  intro hW hR hG r F E _ _ _ _ _ M ψ hψ f' f hf' hf hm
+  obtain ⟨h4G, h4U, -⟩ := GlobalTheory.T.partialFourier_preserves_test_fixes_unit F E r M ψ hψ
+  exact (GlobalTheory.T.jacquetRallis_match_of_dense_separable F E r M _ _ (h4G f' hf') (h4U f hf)).1
+    (fun a ha hsep => fourierMatchAt_of_weil hW hR hG M ψ hψ f' f hf' hf hm a ha hsep)
+
+end GlobalTheory.JR
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.JacquetRallisFourierMatchOfWeilRepresentationStatement
+open GlobalTheory.JR Matrix MeasureTheory Filter Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.jacquetRallisFourierMatch_of_weilRepresentation : WeilEt → RankOne → GammaOne → ∀ r, FourierMatch r := by
+  first | exact @GlobalTheory.JR.fourierMatch_of_weil | exact GlobalTheory.JR.fourierMatch_of_weil | (intros; apply GlobalTheory.JR.fourierMatch_of_weil <;> assumption)
+end

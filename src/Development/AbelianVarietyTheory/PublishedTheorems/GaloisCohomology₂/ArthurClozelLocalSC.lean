@@ -1,0 +1,20 @@
+module
+
+public import Development.AbelianVarietyTheory.Definitions.NonGaloisDescent.ExistsIsClassSystem
+
+@[expose] public section
+
+noncomputable section
+
+open NumberField IsDedekindDomain ValuativeRel
+open GlobalTheory.FunExt
+
+attribute [local instance] GlobalTheory.LocalData.complRel GlobalTheory.LocalData.isLocalField
+
+namespace GlobalTheory.Published
+
+def ArthurClozelLocalSC : Prop := LocalBC lbc
+
+end GlobalTheory.Published
+
+end

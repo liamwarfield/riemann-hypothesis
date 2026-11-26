@@ -1,0 +1,19 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Proofs.FoundationProofs.ExistsIsHeckeLOfHasInf
+public import Formalism.LocalRingCardinality.RhoDetPrimeEqMuTildeMulChiPow
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.HeisThetaLaws
+
+@[expose] public section
+
+noncomputable section
+
+open NumberField IsDedekindDomain ReciprocityTheory.Gal Formalism.ConjugateSelfDual Formalism.BasicNotions Formalism.MainNotions GlobalTheory.CMVal GlobalTheory.ToricDenom GlobalTheory.ToricDistribution
+
+namespace GlobalTheory.ToricDistributionObj
+
+theorem toricSumFormula_holds : ToricSumFormula :=
+  GlobalTheory.ToricSumValue.toricSum_eq exists_isHeckeL_of_hasInf
+
+end GlobalTheory.ToricDistributionObj

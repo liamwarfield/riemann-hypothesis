@@ -1,0 +1,16 @@
+module
+
+public import GroundTheory.HeightsAndTheta.Heights.HilbertSamuel.StatementsKodairaGeneric
+
+@[expose] public section
+
+set_option maxSynthPendingDepth 1
+
+namespace GroundTheory.Heights₂.Heights.ForSecondHalf
+
+open ReciprocityTheory.ChartRestriction.G.Geo ReciprocityTheory.ChartRestriction.G.ArakelovGeometry
+
+theorem BigLineBundleMoriwaki.of_moriwakiBig (hM : MoriwakiBigStatement) : ArithmeticVolumeLowerBound :=
+  HilbertSamuel.ArithmeticVolumeBig.arithmeticVolumeBig_smoothFibre (HilbertSamuel.ArithmeticVolumeBig.of_moriwakiBig_only hM)
+
+end GroundTheory.Heights₂.Heights.ForSecondHalf

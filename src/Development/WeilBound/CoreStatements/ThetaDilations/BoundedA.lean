@@ -1,0 +1,20 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ThetaDilations.BoundedA
+public import Development.WeilBound.CoreStatements.ThetaDilations.SqPosOfNe
+public import CompanionTheory.SpectralGeometry.LocalGlobalProofs.AdelicAnalysis.ReductionToSiegelDomain
+public import CompanionTheory.SpectralGeometry.LocalGlobalProofs.AdelicAnalysis.ThetaFunctionCuspExpansion
+public import CompanionTheory.SpectralGeometry.LocalGlobalProofs.AdelicAnalysis.RealQuadraticFormLemma
+public import CompanionTheory.SpectralGeometry.LocalGlobalProofs.AdelicAnalysis.SchurFunctionSmoothRightInvariant
+public import CompanionTheory.SpectralGeometry.LocalGlobalProofs.AdelicAnalysis.SchurFunctionWhittakerEquivariant
+public import CompanionTheory.SpectralGeometry.LocalGlobalProofs.AdelicAnalysis.QuadraticLevelSetDensity
+
+@[expose] public section
+
+namespace PositivityTheory.PlacePermOperatorBicommutantSpan
+export CompanionTheory.PlacePermOperatorBicommutantSpan (
+  prod_rho map_nMat map_wMat map_mMat uA mod_rat good_ex oh_mul oh_nat LN co_LN
+  LN_small orbit_adelic int_fou recip cG_dil fstar_dil ei_inv bounded sb_indL
+  bounded_a
+)
+end PositivityTheory.PlacePermOperatorBicommutantSpan

@@ -1,0 +1,163 @@
+module
+
+public import Mathlib
+
+@[expose] public section
+
+section -- merged from Formalism.SharpRestriction.LevelLetterCocycles.RepresentationCongruences.InvSubOneSqLeInv
+namespace Formalism.MainNotions.N.FrobeniusPowerSeries.NumericInequalities
+
+variable {x : ℝ}
+
+lemma p_le (hx : 11 ≤ x) : (x - 1)⁻¹ ≤ 1 / 10 := by
+  have h0 : 0 < x := by linarith
+  have h1 : 0 < x - 1 := by linarith
+  have h2 : 0 < x - 2 := by linarith
+  have h : 0 ≤ x - 11 := by linarith
+  have n0 : x ≠ 0 := h0.ne'
+  have n1 : x - 1 ≠ 0 := h1.ne'
+  have n2 : x - 2 ≠ 0 := h2.ne'
+  have e : 1 / 10 - (x - 1)⁻¹ = (x - 11) / (10 * (x - 1)) := by
+    field_simp <;> ring
+  have hd : 0 ≤ 1 / 10 - (x - 1)⁻¹ := by
+    rw [e]
+    exact div_nonneg (by linarith) (mul_nonneg (by norm_num) h1.le)
+  linarith
+
+lemma q_le (hx : 11 ≤ x) : x / (x - 1) ^ 2 ≤ 121 / 100 * x⁻¹ := by
+  have h0 : 0 < x := by linarith
+  have h1 : 0 < x - 1 := by linarith
+  have h2 : 0 < x - 2 := by linarith
+  have h : 0 ≤ x - 11 := by linarith
+  have n0 : x ≠ 0 := h0.ne'
+  have n1 : x - 1 ≠ 0 := h1.ne'
+  have n2 : x - 2 ≠ 0 := h2.ne'
+  have e : 121 / 100 * x⁻¹ - x / (x - 1) ^ 2 = (21 * x ^ 2 - 242 * x + 121) / (100 * x * (x - 1) ^ 2) := by
+    field_simp <;> ring
+  have hd : 0 ≤ 121 / 100 * x⁻¹ - x / (x - 1) ^ 2 := by
+    rw [e]
+    exact div_nonneg (by nlinarith [h, mul_nonneg h h]) (mul_nonneg (mul_nonneg (by norm_num) h0.le) (sq_nonneg _))
+  linarith
+
+lemma p_le_u (hx : 11 ≤ x) : (x - 1)⁻¹ ≤ 11 / 10 * x⁻¹ := by
+  have h0 : 0 < x := by linarith
+  have h1 : 0 < x - 1 := by linarith
+  have h2 : 0 < x - 2 := by linarith
+  have h : 0 ≤ x - 11 := by linarith
+  have n0 : x ≠ 0 := h0.ne'
+  have n1 : x - 1 ≠ 0 := h1.ne'
+  have n2 : x - 2 ≠ 0 := h2.ne'
+  have e : 11 / 10 * x⁻¹ - (x - 1)⁻¹ = (x - 11) / (10 * x * (x - 1)) := by
+    field_simp <;> ring
+  have hd : 0 ≤ 11 / 10 * x⁻¹ - (x - 1)⁻¹ := by
+    rw [e]
+    exact div_nonneg (by linarith) (mul_nonneg (mul_nonneg (by norm_num) h0.le) h1.le)
+  linarith
+
+end Formalism.MainNotions.N.FrobeniusPowerSeries.NumericInequalities
+end
+
+section -- merged from Formalism.SharpRestriction.LevelLetterCocycles.RepresentationCongruences.ExistsSumPadicValIntWindowEq
+namespace Formalism.MainNotions.N.FrobeniusPowerSeries
+
+open Finset
+
+theorem padicValNat_factorial_add_sum (l : ℕ) [Fact l.Prime] (m S : ℕ) :
+    padicValNat l m.factorial + ∑ j ∈ range S, padicValNat l (m + 1 + j) =
+      padicValNat l (m + S).factorial := by
+  induction S with
+  | zero => simp
+  | succ n ih =>
+    have h1 : (m + (n + 1)).factorial = (m + n + 1) * (m + n).factorial := by
+      rw [show m + (n + 1) = m + n + 1 by omega, Nat.factorial_succ]
+    have h2 : padicValNat l ((m + n + 1) * (m + n).factorial) =
+        padicValNat l (m + n + 1) + padicValNat l (m + n).factorial :=
+      (show ∀ {p a b : ℕ} [_root_.Fact (_root_.Nat.Prime p)], a ≠ 0 → b ≠ 0 → _root_.padicValNat p (a * b) = _root_.padicValNat p a + _root_.padicValNat p b from by simpa only [← _root_.Nat.padicValNat_def] using @_root_.Nat.multiplicity_mul) (by omega) (Nat.factorial_ne_zero _)
+    rw [Finset.sum_range_succ, h1, h2, show m + 1 + n = m + n + 1 by omega]
+    omega
+
+theorem padicValNat_factorial_le_div_sub_one' (l : ℕ) [hp : Fact l.Prime] (n : ℕ) :
+    (padicValNat l n.factorial : ℝ) ≤ n / ((l : ℝ) - 1) := by
+  have hl : 2 ≤ l := hp.out.two_le
+  have hlR : (0 : ℝ) < (l : ℝ) - 1 := by
+    have : (2 : ℝ) ≤ l := by exact_mod_cast hl
+    linarith
+  have key := Nat.Prime.sub_one_mul_multiplicity_factorial (n := n) hp.out
+  have hle : (l - 1) * padicValNat l n.factorial ≤ n := by
+    rw [Nat.padicValNat_def, key]; exact Nat.sub_le _ _
+  have hcast : ((l - 1 : ℕ) : ℝ) = (l : ℝ) - 1 := by
+    rw [Nat.cast_sub (by omega), Nat.cast_one]
+  have h' : ((l : ℝ) - 1) * (padicValNat l n.factorial : ℝ) ≤ n := by
+    rw [← hcast]; exact_mod_cast hle
+  rw [le_div_iff₀ hlR]
+  linarith [mul_comm ((l : ℝ) - 1) (padicValNat l n.factorial : ℝ)]
+
+private theorem sum_Ico_int_eq_sum_range_add (a : ℤ) (S : ℕ) (f : ℤ → ℕ) :
+    ∑ i ∈ Finset.Ico a (a + S), f i = ∑ j ∈ range S, f (a + j) := by
+  induction S with
+  | zero => simp
+  | succ n ih =>
+    have hI : Finset.Ico a (a + ((n + 1 : ℕ) : ℤ)) = insert (a + n) (Finset.Ico a (a + n)) := by
+      ext x
+      simp only [Finset.mem_insert, Finset.mem_Ico]
+      push_cast
+      constructor <;> intro h <;> omega
+    rw [hI, Finset.sum_insert (by simp), ih, Finset.sum_range_succ, add_comm]
+
+theorem exists_sum_padicValInt_window_eq (l : ℕ) (a : ℤ) (S N : ℕ)
+    (ha : ∀ i ∈ Finset.Ico a (a + S), i ≠ 0 ∧ |i| ≤ (N : ℤ)) :
+    ∃ m : ℕ, m + S ≤ N ∧ ∑ i ∈ Finset.Ico a (a + S), padicValInt l i =
+      ∑ j ∈ range S, padicValNat l (m + 1 + j) := by
+  rcases Nat.eq_zero_or_pos S with rfl | hS
+  · exact ⟨0, by simp, by simp⟩
+  have hfirst := ha a (by simp only [Finset.mem_Ico]; omega)
+  have hlast := ha (a + S - 1) (by simp only [Finset.mem_Ico]; omega)
+  rw [sum_Ico_int_eq_sum_range_add]
+  rcases lt_or_gt_of_ne hfirst.1 with hneg | hpos
+  · have hend : a + S ≤ 0 := by
+      by_contra hc
+      have h0 := ha 0 (by simp only [Finset.mem_Ico]; omega)
+      exact h0.1 rfl
+    obtain ⟨m, hm⟩ := Int.eq_ofNat_of_zero_le (show (0 : ℤ) ≤ -a - S by omega)
+    refine ⟨m, ?_, ?_⟩
+    · have := (abs_le.mp hfirst.2).1
+      omega
+    · rw [← Finset.sum_range_reflect (fun j => padicValNat l (m + 1 + j)) S]
+      apply Finset.sum_congr rfl
+      intro j hj
+      rw [Finset.mem_range] at hj
+      have he : a + (j : ℤ) = -(((m + 1 + (S - 1 - j) : ℕ)) : ℤ) := by omega
+      rw [padicValInt, he, Int.natAbs_neg]
+      rw [Int.natAbs_natCast, ← Nat.padicValNat_def]
+  · obtain ⟨m, hm⟩ := Int.eq_ofNat_of_zero_le (show (0 : ℤ) ≤ a - 1 by omega)
+    refine ⟨m, ?_, ?_⟩
+    · have := (abs_le.mp hlast.2).2
+      omega
+    · apply Finset.sum_congr rfl
+      intro j _
+      have he : a + (j : ℤ) = ((m + 1 + j : ℕ) : ℤ) := by push_cast; omega
+      rw [padicValInt, he]
+      rw [Int.natAbs_natCast, ← Nat.padicValNat_def]
+
+theorem sum_padicValInt_window_le (l : ℕ) [Fact l.Prime] (a : ℤ) (S N : ℕ)
+    (ha : ∀ i ∈ Finset.Ico a (a + S), i ≠ 0 ∧ |i| ≤ (N : ℤ)) :
+    ((∑ i ∈ Finset.Ico a (a + S), padicValInt l i : ℕ) : ℝ) ≤ N / ((l : ℝ) - 1) := by
+  obtain ⟨m, hmN, heq⟩ := exists_sum_padicValInt_window_eq l a S N ha
+  rw [heq]
+  have h1 := padicValNat_factorial_add_sum l m S
+  have h2 := padicValNat_factorial_le_div_sub_one' l (m + S)
+  have hl : 2 ≤ l := (Fact.out : l.Prime).two_le
+  have hlR : (0 : ℝ) < (l : ℝ) - 1 := by
+    have : (2 : ℝ) ≤ l := by exact_mod_cast hl
+    linarith
+  have h3n : ∑ j ∈ range S, padicValNat l (m + 1 + j) ≤ padicValNat l (m + S).factorial := by
+    omega
+  have h3 : ((∑ j ∈ range S, padicValNat l (m + 1 + j) : ℕ) : ℝ) ≤
+      (padicValNat l (m + S).factorial : ℝ) := by exact_mod_cast h3n
+  have h4 : ((m + S : ℕ) : ℝ) / ((l : ℝ) - 1) ≤ N / ((l : ℝ) - 1) := by
+    rw [le_div_iff₀ hlR, div_mul_cancel₀ _ hlR.ne']
+    exact_mod_cast hmN
+  linarith
+
+end Formalism.MainNotions.N.FrobeniusPowerSeries
+end

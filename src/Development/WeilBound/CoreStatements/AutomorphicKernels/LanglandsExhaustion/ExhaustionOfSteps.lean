@@ -1,0 +1,12 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.CuspidalExhaustion.ExhaustionOfSteps
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.CuspEmbP
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.LocalLanglandsExists
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.SumThEmptyNeZero
+
+@[expose] public section
+
+namespace PositivityTheory.Exh
+export CompanionTheory.Exh (move_left exhaustion_of_steps linkP minP)
+end PositivityTheory.Exh

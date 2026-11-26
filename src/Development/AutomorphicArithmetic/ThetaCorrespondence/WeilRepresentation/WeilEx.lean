@@ -1,0 +1,11 @@
+module
+
+public import Development.WeilBound.ThetaLifts.Reductions.WeilPairs.WeilPairExistence.WeilEx
+
+@[expose] public section
+
+namespace UpperTheory.Lit
+
+theorem weilRepresentationExists_pair : GlobalTheory.Published.WeilRepresentationExists := PositivityTheory.ThKW.S.weilEx
+
+end UpperTheory.Lit

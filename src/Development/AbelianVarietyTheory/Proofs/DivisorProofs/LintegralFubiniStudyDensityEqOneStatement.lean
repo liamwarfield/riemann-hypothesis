@@ -1,0 +1,32 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LintegralFubiniStudyDensityEqOne
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.SmallSecTensTriv
+public import Development.AbelianVarietyTheory.Definitions.Divisors.AnalyticOnNhdFinChartIff
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.ContDiffAtOfIsPotential
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.LocDens
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.IntegrableOnTargetOfTsupport
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.PotentialContDiffAt
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.Degree
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.Stokes
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.SNCAtlas
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.IsPotentialPullbackStatement
+public import ReciprocityTheory.AnalyticForms.PlurisubharmonicFunctions.IsPshLocallyIntegrableStatement
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.PLCurveA
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.PLLocalStatement
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.AtlasIndep
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.DegreeInt
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.ContDiffFubiniStudyRatioCompChart0
+public import ReciprocityTheory.AnalyticForms.PotentialTheory.ProjectiveLinePartitionContinuousCoe
+
+@[expose] public section
+
+open CategoryTheory AlgebraicGeometry TopologicalSpace Set Filter Topology MeasureTheory
+open ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Semi ReciprocityTheory.ChartRestriction.G.Geo.Tor
+open ReciprocityTheory.ChartRestriction.G.Out (nonzeroLocus)
+open ReciprocityTheory.AnForm.M
+open GlobalTheory GlobalTheory.Cartier GlobalTheory.CxPts GlobalTheory.Points GlobalTheory.CechPic GlobalTheory.ProjVar
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.lintegral_fubiniStudy_density_eq_one' : ∀ n : ℕ, ∫⁻ v : ReciprocityTheory.L2DbarEstimates.V n, ENNReal.ofReal (n.factorial / Real.pi ^ n * ((1 + ‖v‖ ^ 2) ^ (n + 1))⁻¹) = 1 := by
+  first | exact @GlobalTheory.lintegral_fubiniStudy_density_eq_one | exact GlobalTheory.lintegral_fubiniStudy_density_eq_one | (intros; apply GlobalTheory.lintegral_fubiniStudy_density_eq_one <;> assumption)

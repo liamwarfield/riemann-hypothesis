@@ -1,0 +1,17 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Definitions.NonGaloisDescent.UnitLemmaGroup
+public import Development.AbelianVarietyTheory.Definitions.NonGaloisDescent.LinearDescent
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.UnramifiedStandardAddCharConductorProperties
+
+@[expose] public section
+
+open GlobalTheory.UnitLemma Polynomial
+
+namespace GlobalTheory.UnitLemma
+
+theorem InvAlg.isReduced_of_lieReg : ∀ (K : UQ) (B : InvAlg K), B.LieReg → IsReduced B.A :=
+  fun _ B h => GlobalTheory.SepGen.isReduced B.g h.2
+
+end GlobalTheory.UnitLemma

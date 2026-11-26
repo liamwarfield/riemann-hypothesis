@@ -1,0 +1,18 @@
+module
+
+public import Development.WeilBound.RepresentationTheoryGL.ArchimedeanBaseChange.ArchimedeanBaseChangeProof.ArchimedeanGelfandKernels.LeftEquivariantFunctions.GLMatrixDerivatives.ChainOfDone
+public import Development.WeilBound.RepresentationTheoryGL.ArchimedeanBaseChange.ArchimedeanBaseChangeProof.ArchimedeanGelfandKernels.LeftEquivariantFunctions.GLMatrixDerivatives.KchainSt
+public import Development.WeilBound.RepresentationTheoryGL.ArchimedeanBaseChange.ArchimedeanBaseChangeProof.ArchimedeanGelfandKernels.LeftEquivariantFunctions.GLMatrixDerivatives.ChainOfCactB
+public import Development.WeilBound.RepresentationTheoryGL.ArchimedeanBaseChange.ArchimedeanBaseChangeProof.ArchimedeanGelfandKernels.LeftEquivariantFunctions.GLMatrixDerivatives.ChainOfCactC
+public import Development.WeilBound.RepresentationTheoryGL.ArchimedeanBaseChange.ArchimedeanBaseChangeProof.ArchimedeanGelfandKernels.LeftEquivariantFunctions.GLMatrixDerivatives.ChainOfCdcB
+
+@[expose] public section
+
+namespace PositivityTheory.RgBcC.LfSt.ChainPf
+
+open PositivityTheory.RgBcC
+
+theorem chain_identity_multiplier_kernels (hU : Unimod) (hR : RCalc) (hL : LgFacts) : ChainOf' :=
+  Done.chainOf'_of Cdc.dCinCE Cwave.paramInt Cact.actDer Cact.ibpAct Cdc.kapEquiv hU hR hL
+
+end PositivityTheory.RgBcC.LfSt.ChainPf

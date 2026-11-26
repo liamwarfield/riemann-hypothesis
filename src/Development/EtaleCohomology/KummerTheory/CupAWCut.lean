@@ -1,0 +1,327 @@
+module
+
+public import Development.EtaleCohomology.KummerTheory.InjSlice
+public import Development.EtaleCohomology.TateTwists.EtaleLocallyExistsPrimitiveRootOfUnityOfInvertib
+
+@[expose] public section
+
+section -- merged from Development.EtaleCohomology.TateTwists.CupflipAwExistsPfCochain
+section -- merged from Development.EtaleCohomology.TateTwists.CupflipAwExistsPf
+open CategoryTheory Limits AlgebraicGeometry Opposite CochainComplex CochainComplex.HomComplex GlobalTheory.EtC
+
+namespace LateralTheory.EtaleFoundations
+
+def cupflip_aw_cochain : Prop :=
+  ∀ (R : Type) [CommRing R] {I J K : Cx R} (μ : Pair I J K) (E : Spc) {n m k : ℤ} (hk : n + m = k)
+    (α : Cochain ((chains R).obj E) I n) (β : Cochain ((chains R).obj E) J m),
+    ∃ γ : Cochain ((chains R).obj E) K k, μ.IsAW hk α β γ
+
+def cupflip_aw_leibniz : Prop :=
+  ∀ (R : Type) [CommRing R] {I J K : Cx R} (μ : Pair I J K) {E : Spc} {n m k : ℤ} (hk : n + m = k)
+    (α : Cochain ((chains R).obj E) I n) (β : Cochain ((chains R).obj E) J m) (γ : Cochain ((chains R).obj E) K k)
+    (γ₁ γ₂ : Cochain ((chains R).obj E) K (k + 1)),
+    μ.IsAW hk α β γ → μ.IsAW (by omega) (δ n (n + 1) α) β γ₁ → μ.IsAW (by omega) α (δ m (m + 1) β) γ₂ →
+      δ k (k + 1) γ = γ₁ + n.negOnePow • γ₂
+
+theorem ev_zero_cochain {R : Type} [CommRing R] {E : Spc} {I : Cx R} {n : ℤ} (p : ℕ) (s : ℤ)
+    (h : -(p : ℤ) + n = s) (U : Scheme.{0}) (x : Sx E p U) :
+    ev (R := R) (0 : Cochain ((chains R).obj E) I n) p s h U x = 0 := by
+  simp [ev]
+
+theorem isAW_zero_left {R : Type} [CommRing R] {I J K : Cx R} (μ : Pair I J K) {E : Spc} {n m k : ℤ}
+    (hk : n + m = k) (β : Cochain ((chains R).obj E) J m) : μ.IsAW hk 0 β 0 := by
+  intro N w h U x
+  simp [ev_zero_cochain]
+
+theorem isAW_zero_right {R : Type} [CommRing R] {I J K : Cx R} (μ : Pair I J K) {E : Spc} {n m k : ℤ}
+    (hk : n + m = k) (α : Cochain ((chains R).obj E) I n) : μ.IsAW hk α 0 0 := by
+  intro N w h U x
+  simp [ev_zero_cochain]
+
+theorem cupflip_aw_exists_of (hc : cupflip_aw_cochain) (hl : cupflip_aw_leibniz) : cupflip_aw_exists := by
+  intro R _ I J K μ E n m k hk α β
+  obtain ⟨γ, hγ⟩ := hc R μ E hk α.1 β.1
+  have hα : δ n (n + 1) α.1 = 0 := Cocycle.δ_eq_zero α (n + 1)
+  have hβ : δ m (m + 1) β.1 = 0 := Cocycle.δ_eq_zero β (m + 1)
+  have h1 : μ.IsAW (by omega) (δ n (n + 1) α.1) β.1 (0 : Cochain ((chains R).obj E) K (k + 1)) := by
+    rw [hα]; exact isAW_zero_left μ _ β.1
+  have h2 : μ.IsAW (by omega) α.1 (δ m (m + 1) β.1) (0 : Cochain ((chains R).obj E) K (k + 1)) := by
+    rw [hβ]; exact isAW_zero_right μ _ α.1
+  have hδ : δ k (k + 1) γ = 0 := by
+    rw [hl R μ hk α.1 β.1 γ 0 0 hγ h1 h2]; simp
+  exact ⟨Cocycle.mk γ (k + 1) rfl hδ, hγ⟩
+
+end LateralTheory.EtaleFoundations
+end
+
+open CategoryTheory Limits AlgebraicGeometry Opposite CochainComplex CochainComplex.HomComplex GlobalTheory.EtC
+
+namespace LateralTheory.EtaleFoundations
+
+def cupflip_ev_mk : Prop :=
+  ∀ (R : Type) [CommRing R] {E : Spc} {I : Cx R} {n : ℤ}
+    (a : ∀ (p : ℕ) (s : ℤ), -(p : ℤ) + n = s → ∀ U : Scheme.{0}, Sx E p U → Sec (I.X s) U),
+    (∀ p s h (V U : Scheme.{0}) (g : V ⟶ U) (x : Sx E p U), Sec.res g (a p s h U x) = a p s h V (x.res g)) →
+      ∃ α : Cochain ((chains R).obj E) I n, ∀ p s h U x, ev (R := R) α p s h U x = a p s h U x
+
+def cupflip_ev_res : Prop :=
+  ∀ (R : Type) [CommRing R] {E : Spc} {I : Cx R} {n : ℤ} (α : Cochain ((chains R).obj E) I n) p s h
+    (V U : Scheme.{0}) (g : V ⟶ U) (x : Sx E p U), Sec.res g (ev (R := R) α p s h U x) = ev (R := R) α p s h V (x.res g)
+
+def cupflip_sub_res : Prop :=
+  ∀ {E : Spc} {U : Scheme.{0}} {N : ℕ} (x : Sx E N U) (j l : ℕ) (h : j + l ≤ N) {V : Scheme.{0}} (g : V ⟶ U),
+    (x.res g).sub j l h = (x.sub j l h).res g
+
+theorem cupflip_aw_cochain_of (hm : cupflip_ev_mk) (he : cupflip_ev_res) (hs : cupflip_sub_res) :
+    cupflip_aw_cochain := by
+  intro R _ I J K μ E n m k hk α β
+  obtain ⟨γ, hγ⟩ := hm R (E := E) (I := K) (n := k)
+    (fun N w h U x => ∑ p : Fin (N + 1), (m * (p : ℕ)).negOnePow • μ.mul U (-((p : ℕ) : ℤ) + n)
+      (-((N - p : ℕ) : ℤ) + m) w (by omega)
+      (ev (R := R) α p _ rfl U (x.sub 0 p (by omega))) (ev (R := R) β (N - p) _ rfl U (x.sub p (N - p) (by omega))))
+    (by
+      intro N w h V U g x
+      set_option synthInstance.maxHeartbeats 100000 in
+        simp only [Sec.res, map_sum, Units.smul_def, map_zsmul]
+      refine Finset.sum_congr rfl (fun p _ => ?_)
+      congr 1
+      have := μ.nat g (-((p : ℕ) : ℤ) + n) (-((N - p : ℕ) : ℤ) + m) w (by omega)
+        (ev (R := R) α p _ rfl U (x.sub 0 p (by omega))) (ev (R := R) β (N - p) _ rfl U (x.sub p (N - p) (by omega)))
+      simp only [Sec.res] at this
+      rw [this]
+      have e1 := he R α p _ rfl V U g (x.sub 0 p (by omega))
+      have e2 := he R β (N - p) _ rfl V U g (x.sub p (N - p) (by omega))
+      simp only [Sec.res] at e1 e2
+      rw [e1, e2, hs, hs])
+  exact ⟨γ, fun N w h U x => hγ N w h U x⟩
+
+theorem cupflip_sub_res_holds : cupflip_sub_res := by
+  intro E U N x j l h V g
+  simp only [Sx.res, Sx.sub]
+  exact NatTrans.naturality_apply (E.map (SimplexCategory.subinterval j l h).op) g.op x
+
+theorem freeGen_res {R : Type} [CommRing R] (P : PSh) {V U : Scheme.{0}} (g : V ⟶ U) (x : P.obj (op U)) :
+    (((free R).obj P).obj.map g.op).hom (freeGen R P U x) = freeGen R P V (P.map g.op x) := by
+  have key := NatTrans.naturality_apply (toSheafify Scheme.etaleTopology ((freeP R).obj P)) g.op
+    (ModuleCat.freeMk (R := ULift.{1} R) (ULift.up x))
+  simp only [freeGen]
+  erw [← key]
+  congr 1
+  simp only [freeP, ModuleCat.freeMk, ModuleCat.free]
+  erw [Finsupp.lmapDomain_apply, Finsupp.mapDomain_single]
+  rfl
+
+end LateralTheory.EtaleFoundations
+end
+
+section -- merged from Development.EtaleCohomology.TateTwists.CupflipWdPf
+open CategoryTheory Limits AlgebraicGeometry Opposite CochainComplex CochainComplex.HomComplex GlobalTheory.EtC
+
+namespace LateralTheory.EtaleFoundations
+
+def cupflip_wd_aw : Prop :=
+  ∀ (R : Type) [CommRing R] {I J K : Cx R} (μ : Pair I J K) (E : Spc) {n m k : ℤ} (hk : n + m = k),
+    (∀ (α : Cocycle ((chains R).obj E) I n) (β : Cocycle ((chains R).obj E) J m),
+      ∃ γ : Cocycle ((chains R).obj E) K k, μ.IsAW hk α.1 β.1 γ.1) ∧
+    (∀ α β γ γ', μ.IsAW (E := E) hk α β γ → μ.IsAW hk α β γ' → γ = γ') ∧
+    (∀ α α' β γ γ', μ.IsAW (E := E) hk α β γ → μ.IsAW hk α' β γ' → μ.IsAW hk (α + α') β (γ + γ')) ∧
+    (∀ α β β' γ γ', μ.IsAW (E := E) hk α β γ → μ.IsAW hk α β' γ' → μ.IsAW hk α (β + β') (γ + γ'))
+
+def cupflip_wd_cobdry : Prop :=
+  ∀ (R : Type) [CommRing R] {I J K : Cx R} (μ : Pair I J K) (E : Spc) {n m k : ℤ} (hk : n + m = k)
+    (α : Cocycle ((chains R).obj E) I n) (β : Cocycle ((chains R).obj E) J m)
+    (γ : Cocycle ((chains R).obj E) K k),
+    μ.IsAW hk α.1 β.1 γ.1 → (α ∈ coboundaries _ _ n ∨ β ∈ coboundaries _ _ m) → γ ∈ coboundaries _ _ k
+
+theorem cupflip_wd_of (ha : cupflip_wd_aw) (hb : cupflip_wd_cobdry) : cupflip_wd := by
+  intro R _ I J K μ E n m k hk
+  classical
+  obtain ⟨hex, huniq, haddl, haddr⟩ := ha R μ E hk
+  let aw : Cocycle ((chains R).obj E) I n → Cocycle ((chains R).obj E) J m → Cocycle ((chains R).obj E) K k :=
+    fun α β => Classical.choose (hex α β)
+  have haw : ∀ α β, μ.IsAW hk α.1 β.1 (aw α β).1 := fun α β => Classical.choose_spec (hex α β)
+  have heq : ∀ α β γ, μ.IsAW hk α.1 β.1 γ.1 → aw α β = γ := fun α β γ h =>
+    Subtype.ext (huniq _ _ _ _ (haw α β) h)
+  have addl : ∀ α α' β, aw (α + α') β = aw α β + aw α' β := fun α α' β =>
+    heq _ _ _ (haddl _ _ _ _ _ (haw α β) (haw α' β))
+  have addr : ∀ α β β', aw α (β + β') = aw α β + aw α β' := fun α β β' =>
+    heq _ _ _ (haddr _ _ _ _ _ (haw α β) (haw α β'))
+  let g : Cocycle ((chains R).obj E) I n →
+      CohomologyClass ((chains R).obj E) J m →+ CohomologyClass ((chains R).obj E) K k :=
+    fun α => CohomologyClass.descAddMonoidHom
+      (AddMonoidHom.mk' (fun β => CohomologyClass.mk (aw α β))
+        (fun β β' => by simp only [addr, CohomologyClass.mk_add]))
+      (fun β hβ => by
+        rw [AddMonoidHom.mem_ker, AddMonoidHom.mk'_apply, CohomologyClass.mk_eq_zero_iff]
+        exact hb R μ E hk α β _ (haw α β) (Or.inr hβ))
+  have gmk : ∀ α β, g α (CohomologyClass.mk β) = CohomologyClass.mk (aw α β) := fun _ _ => rfl
+  have gadd : ∀ α α', g (α + α') = g α + g α' := by
+    intro α α'
+    refine AddMonoidHom.ext fun b => ?_
+    obtain ⟨β, rfl⟩ := CohomologyClass.mk_surjective b
+    rw [AddMonoidHom.add_apply, gmk, gmk, gmk, addl, CohomologyClass.mk_add]
+  let c : CohomologyClass ((chains R).obj E) I n →+ CohomologyClass ((chains R).obj E) J m →+
+      CohomologyClass ((chains R).obj E) K k :=
+    CohomologyClass.descAddMonoidHom (AddMonoidHom.mk' g gadd) (fun α hα => by
+      rw [AddMonoidHom.mem_ker, AddMonoidHom.mk'_apply]
+      refine AddMonoidHom.ext fun b => ?_
+      obtain ⟨β, rfl⟩ := CohomologyClass.mk_surjective b
+      rw [gmk, AddMonoidHom.zero_apply, CohomologyClass.mk_eq_zero_iff]
+      exact hb R μ E hk α β _ (haw α β) (Or.inl hα))
+  refine ⟨c, fun α β γ h => ?_⟩
+  change g α (CohomologyClass.mk β) = _
+  rw [gmk, heq α β γ h]
+
+end LateralTheory.EtaleFoundations
+end
+
+noncomputable section
+open CategoryTheory Limits AlgebraicGeometry Opposite CochainComplex CochainComplex.HomComplex GlobalTheory.EtC
+
+namespace LateralTheory.KummerTheory.AW
+variable {R : Type} [CommRing R] {E : Spc} {I J K : Cx R} {n m k : ℤ} {U : Scheme.{0}}
+
+def ev0 (α : Cochain ((chains R).obj E) I n) (s : ℤ) (U : Scheme.{0}) (p : ℕ) (x : Sx E p U) : Sec (I.X s) U :=
+  if h : -(p : ℤ) + n = s then ev α p s h U x else 0
+
+theorem ev_delta {m : ℤ} (hm : n + 1 = m) (α : Cochain ((chains R).obj E) I n) (p : ℕ) (s t : ℤ)
+    (hs : -(p : ℤ) + n = s) (ht : -(p : ℤ) + m = t) (x : Sx E p U) :
+    ev (δ n m α) p t ht U x = Sec.map (I.d s t) (ev α p s hs U x) + m.negOnePow • bd (ev0 α t U) p x := by
+  cases p with
+  | zero => rw [ev_delta_zero hm α s t hs]; simp [bd]
+  | succ p =>
+    rw [ev_delta_succ hm α p s t hs]
+    congr 2
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [ev0, dite_eq_left]
+
+def pr (μ : Pair I J K) (α : Cochain ((chains R).obj E) I n) (β : Cochain ((chains R).obj E) J m) (w : ℤ) (U : Scheme.{0})
+    (p q : ℕ) (y : Sx E p U) (z : Sx E q U) : Sec (K.X w) U :=
+  if h : (-(p : ℤ) + n) + (-(q : ℤ) + m) = w then μ.mul U _ _ w h (ev α p _ rfl U y) (ev β q _ rfl U z) else 0
+
+variable (μ : Pair I J K) (α : Cochain ((chains R).obj E) I n) (β : Cochain ((chains R).obj E) J m)
+
+theorem mul_ev {s t w : ℤ} (h : s + t = w) {p q : ℕ} (hs : -(p : ℤ) + n = s) (ht : -(q : ℤ) + m = t) (y : Sx E p U)
+    (z : Sx E q U) : μ.mul U s t w h (ev α p s hs U y) (ev β q t ht U z) = pr μ α β w U p q y z := by
+  subst hs ht
+  rw [pr, dite_eq_left h]
+
+theorem mul_bd_left {s t w : ℤ} (h : s + t = w) {p q : ℕ} (hs : -(p : ℤ) + (n + 1) = s) (ht : -(q : ℤ) + m = t) (y : Sx E p U)
+    (z : Sx E q U) : μ.mul U s t w h (bd (ev0 α s U) p y) (ev β q t ht U z) = bd (fun a y => pr μ α β w U a q y z) p y := by
+  cases p with
+  | zero => simp [bd]
+  | succ p =>
+    set_option synthInstance.maxHeartbeats 100000 in
+      simp only [bd, map_sum, map_zsmul, LinearMap.sum_apply, LinearMap.smul_apply]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [ev0, dite_eq_left (by omega), mul_ev]
+
+theorem mul_bd_right {s t w : ℤ} (h : s + t = w) {p q : ℕ} (hs : -(p : ℤ) + n = s) (ht : -(q : ℤ) + (m + 1) = t) (y : Sx E p U)
+    (z : Sx E q U) : μ.mul U s t w h (ev α p s hs U y) (bd (ev0 β t U) q z) = bd (fun b z => pr μ α β w U p b y z) q z := by
+  cases q with
+  | zero => simp [bd]
+  | succ q =>
+    set_option synthInstance.maxHeartbeats 100000 in
+      simp only [bd, map_sum, map_zsmul]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [ev0, dite_eq_left (by omega), mul_ev]
+
+theorem d_pr {w : ℤ} {p q : ℕ} (h : (-(p : ℤ) + n) + (-(q : ℤ) + m) = w) (y : Sx E p U) (z : Sx E q U) :
+    Sec.map (K.d w (w + 1)) (pr μ α β w U p q y z) =
+      (pr μ (δ n (n + 1) α) β (w + 1) U p q y z -
+        (((n + 1).negOnePow : ℤˣ) : ℤ) • bd (fun a y => pr μ α β (w + 1) U a q y z) p y) +
+      (((-(p : ℤ) + n).negOnePow : ℤˣ) : ℤ) • (pr μ α (δ m (m + 1) β) (w + 1) U p q y z -
+        (((m + 1).negOnePow : ℤˣ) : ℤ) • bd (fun b z => pr μ α β (w + 1) U p b y z) q z) := by
+  rw [pr, dite_eq_left h, μ.leibniz, Units.smul_def]
+  congr 1
+  · rw [← mul_ev μ (δ n (n + 1) α) β (s := -(p : ℤ) + n + 1) (t := -(q : ℤ) + m) (by omega) (by omega) rfl,
+      ev_delta rfl α p _ _ rfl, ← mul_bd_left μ α β (s := -(p : ℤ) + n + 1) (t := -(q : ℤ) + m) (by omega) (by omega) rfl,
+      map_add, Units.smul_def, map_zsmul, LinearMap.add_apply, LinearMap.smul_apply, add_sub_cancel_right]
+  · rw [← mul_ev μ α (δ m (m + 1) β) (s := -(p : ℤ) + n) (t := -(q : ℤ) + m + 1) (by omega) rfl (by omega),
+      ev_delta rfl β q _ _ rfl, ← mul_bd_right μ α β (s := -(p : ℤ) + n) (t := -(q : ℤ) + m + 1) (by omega) rfl (by omega),
+      map_add, Units.smul_def, map_zsmul, add_sub_cancel_right]
+
+variable {μ α β} in
+theorem aw_eq {hk : n + m = k} {γ : Cochain ((chains R).obj E) K k} (hγ : μ.IsAW hk α β γ) (N : ℕ) (w : ℤ)
+    (h : -(N : ℤ) + k = w) (x : Sx E N U) : ev γ N w h U x = ∑ p : Fin (N + 1), (((m * (p : ℕ)).negOnePow : ℤˣ) : ℤ) •
+      pr μ α β w U p (N - p) (x.sub 0 p (by omega)) (x.sub p (N - p) (by omega)) := by
+  rw [hγ N w h U x]
+  exact Finset.sum_congr rfl fun p _ => by rw [mul_ev, Units.smul_def]
+
+theorem leibniz : LateralTheory.EtaleFoundations.cupflip_aw_leibniz := by
+  intro R _ I J K μ E n m k hk α β γ γ₁ γ₂ h h1 h2
+  refine ev_ext _ _ fun M w' hw' U x => ?_
+  obtain ⟨w, rfl⟩ : ∃ w, w' = w + 1 := ⟨w' - 1, by omega⟩
+  have hw : -(M : ℤ) + k = w := by omega
+  have hb : bd (ev0 γ (w + 1) U) M x = _ :=
+    (bd_congr (fun N y e => by rw [ev0, dite_eq_left (by omega), aw_eq h]) x).trans
+      (bd_aw (pr μ α β (w + 1) U) (fun p => (((m * p).negOnePow : ℤˣ) : ℤ))
+        (fun p => ((m.negOnePow * (m * p).negOnePow : ℤˣ) : ℤ)) (fun p => by
+          push_cast
+          rw [mul_add, mul_one, Int.negOnePow_add]
+          rcases Int.units_eq_one_or m.negOnePow with e | e <;> simp [e]) M x)
+  set_option synthInstance.maxHeartbeats 100000 in
+    rw [ev_delta rfl γ M w _ hw, ev_add, ev_units_smul, aw_eq h, aw_eq h1, aw_eq h2, hb, Sec.map, map_sum,
+    Units.smul_def, Units.smul_def, Finset.smul_sum, Finset.smul_sum, ← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
+  refine Finset.sum_congr rfl fun p _ => ?_
+  have := p.2
+  have hd := d_pr μ α β (w := w) (p := p) (q := M - p) (by omega) (x.sub 0 p (by omega)) (x.sub p (M - p) (by omega))
+  rw [Sec.map] at hd
+  rw [map_zsmul, hd]
+  have e : (-1 : ℤ) ^ (p : ℕ) = ((((p : ℕ) : ℤ).negOnePow : ℤˣ) : ℤ) := by simp [Int.coe_negOnePow_natCast]
+  rw [e, ← hk, add_mul, one_mul]
+  simp only [Int.negOnePow_add, Int.negOnePow_neg, Int.negOnePow_one]
+  generalize (m * (p : ℕ)).negOnePow = c
+  generalize ((p : ℕ) : ℤ).negOnePow = d
+  generalize n.negOnePow = a
+  rcases Int.units_eq_one_or m.negOnePow with e | e <;> rw [e] <;> push_cast <;> module
+
+theorem aw_cochain : LateralTheory.EtaleFoundations.cupflip_aw_cochain :=
+  LateralTheory.EtaleFoundations.cupflip_aw_cochain_of LateralTheory.EtaleFoundations.etale_chain_cochain_exists_of_eval_data
+    (fun _ _ _ _ _ α p s h _ _ g x => ev_res α p s h g x) LateralTheory.EtaleFoundations.cupflip_sub_res_holds
+
+theorem aw_exists : LateralTheory.EtaleFoundations.cupflip_aw_exists := LateralTheory.EtaleFoundations.cupflip_aw_exists_of aw_cochain leibniz
+
+variable {μ α β} in
+theorem aw_unique {hk : n + m = k} {γ γ' : Cochain ((chains R).obj E) K k} (h : μ.IsAW hk α β γ) (h' : μ.IsAW hk α β γ') :
+    γ = γ' := ev_ext _ _ fun N w hw U x => (h N w hw U x).trans (h' N w hw U x).symm
+
+theorem wd_aw : LateralTheory.EtaleFoundations.cupflip_wd_aw := by
+  intro R _ I J K μ E n m k hk
+  refine ⟨aw_exists R μ E hk, fun _ _ _ _ => aw_unique, fun α α' β γ γ' h h' N w hw U x => ?_,
+    fun α β β' γ γ' h h' N w hw U x => ?_⟩ <;>
+  · rw [ev_add, h, h', ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun p _ => ?_
+    simp only [ev_add, map_add (f := _), LinearMap.add_apply, smul_add]
+
+theorem wd_cobdry : LateralTheory.EtaleFoundations.cupflip_wd_cobdry := by
+  rintro R _ I J K μ E n m k hk α β γ h (⟨n', hn, η, hη⟩ | ⟨m', hm, η, hη⟩)
+  · subst hn
+    obtain rfl : k = n' + m + 1 := by omega
+    obtain ⟨θ, hθ⟩ := aw_cochain R μ E rfl η β.1
+    refine ⟨n' + m, rfl, θ, ?_⟩
+    rw [leibniz R μ rfl η β.1 θ γ.1 0 hθ (by rw [hη]; exact h)
+      (by rw [Cocycle.δ_eq_zero]; exact LateralTheory.EtaleFoundations.isAW_zero_right μ _ _), smul_zero, add_zero]
+  · subst hm
+    obtain rfl : k = n + m' + 1 := by omega
+    obtain ⟨θ, hθ⟩ := aw_cochain R μ E rfl α.1 η
+    refine ⟨n + m', rfl, n.negOnePow • θ, ?_⟩
+    rw [δ_units_smul, leibniz R μ rfl α.1 η θ 0 γ.1 hθ
+      (by rw [Cocycle.δ_eq_zero]; exact LateralTheory.EtaleFoundations.isAW_zero_left μ _ _) (by rw [hη]; exact h), zero_add, smul_smul,
+      Int.units_mul_self, one_smul]
+
+theorem wd : LateralTheory.EtaleFoundations.cupflip_wd := LateralTheory.EtaleFoundations.cupflip_wd_of wd_aw wd_cobdry
+
+theorem cup_mk {hk : n + m = k} (α : Cocycle ((chains R).obj E) I n) (β : Cocycle ((chains R).obj E) J m)
+    (γ : Cocycle ((chains R).obj E) K k) (h : μ.IsAW hk α.1 β.1 γ.1) :
+    μ.cup E hk (CohomologyClass.mk α) (CohomologyClass.mk β) = CohomologyClass.mk γ :=
+  pick_spec (wd R μ E hk) α β γ h
+
+end LateralTheory.KummerTheory.AW
+
+theorem LateralTheory.KummerTheory.CupAW_of : LateralTheory.KummerTheory.CupAW := by
+  intro R _ I J K μ E n m k hk α β
+  obtain ⟨γ, hγ⟩ := AW.aw_exists R μ E hk α β
+  exact ⟨γ, hγ, AW.cup_mk μ α β γ hγ⟩
+
+end

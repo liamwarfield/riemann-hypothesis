@@ -1,0 +1,312 @@
+module
+
+public import Formalism.SharpRestriction.GrowthBounds.HermitianTensor.DPsiMonomialIwh
+
+@[expose] public section
+
+section -- merged from Formalism.SharpRestriction.GrowthBounds.HermitianTensor.BlockSubstitutionBlockEmb
+noncomputable section
+
+namespace Formalism.MainNotions.flipOneThree.Pf
+
+open Formalism.MainNotions.G Formalism.MainNotions.flipOneThree Formalism.GradedWeylDivisibility MvPolynomial
+
+section LC
+
+variable {K σ ρ : Type} [Field K]
+
+private theorem coeff_lcoef_eq (L : MvPolynomial ρ K →ₗ[K] K) (f : MvPolynomial σ (MvPolynomial ρ K))
+    (w : σ →₀ ℕ) : AddMonoidAlgebra.coeff (lcoef L f) w = L (AddMonoidAlgebra.coeff f w) :=
+  coeff_sum_monomial_linear L f w
+
+theorem qa_lcoef_C (L : MvPolynomial ρ K →ₗ[K] K) (b : MvPolynomial ρ K) :
+    lcoef L (C b : MvPolynomial σ (MvPolynomial ρ K)) = C (L b) := by
+  classical
+  ext w
+  rw [coeff_lcoef_eq, coeff_C, coeff_C]
+  split_ifs <;> simp
+
+theorem qa_lcoef_mapC_mul (L : MvPolynomial ρ K →ₗ[K] K) (G : MvPolynomial σ K)
+    (h : MvPolynomial σ (MvPolynomial ρ K)) : lcoef L (map C G * h) = G * lcoef L h := by
+  classical
+  ext w
+  set_option synthInstance.maxHeartbeats 100000 in
+    rw [coeff_lcoef_eq, coeff_mul, coeff_mul, map_sum]
+  refine Finset.sum_congr rfl fun x _ => ?_
+  rw [coeff_map, coeff_lcoef_eq, MvPolynomial.C_mul', map_smul, smul_eq_mul]
+
+theorem qa_eval_lcoef (L : MvPolynomial ρ K →ₗ[K] K) (x : σ → K) (h : MvPolynomial σ (MvPolynomial ρ K)) :
+    eval x (lcoef L h) = L (eval (fun i => C (x i)) h) := by
+  classical
+  set_option synthInstance.maxHeartbeats 100000 in
+    rw [show lcoef L h = ∑ u ∈ h.support, monomial u (L (AddMonoidAlgebra.coeff h u)) from rfl, map_sum]
+  set_option synthInstance.maxHeartbeats 100000 in
+    conv_rhs => rw [h.as_sum, map_sum, map_sum]
+  refine Finset.sum_congr rfl fun u _ => ?_
+  rw [eval_monomial, eval_monomial]
+  rw [show (u.prod fun n e => (C (x n) : MvPolynomial ρ K) ^ e) = C (u.prod fun n e => x n ^ e) by
+    simp [Finsupp.prod, map_prod, map_pow]]
+  rw [mul_comm (AddMonoidAlgebra.coeff h u), MvPolynomial.C_mul', map_smul, smul_eq_mul, mul_comm]
+
+theorem qa_lcoef_rowAct {k n : ℕ} (L : MvPolynomial ρ K →ₗ[K] K) (g : Matrix (Fin k) (Fin k) K)
+    (h : MvPolynomial (Fin k × Fin n) (MvPolynomial ρ K)) :
+    lcoef L (rowAct (MvPolynomial ρ K) (g.map C) h) = rowAct K g (lcoef L h) := by
+  classical
+  have key : ∀ P : MvPolynomial (Fin k × Fin n) K,
+      rowAct (MvPolynomial ρ K) (g.map C) (map C P) = map C (rowAct K g P) := by
+    intro P
+    have e := MvPolynomial.ringHom_ext
+      (f := ((rowAct (MvPolynomial ρ K) (n := n) (g.map C)).toRingHom.comp (map C) :
+        MvPolynomial (Fin k × Fin n) K →+* MvPolynomial (Fin k × Fin n) (MvPolynomial ρ K)))
+      (g := ((map C).comp (rowAct K (n := n) g).toRingHom :
+        MvPolynomial (Fin k × Fin n) K →+* MvPolynomial (Fin k × Fin n) (MvPolynomial ρ K)))
+      (fun a => by simp [rowAct]) (fun i => by simp [rowAct, Matrix.map_apply, map_sum])
+    simpa using RingHom.congr_fun e P
+  conv_lhs => rw [h.as_sum]
+  conv_rhs => rw [h.as_sum]
+  set_option synthInstance.maxHeartbeats 100000 in
+    simp only [map_sum]
+  refine Finset.sum_congr rfl fun u _ => ?_
+  have hm : (monomial u (AddMonoidAlgebra.coeff h u) : MvPolynomial (Fin k × Fin n) (MvPolynomial ρ K)) =
+      map C (monomial u 1) * C (AddMonoidAlgebra.coeff h u) := by
+    rw [map_monomial, map_one, mul_comm, C_mul_monomial, mul_one]
+  have hr1 : rowAct (MvPolynomial ρ K) (n := n) (g.map C) (C (AddMonoidAlgebra.coeff h u)) = C (AddMonoidAlgebra.coeff h u) := by simp [rowAct]
+  have hr2 : rowAct K (n := n) g (C (L (AddMonoidAlgebra.coeff h u))) = C (L (AddMonoidAlgebra.coeff h u)) := by simp [rowAct]
+  rw [hm, map_mul, key, hr1, qa_lcoef_mapC_mul, qa_lcoef_mapC_mul, qa_lcoef_C, map_mul, hr2]
+
+end LC
+
+section S2
+
+variable {K : Type} [Field K] {r : ℕ}
+
+theorem qa_blockEmb_C {S : Type} {k n : ℕ} (b : S) (a : K) : blockEmb K (k := k) (n := n) b (C a) = C a := by
+  simp [blockEmb]
+
+theorem qa_blockEmb_X {S : Type} {k n : ℕ} (b : S) (x : Fin k × Fin n) : blockEmb K b (X x) = X (b, x) := by
+  simp [blockEmb]
+
+theorem block_substitution_C (a : K) : sub2 K r (C a) = C (C a) := by
+  simp [sub2]
+
+theorem block_substitution_X (b : Bool) (x : Fin (r + 1 + 1) × Fin (r + 1 + 1)) :
+    sub2 K r (X (b, x)) = map (blockEmb K (k := r) (n := r) b).toRingHom (subY K r (X x)) := by
+  simp [sub2]
+
+theorem block_substitution_blockEmb (b : Bool) (v : MvPolynomial (Fin (r + 1 + 1) × Fin (r + 1 + 1)) K) :
+    sub2 K r (blockEmb K b v) = map (blockEmb K (k := r) (n := r) b).toRingHom (subY K r v) := by
+  induction v using MvPolynomial.induction_on
+  next a =>
+    rw [qa_blockEmb_C, block_substitution_C]
+    simp [subY]
+  next p q hp hq =>
+    rw [map_add (f := _), map_add (f := _), hp, hq, map_add (f := _), map_add (f := _)]
+  next p x hp =>
+    rw [map_mul, map_mul, hp, qa_blockEmb_X, block_substitution_X, map_mul, map_mul]
+
+theorem qa_blockEmb_comp_C (b : Bool) :
+    ((blockEmb K (k := r) (n := r) b).toRingHom).comp C = (C : K →+* MvPolynomial (Bool × (Fin r × Fin r)) K) := RingHom.ext fun a => by simp
+
+theorem qa_lamOf_apply (L : MvPolynomial (Bool × (Fin r × Fin r)) K →ₗ[K] K)
+    (x : MvPolynomial (Bool × (Fin (r + 1 + 1) × Fin (r + 1 + 1))) K) : lamOf K r L x = lcoef L (sub2 K r x) := rfl
+
+theorem qa_eval_map_block (b : Bool)
+    (h : MvPolynomial (Fin (r + 1 + 1) × Fin (r + 1 + 1)) (MvPolynomial (Fin r × Fin r) K)) :
+    eval (fun i => (C (idPoint K (r + 1 + 1) (r + 1 + 1) i) : MvPolynomial (Bool × (Fin r × Fin r)) K))
+        (map (blockEmb K (k := r) (n := r) b).toRingHom h) =
+      blockEmb K b (eval (idPoint (MvPolynomial (Fin r × Fin r) K) (r + 1 + 1) (r + 1 + 1)) h) := by
+  rw [MvPolynomial.eval_map]
+  show _ = (blockEmb K (k := r) (n := r) b).toRingHom
+    (MvPolynomial.eval₂ (RingHom.id _) (idPoint (MvPolynomial (Fin r × Fin r) K) (r + 1 + 1) (r + 1 + 1)) h)
+  rw [MvPolynomial.eval₂_comp_left, RingHom.comp_id]
+  congr 1
+  funext i
+  simp only [Function.comp_apply, idPoint]
+  split_ifs <;> simp
+
+end S2
+
+theorem lamCoeffP : LamCoeffP := by
+  classical
+  intro K _ r L v t u
+  set_option synthInstance.maxHeartbeats 100000 in
+    rw [qa_lamOf_apply, map_mul, block_substitution_blockEmb, block_substitution_blockEmb, coeff_lcoef_eq, coeff_mul, map_sum]
+  simp only [coeff_map]
+  rfl
+
+theorem lamMulP : LamMulP := by
+  classical
+  intro K _ r Q L F s t hF
+  rw [qa_lamOf_apply, map_mul (blockEmb K true) F s, map_mul (sub2 K r), map_mul (sub2 K r),
+    block_substitution_blockEmb, block_substitution_blockEmb, block_substitution_blockEmb, hF,
+    map_mul (map (blockEmb K (k := r) (n := r) true).toRingHom), map_C, MvPolynomial.map_map,
+    qa_blockEmb_comp_C, ← qa_lcoef_mapC_mul]
+  congr 1
+  simp only [AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
+  ring
+
+theorem lamEvalP : LamEvalP := by
+  classical
+  intro K _ r L v t
+  rw [qa_lamOf_apply, map_mul, block_substitution_blockEmb, block_substitution_blockEmb, qa_eval_lcoef, map_mul,
+    qa_eval_map_block, qa_eval_map_block]
+  rfl
+
+theorem lamEquivP : LamEquivP := by
+  intro K _ r L g v t
+  have hcomm : ∀ (b : Bool) (P : MvPolynomial (Fin (r + 1 + 1) × Fin (r + 1 + 1)) (MvPolynomial (Fin r × Fin r) K)),
+      map (blockEmb K (k := r) (n := r) b).toRingHom
+          (rowAct (MvPolynomial (Fin r × Fin r) K) (n := r + 1 + 1) (g.map C) P) =
+        rowAct (MvPolynomial (Bool × (Fin r × Fin r)) K) (n := r + 1 + 1) (g.map C)
+          (map (blockEmb K (k := r) (n := r) b).toRingHom P) := by
+    intro b P
+    have e := MvPolynomial.ringHom_ext
+      (f := ((map (blockEmb K (k := r) (n := r) b).toRingHom).comp
+          (rowAct (MvPolynomial (Fin r × Fin r) K) (n := r + 1 + 1) (g.map C)).toRingHom :
+        MvPolynomial (Fin (r + 1 + 1) × Fin (r + 1 + 1)) (MvPolynomial (Fin r × Fin r) K) →+*
+          MvPolynomial (Fin (r + 1 + 1) × Fin (r + 1 + 1)) (MvPolynomial (Bool × (Fin r × Fin r)) K)))
+      (g := ((rowAct (MvPolynomial (Bool × (Fin r × Fin r)) K) (n := r + 1 + 1) (g.map C)).toRingHom.comp
+          (map (blockEmb K (k := r) (n := r) b).toRingHom) :
+        MvPolynomial (Fin (r + 1 + 1) × Fin (r + 1 + 1)) (MvPolynomial (Fin r × Fin r) K) →+*
+          MvPolynomial (Fin (r + 1 + 1) × Fin (r + 1 + 1)) (MvPolynomial (Bool × (Fin r × Fin r)) K)))
+      (fun c => by simp [rowAct]) (fun i => by simp [rowAct, Matrix.map_apply, map_sum])
+    simpa using RingHom.congr_fun e P
+  rw [qa_lamOf_apply, qa_lamOf_apply, map_mul (sub2 K r), map_mul (sub2 K r), block_substitution_blockEmb,
+    block_substitution_blockEmb, block_substitution_blockEmb, block_substitution_blockEmb, qa_subY_rowAct, qa_subY_rowAct, hcomm, hcomm,
+    ← map_mul (rowAct (MvPolynomial (Bool × (Fin r × Fin r)) K) (n := r + 1 + 1) (g.map C)), qa_lcoef_rowAct]
+
+end Formalism.MainNotions.flipOneThree.Pf
+
+end
+end
+
+noncomputable section
+
+namespace Formalism.MainNotions.flipOneThree.Pf
+
+open Formalism.MainNotions.G Formalism.MainNotions.flipOneThree Formalism.CountingSumsFrames Formalism.GradedWeylDivisibility MvPolynomial Formalism.MainNotions.G.LatticeSystems
+
+def vStar (m a b : ℕ) : XY (m + 1) →₀ ℕ :=
+  Finsupp.single (Sum.inl 0) a + Finsupp.single (Sum.inr (Fin.last m)) b
+
+theorem qt_comb (m a b : ℕ) (v : XY (m + 1) →₀ ℕ) (hx : xDeg v = a) (hy : yDeg v = b)
+    (h0 : qtW m v 0 = a + b) (hl : qtW m v (Fin.last m) = 0) : v = vStar m a b := by
+  classical
+  have e0 := qtW_apply m v 0
+  have el := qtW_apply m v (Fin.last m)
+  have l0 : v (Sum.inl 0) ≤ xDeg v :=
+    Finset.single_le_sum (f := fun i : Fin (m + 1) => v (Sum.inl i)) (fun _ _ => Nat.zero_le _) (Finset.mem_univ 0)
+  have ll : v (Sum.inr (Fin.last m)) ≤ yDeg v :=
+    Finset.single_le_sum (f := fun i : Fin (m + 1) => v (Sum.inr i)) (fun _ _ => Nat.zero_le _) (Finset.mem_univ _)
+  have a1 : v (Sum.inl 0) = a := by omega
+  have a2 : v (Sum.inr (Fin.last m)) = b := by omega
+  have z1 : ∀ i : Fin (m + 1), i ≠ 0 → v (Sum.inl i) = 0 := by
+    intro i hi
+    have h := Finset.add_sum_erase Finset.univ (fun i : Fin (m + 1) => v (Sum.inl i)) (Finset.mem_univ 0)
+    have h' : ∑ x ∈ Finset.univ.erase (0 : Fin (m + 1)), v (Sum.inl x) = 0 := by
+      have : ∑ x : Fin (m + 1), v (Sum.inl x) = a := hx
+      omega
+    exact Finset.sum_eq_zero_iff.1 h' i (Finset.mem_erase.2 ⟨hi, Finset.mem_univ _⟩)
+  have z2 : ∀ i : Fin (m + 1), i ≠ Fin.last m → v (Sum.inr i) = 0 := by
+    intro i hi
+    have h := Finset.add_sum_erase Finset.univ (fun i : Fin (m + 1) => v (Sum.inr i)) (Finset.mem_univ (Fin.last m))
+    have h' : ∑ x ∈ Finset.univ.erase (Fin.last m), v (Sum.inr x) = 0 := by
+      have : ∑ x : Fin (m + 1), v (Sum.inr x) = b := hy
+      omega
+    exact Finset.sum_eq_zero_iff.1 h' i (Finset.mem_erase.2 ⟨hi, Finset.mem_univ _⟩)
+  ext w
+  unfold vStar
+  rw [Finsupp.add_apply]
+  rcases w with i | i
+  · by_cases hi : i = 0
+    · subst hi; simp [a1]
+    · have : (Sum.inl 0 : XY (m + 1)) ≠ Sum.inl i := fun h => hi (Sum.inl.inj h).symm
+      simp [this, z1 i hi]
+  · by_cases hi : i = Fin.last m
+    · subst hi; simp [a2]
+    · have : (Sum.inr (Fin.last m) : XY (m + 1)) ≠ Sum.inr i := fun h => hi (Sum.inr.inj h).symm
+      simp [this, z2 i hi]
+
+theorem qtW_vStar (m a b : ℕ) (hm : 1 ≤ m) : qtW m (vStar m a b) 0 = a + b ∧ qtW m (vStar m a b) (Fin.last m) = 0 := by
+  classical
+  have hne : (Fin.last m) ≠ 0 := by
+    intro h
+    have := congrArg Fin.val h
+    simp at this
+    omega
+  have e0 := qtW_apply m (vStar m a b) 0
+  have el := qtW_apply m (vStar m a b) (Fin.last m)
+  have y : yDeg (vStar m a b) = b := by
+    unfold yDeg vStar
+    simp [Finsupp.single_apply]
+  have v1 : vStar m a b (Sum.inr 0) = 0 := by
+    unfold vStar
+    simp [hne]
+  have v2 : vStar m a b (Sum.inl 0) = a := by
+    unfold vStar
+    simp
+  have v3 : vStar m a b (Sum.inr (Fin.last m)) = b := by
+    unfold vStar
+    simp
+  have v4 : vStar m a b (Sum.inl (Fin.last m)) = 0 := by
+    unfold vStar
+    simp [hne.symm]
+  constructor <;> omega
+
+theorem topCore (h2 : ExplicitMapOntoTwoLetters) (h5 : TwoLetterLatticeGaussInverse) (hCO : CartanOnto) {p n' : ℕ} (R : RS p n') (m : ℕ) (hm : 1 ≤ m) (a b : ℕ)
+    (Ψ : MvPolynomial (Fin (m + 1) × Fin (m + 1)) R.Kf) (hΨ : Ψ ∈ dualWeyl R.Kf (m + 1) (m + 1) (nuOf (wtPQ m a b)))
+    (h0 : RowA 0 Ψ (a + b)) (hl : RowA (Fin.last m) Ψ 0) :
+    ∃ c : R.Kf, Ψ = c • deltaB R.Kf m (PsiXY R.Kf m (monomial (vStar m a b) 1)) := by
+  classical
+  rw [← tie3 h2 h5 hCO R m hm a b] at hΨ
+  obtain ⟨f, hf, rfl⟩ := hΨ
+  refine ⟨AddMonoidAlgebra.coeff f (vStar m a b), ?_⟩
+  have hT : AddMonoidAlgebra.coeff f (vStar m a b) • deltaB R.Kf m (PsiXY R.Kf m (monomial (vStar m a b) 1)) =
+      deltaB R.Kf m (PsiXY R.Kf m (monomial (vStar m a b) (AddMonoidAlgebra.coeff f (vStar m a b)))) := by
+    rw [← map_smul, ← map_smul, smul_monomial, smul_eq_mul, mul_one]
+  rw [hT]
+  have hsum : dPsi R.Kf m f = ∑ v ∈ f.support, deltaB R.Kf m (PsiXY R.Kf m (monomial v (AddMonoidAlgebra.coeff f v))) := by
+    conv_lhs => rw [dPsi_apply, f.as_sum]
+    set_option synthInstance.maxHeartbeats 100000 in
+      simp only [map_sum]
+  obtain ⟨s0, sl⟩ := qtW_vStar m a b hm
+  ext u
+  by_cases hu : rowDeg u 0 = a + b ∧ rowDeg u (Fin.last m) = 0
+  · rw [hsum, coeff_sum, Finset.sum_eq_single (vStar m a b)]
+    · intro v hv hne
+      by_contra hc
+      apply hne
+      have w0 := rowA_of_iwh (dPsi_monomial_iwh R.Kf m v (AddMonoidAlgebra.coeff f v)) 0 u hc
+      have wl := rowA_of_iwh (dPsi_monomial_iwh R.Kf m v (AddMonoidAlgebra.coeff f v)) (Fin.last m) u hc
+      exact qt_comb m a b v (hf v hv).1 (hf v hv).2 (by rw [← w0, hu.1]) (by rw [← wl, hu.2])
+    · intro hv
+      rw [notMem_support_iff.1 hv, monomial_zero, map_zero, map_zero, AddMonoidAlgebra.coeff_zero]
+      rfl
+  · have c1 : AddMonoidAlgebra.coeff (dPsi R.Kf m f) u = 0 := by
+      by_contra hc
+      exact hu ⟨h0 u hc, hl u hc⟩
+    have c2 : AddMonoidAlgebra.coeff (deltaB R.Kf m (PsiXY R.Kf m (monomial (vStar m a b) (AddMonoidAlgebra.coeff f (vStar m a b))))) u = 0 := by
+      by_contra hc
+      have w0 := rowA_of_iwh (dPsi_monomial_iwh R.Kf m _ _) 0 u hc
+      have wl := rowA_of_iwh (dPsi_monomial_iwh R.Kf m _ _) (Fin.last m) u hc
+      exact hu ⟨by rw [w0, s0], by rw [wl, sl]⟩
+    rw [c1, c2]
+
+theorem topLineP_of (h2 : ExplicitMapOntoTwoLetters) (h5 : TwoLetterLatticeGaussInverse) (hCO : CartanOnto) : TopLineP := by
+  intro p n' R r hr a b Ψ hΨ h0 hl
+  have hA : Antitone (nuOf (wtPQ (r + 1) a b)) := nuOf_anti _ (wtPQ_anti (r + 1) a b (by omega))
+  obtain ⟨c, hc⟩ := topCore h2 h5 hCO R (r + 1) (by omega) a b Ψ hΨ h0 hl
+  obtain ⟨c', hc'⟩ := topCore h2 h5 hCO R (r + 1) (by omega) a b (hw R.Kf (le_refl (r + 1 + 1)) (nuOf (wtPQ (r + 1) a b)))
+    (hwMem R.Kf _ _ le_rfl _ hA)
+    (by have h := rowA_hw R.Kf _ _ hA 0; rwa [nuOf_wt_zero] at h)
+    (by have h := rowA_hw R.Kf _ _ hA (Fin.last (r + 1)); rwa [nuOf_last] at h)
+  have he := (hwMulP R.Kf _ _ _ hA hA).2
+  set Z := deltaB R.Kf (r + 1) (PsiXY R.Kf (r + 1) (monomial (vStar (r + 1) a b) 1)) with hZ
+  rw [hc', smul_eq_C_mul, map_mul, eval_C] at he
+  rw [hc', hc, smul_eq_C_mul, smul_eq_C_mul, map_mul, eval_C, ← mul_assoc, ← C_mul]
+  congr 2
+  rw [mul_assoc, mul_comm _ c', he, mul_one]
+
+end Formalism.MainNotions.flipOneThree.Pf
+
+end

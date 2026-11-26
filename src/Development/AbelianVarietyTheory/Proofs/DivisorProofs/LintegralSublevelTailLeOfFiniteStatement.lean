@@ -1,0 +1,19 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LintegralSublevelTailLeOfFinite
+public import ReciprocityTheory.L2DbarEstimates.NormFibrations.Hormander
+public import ReciprocityTheory.L2DbarEstimates.NormFibrations.ImportsAlt
+public import ReciprocityTheory.L2DbarEstimates.NormFibrations.LseSmoothRIffReal
+public import ReciprocityTheory.L2DbarEstimates.NormFibrations.MvBlowup
+public import ReciprocityTheory.L2DbarEstimates.PlurisubharmonicCharts.FourSignHolds
+public import Development.AbelianVarietyTheory.PublishedTheorems.Divisors₂.L2ExtensionLogCanonical
+public import Development.AbelianVarietyTheory.Definitions.Divisors.T2SpaceGeneralLinearGroup
+
+@[expose] public section
+
+open MeasureTheory Filter Topology Metric ReciprocityTheory.L2DbarEstimates ReciprocityTheory.L2DbarEstimates.Y GlobalTheory.OTY GlobalTheory.Published.L2Extension
+open scoped ENNReal ContDiff
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.lintegral_sublevel_tail_le_of_finite : ∀ (Y : Type) [MeasurableSpace Y] (μ : Measure Y) (g : Y → ℝ≥0∞) (x : Y → ℝ), Measurable x → ∫⁻ y, g y ∂μ < ⊤ → Measurable g → ∀ ε : ℝ≥0∞, 0 < ε → ∃ T0 : ℝ, ∀ T, T0 ≤ T → ∫⁻ y in {y | x y ≤ -T + 1}, g y ∂μ ≤ ε := by
+  first | exact @GlobalTheory.lintegral_sublevel_tail_le | exact GlobalTheory.lintegral_sublevel_tail_le | (intros; apply GlobalTheory.lintegral_sublevel_tail_le <;> assumption)

@@ -1,0 +1,75 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.PublishedTheorems.AutomorphicForms₂.LocalLanglandsGL
+public import Development.AbelianVarietyTheory.Statements.PlaceShiftStatements.SingleIndexPlacesAreTwisted
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisGeometry₂.IsTemperedGLOfIsUnitaryLSeg
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisGeometry₂.ClozelCohomologicalModel
+public import Development.AbelianVarietyTheory.PublishedTheorems.AutomorphicForms₂.ExistsUniqueHcharOfFiniteOrder
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.ChebotarevDegreeOneIffCheb
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.StandardCosocleGL
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.GaloisRepOfPolarizedCuspidal
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.BaseChangeDefiniteUnitary
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.BhattScholzeIntegral
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.HeckeLAdicCharacterAboveIff
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExpansionOfNumericsModel
+public import Development.AbelianVarietyTheory.Definitions.Divisors.QuoIff
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.FrameStatement
+public import Development.AbelianVarietyTheory.Definitions.Divisors.P22
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.GaloisStatementOfSmall
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ModelStatementOfFrameGalois
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LocalMomentMatrixTransform
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ParameterLargeAllPoints
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ParameterLargeAllPointsBound
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ParameterHeightLtGenus
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.InertPlaceDoubledEigenfunctionsLineVacuum
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LiftWeightRhoEntryValuesStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LiftWeightRhoBlockConstantCentredStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LiftWeightRhoWindowContainsCloudStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LiftWeightRhoLowsDistanceBoundsStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LiftWeightRhoThickPlaceCentreWindowStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LiftWeightRhoNonThickPlaceCentreWidthStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.LiftWeightRhoEntriesLeFloorHeightStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.SmallStatement
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.WeylLatticeExactExponentBlockCutStatement
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.WeightsConj
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.TrueW
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.ExpStOfStatement
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.NumSt
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.SumExpStStatement
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.ModelStOfFramesStatement
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.SmallStStatement
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.FrameStOfSmallStStatement
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.GaloisAtPlaceOfAutomorphicAtPlace
+public import Development.AutomorphicArithmetic.Foundations.LocalLanglands.IsRecTOfIsRec
+
+@[expose] public section
+
+set_option synthInstance.maxHeartbeats 200000
+
+section
+section
+set_option autoImplicit false
+namespace GlobalTheory.BigOn
+theorem exponent_bound_of_unitaryThetaStandardTheorems_alt :
+    GlobalTheory.Published.ClozelCohomological →
+      GlobalTheory.Published.HeckeLAdicCharacter →
+      GlobalTheory.Published.ChebotarevDegreeOne →
+      _root_.UpperTheory.GalS.CuspUAlt →
+      _root_.GlobalTheory.Published.BaseChangeDefiniteUnitaryGroup →
+      GlobalTheory.Published.BhattScholzeCrystallineLattices →
+      GlobalTheory.Published.HeckeLAdicCharacterAbove →
+      _root_.UpperTheory.Zero.LLC.RecTExists →
+      _root_.GlobalTheory.BigOn.ExponentStatement :=
+  fun hCoh hHecke hCheb hGal hBC hBS hAbove hLL =>
+    _root_.GlobalTheory.T.expSt_of_num_sumExp_model GlobalTheory.T.weylLattice_exact_exponent_block_cut _root_.GlobalTheory.ExpTie.numSt_alt _root_.GlobalTheory.T.sum_expansion'
+      (_root_.GlobalTheory.T.model_statement_of_crystalline_chebotarev_frame_gal hBS hCheb _root_.GlobalTheory.T.small_estimate (_root_.GlobalTheory.T.frame_statement_of_small_statement _root_.GlobalTheory.T.small_estimate)
+        (_root_.GlobalTheory.T.galois_frame_compatibility_alt hCoh hHecke hCheb hGal hBC hBS hAbove hLL _root_.GlobalTheory.T.small_estimate))
+end GlobalTheory.BigOn
+end
+section
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.expSt_of_base_change_and_crystalline_lattices : GlobalTheory.Published.ClozelCohomological → GlobalTheory.Published.HeckeLAdicCharacter → GlobalTheory.Published.ChebotarevDegreeOne → _root_.UpperTheory.GalS.CuspUAlt → _root_.GlobalTheory.Published.BaseChangeDefiniteUnitaryGroup → GlobalTheory.Published.BhattScholzeCrystallineLattices → GlobalTheory.Published.HeckeLAdicCharacterAbove → _root_.UpperTheory.Zero.LLC.RecTExists → _root_.GlobalTheory.BigOn.ExponentStatement := by
+  first | exact @_root_.GlobalTheory.BigOn.exponent_bound_of_unitaryThetaStandardTheorems_alt | exact _root_.GlobalTheory.BigOn.exponent_bound_of_unitaryThetaStandardTheorems_alt | (intros; apply _root_.GlobalTheory.BigOn.exponent_bound_of_unitaryThetaStandardTheorems_alt <;> assumption)
+end
+end

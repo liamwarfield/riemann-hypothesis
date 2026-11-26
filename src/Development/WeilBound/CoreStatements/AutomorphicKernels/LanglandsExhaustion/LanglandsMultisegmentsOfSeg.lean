@@ -1,0 +1,14 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.CuspidalExhaustion.LanglandsMultisegmentsOfSeg
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.ExhaustionOfThree
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.EmbeddingMiddleFactorTriple
+
+@[expose] public section
+
+namespace PositivityTheory.Exh
+export CompanionTheory.Exh (
+  standardCosocleGL_of_seg langlandsExhaustionGL_of_seg
+  langlandsMultisegments_of_seg
+)
+end PositivityTheory.Exh

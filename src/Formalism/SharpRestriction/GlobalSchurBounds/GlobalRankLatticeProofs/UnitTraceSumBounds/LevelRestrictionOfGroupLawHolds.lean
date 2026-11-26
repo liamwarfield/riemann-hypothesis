@@ -1,0 +1,60 @@
+module
+
+public import Formalism.SharpRestriction.GlobalSchurBounds.GlobalRankLatticeProofs.UnitTraceSumBounds.ReadWHolds
+public import Formalism.SharpRestriction.GlobalSchurBounds.StatementTranslationInvariantSeventh
+public import Formalism.PeriodIntegrals.OrbitalBoundsConclusion.CubeRelationOfParallelogram
+public import Formalism.PeriodIntegrals.OrbitalBoundsConclusion.PhGram
+public import Formalism.PeriodIntegrals.OrbitalBoundsConclusion.GramUnit
+public import Mathlib
+public import Formalism.PeriodIntegrals.QuotInv
+public import Formalism.PeriodIntegrals.UnitaryGroupMassFormula.FormalGroupSplitting.ExpCongruenceExtendsToSum
+public import Formalism.PeriodIntegrals.UnimodGenus
+public import Formalism.PeriodIntegrals.UnitaryGroupMassFormula.FormalGroupSplitting.Development
+public import Formalism.PeriodIntegrals.UnitaryGroupMassFormula.FormalGroupSplitting.OrthogonalSplitPolarizationVanishes
+public import Formalism.PeriodIntegrals.OrbitalBoundsConclusion.JetsPhW
+
+@[expose] public section
+
+namespace Formalism.MainNotions.Ext.CutA
+
+open Formalism.MainNotions.GL3Theta Formalism.MainNotions.TaylorLogMetric Formalism.MainNotions.GL3r7
+
+theorem ph0 {p : ℕ} [Fact p.Prime] (g : G1 p) : PowerSeries.constantCoeff g.ph = 0 := by
+  unfold G1.ph
+  rw [map_neg, neg_eq_zero]
+  show logMv _ 0 = 0
+  unfold logMv
+  simp
+
+theorem fglData {p : ℕ} [Fact p.Prime] (g : G1 p) (h : g.Ok) : PI.FglGram.Data g.l g.ex g.ph :=
+  ⟨h.2.2.1, h.2.2.2, ph0 g⟩
+
+theorem cube_of_two_identities_holds : CubeOfTwoIdentities := by
+  intro p _ g h
+  exact cube_relation_of_parallelogram p g.l g.ex g.ph (fglData g h)
+
+theorem phGramG_holds : PhGramG := by
+  first
+  | exact phase_gram'
+  | (intro p _ g; intros; apply phase_gram' <;> first | exact fglData g ‹_› | assumption)
+  | (unfold PhGramG; done)
+
+theorem gramUnitEq_holds : GramUnitEq := by
+  first
+  | exact gramExpansion_orthonormal
+  | (intro p _ g; intros; apply gramExpansion_orthonormal <;> first | exact fglData g ‹_› | assumption)
+  | (unfold GramUnitEq; done)
+
+theorem jetsHigh_holds : JetsHigh :=
+  fun p _ g hOk => jets_high p g.W g.wq g.ex g.ph hOk.1.1 hOk.1.2.1 hOk.1.2.2.1 hOk.1.2.2.2.1 hOk.1.2.2.2.2.1 hOk.2.1 hOk.2.2.1
+    hOk.2.2.2
+
+theorem jetsOne_holds : JetsOne :=
+  fun p _ g hOk => jets_one p g.W g.wq g.ex g.ph hOk.1.1 hOk.1.2.1 hOk.1.2.2.1 hOk.1.2.2.2.1 hOk.1.2.2.2.2.1 hOk.2.1 hOk.2.2.1
+    hOk.2.2.2
+
+theorem jetsTwo_holds : JetsTwo :=
+  fun p _ g a b hOk => jets_two p g.W g.wq g.ex g.ph a b hOk.1.1 hOk.1.2.1 hOk.1.2.2.1 hOk.1.2.2.2.1 hOk.1.2.2.2.2.1 hOk.2.1
+    hOk.2.2.1 hOk.2.2.2
+
+end Formalism.MainNotions.Ext.CutA

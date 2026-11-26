@@ -1,0 +1,169 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Definitions.GaloisGeometry.HeckeCharEqOfLAdicRealisation
+public import Formalism.SharpRestriction.LevelLetterCocycles.ExistsInertiaCharpolyFactorOfTameType
+public import Development.AbelianVarietyTheory.Definitions.GaloisGeometry.RankOneUnitary
+public import Development.AbelianVarietyTheory.Proofs.InertiaEigenvalues.ExistsGaloisRepBaseChange
+public import Formalism.SharpRestriction.LevelLetterCocycles.SumRepresentations
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.CharacterTrivialAtWildOfCoprimePowStatement
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.PrimitiveRootNotPrimePowMapNeOneStatement
+
+@[expose] public section
+
+noncomputable section
+
+namespace GlobalTheory.TameEig
+
+open Formalism.BasicNotions Formalism.ConjugateSelfDual Formalism.MainNotions Formalism.MainNotions.N Polynomial NumberField IsDedekindDomain ReciprocityTheory.Gal GlobalTheory.StringRepresentationDecomposition Topology
+
+theorem val_apply_eq {E Ω : Type} [Field E] [NumberField E] [Field Ω] [Algebra E Ω] (A : ValuationSubring Ω)
+    (σ : G E Ω) (hσ : ∀ y : Ω, y ≠ 0 → A.valuation (σ y / y - 1) < 1) (y : Ω) :
+    A.valuation (σ y) = A.valuation y := by
+  rcases eq_or_ne y 0 with rfl | hy
+  · simp
+  · have h1 : A.valuation (σ y / y) = 1 := by
+      have h2 := Valuation.map_add_eq_of_lt_left A.valuation (x := (1 : Ω)) (y := σ y / y - 1)
+        (by rw [map_one]; exact hσ y hy)
+      have e : (1 : Ω) + (σ y / y - 1) = σ y / y := by ring
+      rwa [e, map_one] at h2
+    have hv : A.valuation y ≠ 0 := by simpa using hy
+    rw [map_div₀, div_eq_one_iff_eq hv] at h1
+    exact h1
+
+theorem wild_mem_Ine {E Ω : Type} [Field E] [NumberField E] [Field Ω] [Algebra E Ω] (A : ValuationSubring Ω)
+    (σ : G E Ω) (hσ : ∀ y : Ω, y ≠ 0 → A.valuation (σ y / y - 1) < 1) : σ ∈ Ine (F := E) A := by
+  have hv := val_apply_eq A σ hσ
+  have hD : σ ∈ Dec (F := E) A := by
+    rw [mem_Dec]
+    ext x
+    have e : x = σ • ((σ⁻¹ : G E Ω) • x) := (smul_inv_smul σ x).symm
+    rw [e, ValuationSubring.smul_mem_pointwise_smul_iff, ← A.valuation_le_one_iff,
+      ← A.valuation_le_one_iff, AlgEquiv.smul_def σ, hv]
+  refine ⟨hD, fun x hx => ?_⟩
+  rcases eq_or_ne x 0 with rfl | h0
+  · simp
+  · have e : σ x - x = x * (σ x / x - 1) := by field_simp
+    rw [e, map_mul]
+    exact lt_of_le_of_lt (mul_le_of_le_one_left' hx) (hσ x h0)
+
+variable {R : Ranks} {H : Host R} {what₂ : Rows.Data R}
+
+theorem residue_eq_one (N : NData R H what₂) (i : N.Loc) {x : N.O i}
+    (hx : x - 1 ∈ IsLocalRing.maximalIdeal (N.O i)) : IsLocalRing.residue (N.O i) x = 1 := by
+  rw [← sub_eq_zero, ← map_one (IsLocalRing.residue (N.O i)), ← map_sub, IsLocalRing.residue_eq_zero_iff]
+  exact hx
+
+def chiBar (N : NData R H what₂) (i : N.Loc) : G H.E N.Om →* (IsLocalRing.ResidueField (N.O i))ˣ :=
+  (Units.map (IsLocalRing.residue (N.O i)).toMonoidHom).comp (N.chi i 1)
+
+theorem chiBar_val (N : NData R H what₂) (i : N.Loc) (g : G H.E N.Om) :
+    ((chiBar N i g : (IsLocalRing.ResidueField (N.O i))ˣ) : IsLocalRing.ResidueField (N.O i)) =
+      IsLocalRing.residue (N.O i) (chi1 N i g) := rfl
+
+theorem chiBar_open (N : NData R H what₂) (i : N.Loc) : IsOpen ((chiBar N i).ker : Set (G H.E N.Om)) := by
+  have hm : IsOpen (IsLocalRing.maximalIdeal (N.O i) : Set (N.O i)) := by
+    have := (isAdic_iff.1 (N.O_adic i)).1 1
+    rwa [pow_one] at this
+  let U1 : Set (G H.E N.Om) :=
+    (fun g => ((N.chi i 1 g : (N.O i)ˣ) : N.O i) - 1) ⁻¹' (IsLocalRing.maximalIdeal (N.O i) : Set (N.O i))
+  have hU1 : IsOpen U1 := hm.preimage ((N.chi_cont i 1).sub continuous_const)
+  have h1 : (1 : G H.E N.Om) ∈ U1 := by
+    show ((N.chi i 1 1 : (N.O i)ˣ) : N.O i) - 1 ∈ IsLocalRing.maximalIdeal (N.O i)
+    rw [map_one, Units.val_one, sub_self]; exact Ideal.zero_mem _
+  have hsub : U1 ⊆ ((chiBar N i).ker : Set (G H.E N.Om)) := by
+    intro g hg
+    show Units.map (IsLocalRing.residue (N.O i)).toMonoidHom (N.chi i 1 g) = 1
+    ext
+    exact residue_eq_one N i hg
+  exact Subgroup.isOpen_of_mem_nhds _ (Filter.mem_of_superset (hU1.mem_nhds h1) hsub)
+
+theorem not_isPrimePow_15 : ¬ IsPrimePow 15 := by
+  intro h
+  obtain ⟨p, k, hp, -, he⟩ := (isPrimePow_nat_iff 15).1 h
+  have h3 : (3:ℕ) ∣ p ^ k := by rw [he]; norm_num
+  have h5 : (5:ℕ) ∣ p ^ k := by rw [he]; norm_num
+  have e3 := (Nat.prime_dvd_prime_iff_eq Nat.prime_three hp).1 (Nat.prime_three.dvd_of_dvd_pow h3)
+  have e5 := (Nat.prime_dvd_prime_iff_eq (by norm_num) hp).1 ((by norm_num : Nat.Prime 5).dvd_of_dvd_pow h5)
+  omega
+
+theorem residue_ne_one (N : NData R H what₂) (i : N.Loc)
+    (w : PlE H) (hS : w ∈ N.S i) (q : ℕ) (hq : q.Prime) (hq15 : q % 15 = 1) (hw : w ∈ placesOver H.E q)
+    (hDel : Nat.card ((Ine (F := H.E) (N.plOm.1 w)).map (N.chi i 1)) = 15) :
+    IsLocalRing.residue (N.O i) (chi1 N i (N.gam0 i w)) ≠ 1 := by
+  intro h1
+  haveI : Fact q.Prime := ⟨hq⟩
+  have hval : (N.plOm.1 w).valuation (q : N.Om) < 1 := by
+    have := ((N.plOm.2 w) ((q : ℕ) : 𝓞 H.E)).2 hw
+    simpa using this
+  have hcop : Nat.Coprime 15 q :=
+    (Nat.gcd_rec 15 q).trans (by simp only [hq15, Nat.gcd_one_left])
+  have hpow : ∀ σ ∈ Ine (F := H.E) (N.plOm.1 w), N.chi i 1 σ ^ 15 = 1 := by
+    intro σ hσ
+    have h := pow_card_eq_one' (G := (Ine (F := H.E) (N.plOm.1 w)).map (N.chi i 1))
+      (x := ⟨N.chi i 1 σ, Subgroup.mem_map_of_mem _ hσ⟩)
+    rw [hDel] at h
+    exact congrArg Subtype.val h
+  have hwild : ∀ σ : G H.E N.Om, (∀ y : N.Om, y ≠ 0 → (N.plOm.1 w).valuation (σ y / y - 1) < 1) →
+      σ ∈ (chiBar N i).ker := by
+    intro σ hσ
+    have hI := wild_mem_Ine (N.plOm.1 w) σ hσ
+    have h15 : chiBar N i σ ^ 15 = 1 := by
+      show (Units.map (IsLocalRing.residue (N.O i)).toMonoidHom) (N.chi i 1 σ) ^ 15 = 1
+      rw [← map_pow, hpow σ hI, map_one]
+    exact GlobalTheory.T.character_trivial_at_wild_of_coprime_pow H.E N.Om q (N.plOm.1 w) hval _ (chiBar N i) (chiBar_open N i) σ
+      (fun a ha => hσ a ha) 15 (by norm_num) hcop h15
+  have hg : N.gam0 i w ∈ (chiBar N i).ker :=
+    MonoidHom.mem_ker.2 (Units.ext (by simp only [chiBar_val, h1, Units.val_one]))
+  have hTG := N.restN_tameGenerator_generates i w (Or.inl hS)
+  have hle : ((Subgroup.closure (insert (N.gam0 i w) {σ : G H.E N.Om | ∀ y : N.Om, y ≠ 0 →
+      (N.plOm.1 w).valuation (σ y / y - 1) < 1}) : Subgroup (G H.E N.Om)) : Set (G H.E N.Om)) ⊆
+      ((chiBar N i).ker : Set (G H.E N.Om)) :=
+    (Subgroup.closure_le _).2 (Set.insert_subset_iff.2 ⟨hg, fun σ hσ => hwild σ hσ⟩)
+  have hcl := Subgroup.isClosed_of_isOpen _ (chiBar_open N i)
+  have hIne : ∀ σ ∈ Ine (F := H.E) (N.plOm.1 w), IsLocalRing.residue (N.O i) (chi1 N i σ) = 1 := by
+    intro σ hσ
+    have h2 : σ ∈ (chiBar N i).ker := closure_minimal hle hcl (hTG.2 hσ)
+    rw [← chiBar_val, MonoidHom.mem_ker.1 h2, Units.val_one]
+  have : Finite ((Ine (F := H.E) (N.plOm.1 w)).map (N.chi i 1)) :=
+    Nat.finite_of_card_ne_zero (by rw [hDel]; norm_num)
+  obtain ⟨g, hgen⟩ := IsCyclic.exists_ofOrder_eq_natCard (α := (Ine (F := H.E) (N.plOm.1 w)).map (N.chi i 1))
+  obtain ⟨σ, hσ, hσg⟩ := Subgroup.mem_map.1 g.2
+  have hord : orderOf (g : (N.O i)ˣ) = 15 := by rw [Subgroup.orderOf_coe, hgen, hDel]
+  have hprim : IsPrimitiveRoot ((g : (N.O i)ˣ) : N.O i) 15 := by
+    rw [IsPrimitiveRoot.coe_units_iff, ← hord]
+    exact IsPrimitiveRoot.orderOf _
+  apply GlobalTheory.T.primitiveRoot_notPrimePow_map_ne_one' _ (N.O i) (IsLocalRing.residue (N.O i)) _ 15 (by norm_num) hprim not_isPrimePow_15
+  rw [← hσg]
+  exact hIne σ hσ
+
+theorem charpoly_red (N : NData R H what₂) {i : N.Loc} (r : N.X i → (G H.E N.Om →* GL (Fin R.nV) (N.O i)))
+    {w : PlE H} {x : N.X i} (hs : Formalism.MainNotions.SumRepresentations.SplitI N r w x) (γ : G H.E N.Om) (hγ : γ ∈ Ine (F := H.E) (N.plOm.1 w)) :
+    ((redRep N i (r x) γ : GL _ _) : Matrix (Fin R.nV) (Fin R.nV) (IsLocalRing.ResidueField (N.O i))).charpoly =
+      (X - 1) ^ R.r * (X - C (IsLocalRing.residue (N.O i) (chi1 N i γ))) ^ R.t := by
+  have hK : (((r x γ : GL _ _) : Matrix (Fin R.nV) (Fin R.nV) (N.O i)).charpoly).map
+      (algebraMap (N.O i) (Kf N i)) =
+      ((X - 1) ^ R.r * (X - C (chi1 N i γ)) ^ R.t).map (algebraMap (N.O i) (Kf N i)) := by
+    obtain ⟨Pm, hP⟩ := hs
+    have h := hP γ hγ
+    rw [← Matrix.charpoly_map]
+    have e1 : ((r x γ : GL _ _) : Matrix (Fin R.nV) (Fin R.nV) (N.O i)).map (algebraMap (N.O i) (Kf N i)) =
+        ((mapRep (algebraMap (N.O i) (Kf N i)) (r x) γ : GL _ _) : Matrix (Fin R.nV) (Fin R.nV) (Kf N i)) := rfl
+    have h2 := Matrix.charpoly_units_conj' Pm
+      ((mapRep (algebraMap (N.O i) (Kf N i)) (r x) γ : GL _ _) : Matrix (Fin R.nV) (Fin R.nV) (Kf N i))
+    rw [← Matrix.coe_units_inv, ← Units.val_mul, ← Units.val_mul, h] at h2
+    rw [e1, ← h2]
+    have h3 := Formalism.MainNotions.SumRepresentations.diagHom_charpoly (k := Kf N i) R.r R.t
+      (Units.map (algebraMap (N.O i) (Kf N i)).toMonoidHom (N.chi i 1 γ))
+    rw [Formalism.MainNotions.SumRepresentations.diagHom_coe] at h3
+    simp only [Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_sub, Polynomial.map_X,
+      Polynomial.map_one, Polynomial.map_C]
+    exact h3
+  have hO := Polynomial.map_injective _ (IsFractionRing.injective (N.O i) (Kf N i)) hK
+  have e2 : ((redRep N i (r x) γ : GL _ _) : Matrix (Fin R.nV) (Fin R.nV) (IsLocalRing.ResidueField (N.O i))) =
+      ((r x γ : GL _ _) : Matrix (Fin R.nV) (Fin R.nV) (N.O i)).map (IsLocalRing.residue (N.O i)) := rfl
+  rw [e2, Matrix.charpoly_map, hO]
+  simp only [Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_sub, Polynomial.map_X,
+    Polynomial.map_one, Polynomial.map_C]
+
+end GlobalTheory.TameEig

@@ -1,0 +1,7 @@
+module
+
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsFiniteEtaleSectionOfSmoothClosedFibre
+
+public section
+
+alias GlobalTheory.T.sumTwoPointFunction_multiples_natural_charP := GlobalTheory.PtExt.chi_natural

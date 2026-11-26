@@ -1,0 +1,183 @@
+module
+
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DualFamilyCounting.FormulaCOf
+
+@[expose] public section
+
+section -- merged from Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DualFamilyCounting.RowLatEx
+namespace Formalism.L2.SG.Pf.Cnt
+
+theorem lattice_exists_holds : RowLatExists := by
+  intro D T u
+  obtain ⟨Λ, hΛ⟩ := Formalism.L2.SG.Pf.latSub T.X u 1
+  exact ⟨Λ, Formalism.L2.SG.Pf.latRowLat T.X u 1 Λ hΛ⟩
+
+end Formalism.L2.SG.Pf.Cnt
+end
+
+section -- merged from Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DualFamilyCounting.OrbitFinR
+open NumberField Formalism.MainNotions.S Formalism.MainNotions.S.Lat Formalism.MainNotions.S.LocalSplitGroups Formalism.L2.SG.CntLocal
+open Classical
+
+noncomputable section
+
+namespace Formalism.L2.SG.Pf.Cnt
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+def CntIsoInv : Prop :=
+  ∀ (D : Formalism.BasicNotions.D7) (β : (VS D).V ≃ₗ[D.host.E] (VS D).V) (hβ : β ∈ Formalism.HermitianLatticesTheory.isom (VS D).hT) {T : D.host.E}
+    (T' : D.host.E) (F0 : FlagG (VS D) D.R.rS T) (Λ : Submodule (𝓞 D.host.E) (VS D).V) (Z : MatZ D),
+    cntE T' (Formalism.L2.SG.Saturated.mapFlag β hβ F0) (Formalism.HermitianLatticesTheory.gmap β Λ) Z = cntE T' F0 Λ Z
+
+theorem orbitFiniteR_of (hI : CntIsoInv) : OrbitFiniteR := by
+  intro D δ M hA L u u' hT F0 what₂ hR Z Λ hΛ
+  have hT0 : (((D.mem u).A.T : ℕ) : D.host.E) ≠ 0 := Nat.cast_ne_zero.2 (D.mem u).A.T_prime.ne_zero
+  obtain ⟨β, hβ, he, hz⟩ := Formalism.L2.SG.Pf.WittFlags.flag_witt hT0 rfl F0 (Formalism.MainNotions.S.Inh.tie_flag0 D u)
+  have hR' := Formalism.L2.SG.Pf.WittFlags.RowRepsIso_holds D β hβ F0 what₂ hR
+  have hF1e : (Formalism.L2.SG.Saturated.mapFlag β hβ F0).e = D.sp.hypE := by
+    funext a
+    show β (F0.e a) = _
+    rw [he a]
+    rfl
+  have hF1z : (Formalism.L2.SG.Saturated.mapFlag β hβ F0).z = D.zmOf u := by
+    show β F0.z = _
+    rw [hz]
+    rfl
+  have hRO : RowsOf u (Formalism.L2.SG.Saturated.mapFlag β hβ F0) (what₂.image (Formalism.HermitianLatticesTheory.gmap β)) :=
+    ⟨hF1e, hF1z, hR', ⟨_, Finset.mem_image_of_mem _ hΛ⟩⟩
+  have h := PI.UnitaryGroupMassFormula.CntFormula.orbitFinite_of PI.UnitaryGroupMassFormula.CntFormula.unipotent_integral_isGroup PI.UnitaryGroupMassFormula.CntFormula.orbit_representatives
+    D δ M hA L u u' hT _ _ hRO Z (Formalism.HermitianLatticesTheory.gmap β Λ) (Finset.mem_image_of_mem _ hΛ)
+  rwa [hI D β hβ (Tn u') F0 Λ Z] at h
+
+end Formalism.L2.SG.Pf.Cnt
+end
+end
+
+section -- merged from Formalism.LocalToGlobal.SiegelLatticeTheory.CokernelGLCounts.RankPointCounts.DualFamilyCounting.FinrankSpanLb
+noncomputable section
+
+open NumberField Formalism.BasicNotions
+open scoped BigOperators
+
+namespace Formalism.L2.SG.Pf.NcReal.JX.CovB.CovolumeSpans
+
+open Formalism.L2.SG.HidaSetting Formalism.MainNotions.S Formalism.L2.SG.Pf.NcReal.JX.NOf
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+variable {D : D7} (X : HidaSetting D)
+
+def Wb : Submodule D.host.E (VS D).V :=
+  ⨅ c, LinearMap.ker ((VS D).hT (X.eX c)) ⊓ LinearMap.ker ((VS D).hT (X.fY c))
+
+theorem mem_Wb {y : (VS D).V} : y ∈ Wb X ↔ ∀ c, (VS D).hT (X.eX c) y = 0 ∧ (VS D).hT (X.fY c) y = 0 := by
+  simp [Wb, Submodule.mem_iInf, LinearMap.mem_ker]
+
+def phi : (VS D).V →ₗ[D.host.E] (Fin D.R.rS → D.host.E) × (Fin D.R.rS → D.host.E) :=
+  LinearMap.prod (LinearMap.pi fun c => (VS D).hT (X.eX c)) (LinearMap.pi fun c => (VS D).hT (X.fY c))
+
+theorem phi_apply (y : (VS D).V) :
+    phi X y = (fun c => (VS D).hT (X.eX c) y, fun c => (VS D).hT (X.fY c) y) := rfl
+
+theorem ker_phi : LinearMap.ker (phi X) = Wb X := by
+  ext y
+  rw [LinearMap.mem_ker, mem_Wb, phi_apply]
+  constructor
+  · intro h c
+    exact ⟨congrFun (congrArg Prod.fst h) c, congrFun (congrArg Prod.snd h) c⟩
+  · intro h
+    refine Prod.ext (funext fun c => (h c).1) (funext fun c => (h c).2)
+
+theorem range_phi : LinearMap.range (phi X) = ⊤ := by
+  rw [LinearMap.range_eq_top]
+  rintro ⟨p, q⟩
+  refine ⟨∑ a, p a • X.fY a + ∑ a, q a • X.eX a, ?_⟩
+  rw [phi_apply]
+  refine Prod.ext (funext fun c => ?_) (funext fun c => ?_)
+  set_option synthInstance.maxHeartbeats 100000 in
+    · simp [map_sum, map_smul, X.ef, X.ee, Finset.sum_ite_eq]
+  set_option synthInstance.maxHeartbeats 100000 in
+    · simp [map_sum, map_smul, X.ff, Ex.h_fe, Finset.sum_ite_eq]
+
+theorem finrank_V (X : HidaSetting D) : Module.finrank D.host.E (VS D).V = 2 * D.R.rS + D.R.k + 1 := by
+  rw [Module.finrank_eq_card_basis X.bas, Fintype.card_fin, nX X]
+
+theorem finrank_Wb : Module.finrank D.host.E (Wb X) = D.R.k + 1 := by
+  have h := LinearMap.finrank_range_add_finrank_ker (phi X)
+  rw [range_phi, ker_phi, finrank_top, Module.finrank_prod, Module.finrank_fin_fun, finrank_V X] at h
+  omega
+
+theorem span_Lb_le : Submodule.span D.host.E (X.Lb : Set (VS D).V) ≤ Wb X := by
+  rw [Submodule.span_le]
+  intro x hx
+  exact (mem_Wb X).2 fun c => X.Lb_perp x hx c
+
+theorem span_Lb : Submodule.span D.host.E (X.Lb : Set (VS D).V) = Wb X := by
+  refine le_antisymm (span_Lb_le X) fun y hy => ?_
+  have hy' := (mem_Wb X).1 hy
+  have htop : Submodule.span D.host.E ((VS D).L0 : Set (VS D).V) = ⊤ := by
+    apply eq_top_iff.mpr
+    intro y _
+    let x : Fin X.B.I.n → X.B.I.E := fun i => X.ιE.symm (X.bas.repr y i)
+    have hx : x ∈ Submodule.span X.B.I.E (X.B.I.L : Set (Fin X.B.I.n → X.B.I.E)) := by
+      rw [X.B.I.L_span]; trivial
+    have hm : ∀ x ∈ Submodule.span X.B.I.E (X.B.I.L : Set (Fin X.B.I.n → X.B.I.E)),
+        (∑ i, X.ιE (x i) • X.bas i) ∈ Submodule.span D.host.E ((VS D).L0 : Set (VS D).V) := by
+      intro x hx
+      induction hx using Submodule.span_induction with
+      | mem x hx => exact Submodule.subset_span ((X.L_eq x).1 hx)
+      | zero => simp
+      | add x y hx hy ihx ihy => simpa [map_add, add_smul, Finset.sum_add_distrib] using Submodule.add_mem _ ihx ihy
+      | smul a x hx ih => simpa [map_mul, mul_smul, Finset.smul_sum] using Submodule.smul_mem _ (X.ιE a) ih
+    have := hm x hx
+    simpa only [x, RingEquiv.apply_symm_apply, X.bas.sum_repr] using this
+  have hyL : y ∈ Submodule.span D.host.E ((VS D).L0 : Set (VS D).V) := by rw [htop]; trivial
+  have hle : Submodule.span D.host.E ((VS D).L0 : Set (VS D).V) ≤
+      Submodule.span D.host.E (Set.range X.eX) ⊔ Submodule.span D.host.E (X.Lb : Set (VS D).V) ⊔
+        Submodule.span D.host.E (Set.range X.fY) := by
+    rw [Submodule.span_le]
+    intro z hz
+    set T := Submodule.span D.host.E (Set.range X.eX) ⊔ Submodule.span D.host.E (X.Lb : Set (VS D).V) ⊔
+        Submodule.span D.host.E (Set.range X.fY) with hT
+    have hL : (VS D).L0 ≤ T.restrictScalars (𝓞 D.host.E) := by
+      rw [X.Lam_split]
+      refine sup_le (sup_le ?_ ?_) ?_
+      · unfold latSpanS
+        rw [Submodule.span_le]
+        rintro _ ⟨a, x, -, rfl⟩
+        exact Submodule.mem_sup_left (Submodule.mem_sup_left
+          (Submodule.smul_mem _ x (Submodule.subset_span ⟨a, rfl⟩)))
+      · intro l hl
+        exact Submodule.mem_sup_left (Submodule.mem_sup_right (Submodule.subset_span hl))
+      · unfold latSpanS
+        rw [Submodule.span_le]
+        rintro _ ⟨a, x, -, rfl⟩
+        exact Submodule.mem_sup_right (Submodule.smul_mem _ x (Submodule.subset_span ⟨a, rfl⟩))
+    exact hL hz
+  obtain ⟨y12, hy12, y3, hy3, rfl⟩ := Submodule.mem_sup.1 (hle hyL)
+  obtain ⟨y1, hy1, l, hl, rfl⟩ := Submodule.mem_sup.1 hy12
+  obtain ⟨α, rfl⟩ := (Submodule.mem_span_range_iff_exists_fun D.host.E).1 hy1
+  obtain ⟨β, rfl⟩ := (Submodule.mem_span_range_iff_exists_fun D.host.E).1 hy3
+  have hlW : ∀ c, (VS D).hT (X.eX c) l = 0 ∧ (VS D).hT (X.fY c) l = 0 := (mem_Wb X).1 (span_Lb_le X hl)
+  have hα : ∀ c, α c = 0 := by
+    intro c
+    have := (hy' c).2
+    set_option synthInstance.maxHeartbeats 100000 in
+      simp [map_add (f := _), map_sum, map_smul, Ex.h_fe, X.ff, (hlW c).2, Finset.sum_ite_eq] at this
+    exact this
+  have hβ : ∀ c, β c = 0 := by
+    intro c
+    have := (hy' c).1
+    set_option synthInstance.maxHeartbeats 100000 in
+      simp [map_add (f := _), map_sum, map_smul, X.ef, X.ee, (hlW c).1, Finset.sum_ite_eq] at this
+    exact this
+  simp only [hα, hβ, zero_smul, Finset.sum_const_zero, zero_add, add_zero]
+  exact hl
+
+theorem finrank_span_Lb : Module.finrank D.host.E (Submodule.span D.host.E (X.Lb : Set (VS D).V)) = D.R.k + 1 := by
+  rw [span_Lb, finrank_Wb]
+
+end Formalism.L2.SG.Pf.NcReal.JX.CovB.CovolumeSpans
+end
+end

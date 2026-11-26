@@ -1,0 +1,115 @@
+module
+
+public import Development.AbelianVarietyTheory.Definitions.Divisors.PairsOfSquareTriple
+public import Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.GaussianIsSchwartzFunction
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Definitions.Divisors.IsLv
+noncomputable section
+
+open NumberField Matrix Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.AdelicU GlobalTheory.SiegelSet
+open Formalism.UG (cT bc)
+open scoped TensorProduct NNReal
+
+namespace GlobalTheory.SphEis
+
+variable {F E : Type} [Field F] [NumberField F] [Field E] [NumberField E] [Algebra F E]
+  (σ : E →ₐ[F] E) {n : ℕ} (J : Matrix (Fin n) (Fin n) E) {j m : ℕ}
+
+structure Fr (C D : Matrix (Fin n) (Fin j) E) (Z : Matrix (Fin n) (Fin m) E) (J₀ : Matrix (Fin m) (Fin m) E) : Prop where
+  cm : IsCMExt F E σ
+  herm : IsHermND σ J
+  herm₀ : IsHermND σ J₀
+  cc : cT (σ : E →+* E) C * J * C = 0
+  dd : cT (σ : E →+* E) D * J * D = 0
+  cd : cT (σ : E →+* E) C * J * D = 1
+  dc : cT (σ : E →+* E) D * J * C = 1
+  cz : cT (σ : E →+* E) C * J * Z = 0
+  dz : cT (σ : E →+* E) D * J * Z = 0
+  zc : cT (σ : E →+* E) Z * J * C = 0
+  zd : cT (σ : E →+* E) Z * J * D = 0
+  zz : cT (σ : E →+* E) Z * J * Z = J₀
+  sum : C * (cT (σ : E →+* E) D * J) + Z * (J₀⁻¹ * (cT (σ : E →+* E) Z * J)) + D * (cT (σ : E →+* E) C * J) = 1
+  dim : m + 2 * j = n
+
+def fixG {k : ℕ} (C : Matrix (Fin n) (Fin k) E) : Subgroup (GAd σ J) where
+  carrier := {g | (matHom _ σ J g).1 * adMat F C = adMat F C}
+  one_mem' := by simp
+  mul_mem' := fun {a b} ha hb => by
+    change _ * _ = _ at ha hb ⊢
+    rw [map_mul, Units.val_mul, Matrix.mul_assoc, hb, ha]
+  inv_mem' := fun {a} ha => by
+    change _ * _ = _ at ha ⊢
+    conv_lhs => rw [← ha]
+    rw [← Matrix.mul_assoc, ← Units.val_mul, ← map_mul, inv_mul_cancel, map_one, Units.val_one, Matrix.one_mul]
+
+structure IsLv (C D : Matrix (Fin n) (Fin j) E) (Z : Matrix (Fin n) (Fin m) E)
+    (lv : GL (Fin j) (AF F ⊗[F] E) →* GAd σ J) : Prop where
+  cont : Continuous lv
+  onC : ∀ α, (matHom _ σ J (lv α)).1 * adMat F C = adMat F C * α.1
+  onD : ∀ α, (matHom _ σ J (lv α)).1 * adMat F D = adMat F D * cT (sigR (AF F) σ) (α⁻¹).1
+  onZ : ∀ α, (matHom _ σ J (lv α)).1 * adMat F Z = adMat F Z
+  rat : ∀ δ : GL (Fin j) E, lv (bc (inclR (F := F) (AF F)) δ) ∈ ratPts σ J
+
+def plus (J₀ : Matrix (Fin m) (Fin m) E) (b : Matrix (Fin j) (Fin m) (AF F ⊗[F] E)) : Matrix (Fin m) (Fin j) (AF F ⊗[F] E) :=
+  adMat F J₀⁻¹ * cT (sigR (AF F) σ) b
+
+structure Crd (C D : Matrix (Fin n) (Fin j) E) (Z : Matrix (Fin n) (Fin m) E) (J₀ : Matrix (Fin m) (Fin m) E) (u : GAd σ J)
+    (b : Matrix (Fin j) (Fin m) (AF F ⊗[F] E)) (c : Matrix (Fin j) (Fin j) (AF F ⊗[F] E)) : Prop where
+  onC : (matHom _ σ J u).1 * adMat F C = adMat F C
+  onZ : (matHom _ σ J u).1 * adMat F Z = adMat F Z + adMat F C * b
+  onD : (matHom _ σ J u).1 * adMat F D = adMat F D - adMat F Z * plus σ J₀ b + adMat F C * c
+
+
+variable (F E) in
+abbrev tor (l : Fin j → ℤ) : GL (Fin j) (AF F ⊗[F] E) := GlobalTheory.Eis.Conv.dg (GlobalTheory.Eis.Conv.halfE F E) l
+
+
+variable (F) in
+abbrev bse : ℝ := 4 ^ Fintype.card (InfinitePlace F)
+
+end GlobalTheory.SphEis
+
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Definitions.Divisors.ScalesBy
+noncomputable section
+
+open NumberField MeasureTheory Matrix Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.AdelicU GlobalTheory.SiegelSet
+open GlobalTheory.Doubling (absE)
+open scoped TensorProduct NNReal
+
+namespace GlobalTheory.ResidueEisenstein
+
+variable {F E : Type} [Field F] [NumberField F] [Field E] [NumberField E] [Algebra F E]
+
+def ScalesBy (σ : E →ₐ[F] E) {n k : ℕ} (J : Matrix (Fin n) (Fin n) E) (X : Matrix (Fin n) (Fin k) E) (p : GAd σ J)
+    (β : GL (Fin k) (AF F ⊗[F] E)) : Prop := (matHom _ σ J p).1 * adMat F X = adMat F X * β.1
+
+structure DataJ (σ : E →ₐ[F] E) {n : ℕ} (J : Matrix (Fin n) (Fin n) E) {r : ℕ} (X Y : Matrix (Fin n) (Fin (r + 1)) E)
+    (L : Submodule (𝓞 E) (Fin n → E)) (a : GL (Fin n) (AF F ⊗[F] E)) (h : GAd σ J → ℝ) : Prop where
+  cm : IsCMExt F E σ
+  herm : IsHermND σ J
+  witt : IsWittFrame σ J X Y
+  lat : Submodule.IsFullLattice E L
+  iwa : ∀ g, ∃ p β, ScalesBy σ J X p β ∧ ∃ k ∈ levelAll σ J L a, g = p * k
+  ht : ∀ p β, ScalesBy σ J X p β → ∀ k ∈ levelAll σ J L a, h (p * k) = absE F E (Matrix.GeneralLinearGroup.det β)
+
+def IsRepsJ (σ : E →ₐ[F] E) {n k : ℕ} (J : Matrix (Fin n) (Fin n) E) (X : Matrix (Fin n) (Fin k) E) (T : Set (ratPts σ J)) :
+    Prop :=
+  ∀ γ : ratPts σ J, ∃! t, t ∈ T ∧ ∃ β, ScalesBy σ J X (γ * t⁻¹ : ratPts σ J).1 β
+
+structure IsFlowJ (σ : E →ₐ[F] E) {n : ℕ} (J : Matrix (Fin n) (Fin n) E) {r : ℕ} (X Y : Matrix (Fin n) (Fin (r + 1)) E)
+    (b : ℝ → GAd σ J) : Prop where
+  cont : Continuous b
+  add : ∀ s t, b (s + t) = b s * b t
+  onX : ∀ t, ∃ β, ScalesBy σ J X (b t) β ∧ (absE F E (Matrix.GeneralLinearGroup.det β) : ℝ) = Real.exp t
+  mem : ∀ t, b t ∈ GlobalTheory.StdPar.levi σ J X Y {Fin.last r}
+  comm : ∀ t, ∀ m ∈ GlobalTheory.StdPar.levi σ J X Y {Fin.last r}, b t * m = m * b t
+
+end GlobalTheory.ResidueEisenstein
+
+end
+end

@@ -1,0 +1,46 @@
+module
+
+public import Development.AbelianVarietyTheory.Proofs.ModuliProofs.CompactifiedModuliPartOne
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.GenericRegularity.ExistsGlobalModelGoodLevelAllPrimes
+open NumberField IsDedekindDomain ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor Formalism.L2.Pj GlobalTheory.FrameNorm GlobalTheory.Reg
+
+namespace GlobalTheory.Reg
+
+theorem _root_.GlobalTheory.Reg.modelAt_and_nonempty_global_model : ∀ (E : Type) [Field E] [NumberField E]
+    [IsCMField E] (H : _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Host E) (Dw : _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Datum H) (l : _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Level H) (Xo : _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Moduli Dw l)
+    (c : _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Coeff l), 1 ≤ Dw.p + Dw.q → (∀ p : ℕ, p.Prime → l.GoodAt p) → l.A = 1 →
+    (∀ la, _root_.GlobalTheory.Reg.ModelAt Xo c la) ∧
+      Nonempty (_root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Model Xo c (algebraMap (𝓞 c.F) c.F)) := by
+  classical
+  intro E _ _ _ H Dw l Xo c hpq hgood hA
+  obtain ⟨hGI, hQH⟩ := _root_.GlobalTheory.Moduli.jointExistence_and_moduliScheme
+  have hne : ∀ l' : _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Level H, Nonempty (_root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Moduli Dw l') := by
+    unfold _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.N1ab at hQH
+    exact fun l' => hQH E H Dw l' hpq
+  let family : (l' : _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Level H) → _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.Moduli Dw l' :=
+    Function.update (fun l' => Classical.choice (hne l')) l Xo
+  have hfam : family l = Xo := Function.update_self _ _ _
+  refine ⟨fun la => ?_, ?_⟩
+  · have h := _root_.GlobalTheory.Reg.modelAt_of_good_level hGI E H Dw hpq family l c la
+      (fun p hp _ => hgood p hp)
+    rwa [hfam] at h
+  · have hGI' := hGI
+    unfold _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.PartI at hGI'
+    obtain ⟨Y, -, hY⟩ := hGI'.2 E H Dw hpq family
+    unfold _root_.ReciprocityTheory.ChartRestriction.G.Geo.Tor.N6 at hY
+    obtain ⟨Ygl, -⟩ := hY l c hgood hA
+    rw [hfam] at Ygl
+    exact ⟨Ygl⟩
+
+end GlobalTheory.Reg
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.GenericRegularity.ExistsGlobalModelGoodLevelAllPrimesStatement
+open NumberField IsDedekindDomain ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor Formalism.L2.Pj GlobalTheory.FrameNorm GlobalTheory.Reg
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_global_model_goodLevel_all_primes : ∀ (E : Type) [Field E] [NumberField E] [IsCMField E] (H : ReciprocityTheory.ChartRestriction.G.Geo.Tor.Host E) (Dw : Datum H) (l : Level H) (Xo : Moduli Dw l) (c : Coeff l), 1 ≤ Dw.p + Dw.q → (∀ p : ℕ, p.Prime → l.GoodAt p) → l.A = 1 → (∀ la, ModelAt Xo c la) ∧ Nonempty (Model Xo c (algebraMap (𝓞 c.F) c.F)) := by
+  first | exact @GlobalTheory.Reg.modelAt_and_nonempty_global_model | exact GlobalTheory.Reg.modelAt_and_nonempty_global_model | (intros; apply GlobalTheory.Reg.modelAt_and_nonempty_global_model <;> assumption)
+end

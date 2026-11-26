@@ -1,0 +1,20 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.GrothendieckRingPolynomial.ClassProductIrreducibleLeft
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.GrothendieckRingPolynomial.ProdList
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.LanglandsSocleOfOrderFree
+
+@[expose] public section
+
+namespace PositivityTheory.Groth
+export CompanionTheory.Groth (
+  bil bil_zero_left bil_zero_right bil_add_left bil_add_right bil_single
+  mulR_eq_bil mulR_zero_left mulR_zero_right mulR_add_left mulR_add_right
+  mulR_sg_sg class_eq_finite_length_class class_irreducible_basis
+  class_congr_equiv class_subsingleton class_eq_zero_of_trivial_space
+  class_additive_exact subIncl induction_length extL extR continuous_levi_pair
+  parInd_ses prod₂_ses_left prod₂_ses_right indSp_eq_zero class_product_zero_left
+  class_product_zero_right class_product_irreducibles
+  class_product_irreducible_left class_parabolic_product mulCls
+)
+end PositivityTheory.Groth

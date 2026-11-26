@@ -1,0 +1,18 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.PublishedTheorems.SemiabelianTori.GeometricallyConnectedSplitTorusAff
+public import Development.AbelianVarietyTheory.Proofs.CoherentCohomologyProofs.ExistsUniqueHomExtensionSemiAbelian
+public import Development.AbelianVarietyTheory.Proofs.HomogeneousIdeals.FormallyUnramifiedOfTangentMapInjective
+public import Development.AbelianVarietyTheory.Proofs.IwasawaDecomposition.IsOpenImmersionQuasiFiniteLocusOfIsIntegral
+public import Development.AbelianVarietyTheory.Proofs.ModuliProofs.ExistsUniqueHomExtensionSemiAbelianNormal
+public import Development.AutomorphicSpectrum.Proofs.GlobalProofs.SemiAbelianHomExtension
+
+@[expose] public section
+
+namespace GlobalTheory
+
+theorem semiAbelianHomExtension_holds : GlobalTheory.Published.SemiAbelianHomExtension :=
+  GlobalTheory.CompanionTheory.SAH.semiAbelianHomExtension
+
+end GlobalTheory

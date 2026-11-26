@@ -1,0 +1,21 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.CuspidalExhaustion.LanglandsMultisegmentsOfSeg
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.ExhaustionOfSteps
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.IrreducibleAdmissibleGL
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.IsLAddSegmentOfInjectiveOfNotPrecedes
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.JuxtPOfFineUniq
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.SquareIntegrableSegments.SegmentProductEquivalence.CsOrderfree
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.SegmentJacquetAll
+public import Development.WeilBound.RepresentationTheoryGL.GenericUnitaryGL.WhittakerCuspidal.WhitCuspOfSegCuspGeneric
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.NuPairOfAdmissibility
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.UnlinkedProductIrreducibleAltBis
+
+@[expose] public section
+
+namespace PositivityTheory.Exh
+export CompanionTheory.Exh (
+  standardCosocle_of lOrderFree_of lSocleGL_of exhaustion_of_three
+  multisegments_of lUnlinkedIrr_of_seg
+)
+end PositivityTheory.Exh

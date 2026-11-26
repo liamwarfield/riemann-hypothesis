@@ -1,0 +1,11 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.CuspidalExhaustion.IsLAddSegmentOfInjectiveOfNotPrecedes
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.LanglandsExhaustion.CuspEmbP
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.EulerProductLintegralLimit
+
+@[expose] public section
+
+namespace PositivityTheory.Exh
+export CompanionTheory.Exh (isL_add_segment_of_injective_of_not_precedes peelGoodP)
+end PositivityTheory.Exh

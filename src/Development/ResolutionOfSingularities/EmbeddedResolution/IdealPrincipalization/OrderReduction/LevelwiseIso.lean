@@ -1,0 +1,35 @@
+module
+
+public import Development.ResolutionOfSingularities.EmbeddedResolution.IdealPrincipalization.MarkedOrderReduction.AppendIsomorphism
+public import Development.ResolutionOfSingularities.EmbeddedResolution.IdealPrincipalization.OrderReduction.TunedMarkedBlowupSeq
+
+@[expose] public section
+
+universe u
+
+open CategoryTheory AlgebraicGeometry
+
+noncomputable section
+
+namespace FunctorialResolution.EmbeddedResolution
+
+theorem strictTransform_top_eq_top {X' X : Scheme.{u}} (f : X' ⟶ X) (Z : X.IdealSheafData) :
+    Blowup.strictTransform f Z ⊤ = ⊤ := by
+  have h := comap_le_strictTransform f Z (⊤ : X.IdealSheafData)
+  have h2 : (⊤ : X'.IdealSheafData) ≤ Blowup.strictTransform f Z ⊤ := by
+    refine le_trans ?_ h
+    simp
+  exact top_le_iff.mp h2
+
+theorem BlowupSequenceData.iteratedStrictTransform_top {X : Scheme.{u}} (d : BlowupSequenceData X) (i : ℕ) :
+    d.iteratedStrictTransform i ⊤ = ⊤ := by
+  induction i with
+  | zero =>
+      rw [BlowupSequenceData.iteratedStrictTransform_zero]
+      simp
+  | succ i ih =>
+      rw [BlowupSequenceData.iteratedStrictTransform_succ, ih, strictTransform_top_eq_top]
+
+end FunctorialResolution.EmbeddedResolution
+
+end

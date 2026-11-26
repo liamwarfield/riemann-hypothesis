@@ -1,0 +1,28 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.OneFormMapRowThreeLevelOfCharacterisation
+public import Development.AbelianVarietyTheory.Statements.PlaceShiftStatements.SingleIndexPlacesAreTwisted
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.SplitPartRealisationWithScalarsCharOfWeak
+public import Formalism.LocalToGlobal.IndefiniteReal.PrimitivePackageFullHecke
+public import Formalism.LocalToGlobal.IndefiniteReal.PackageFromPrimitiveStatements
+public import Development.AbelianVarietyTheory.Proofs.TwistedOperators.IntegrableOnOfRapidDec
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.SplitRowsBarPhaseCompatibility
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsIsRec
+public import Development.AbelianVarietyTheory.Proofs.DivisorProofs.ExistsRatRepr
+public import Development.AbelianVarietyTheory.Proofs.IwasawaDecomposition.HeckeCharacterIdeleCharacterMatchUnique
+public import Development.AbelianVarietyTheory.Proofs.IwasawaDecomposition.ForcedContentEqScaleAtResidueChar
+public import Formalism.LocalToGlobal.GroupLattices.JointServices.VwResChar
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.FamilyConstants
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.KerOfAt
+
+@[expose] public section
+
+set_option synthInstance.maxHeartbeats 200000
+
+section
+open GlobalTheory.BigTop GlobalTheory.BigOn GlobalTheory.BigOn.Exp GlobalTheory.BigOn.Exp.SerBase
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.kerOfAt' : _root_.GlobalTheory.BigOn.Exp.SerBase.KerOfAtAlt := by
+  first | exact @_root_.GlobalTheory.BigOn.Exp.SerBase.kerOfAt_alt | exact _root_.GlobalTheory.BigOn.Exp.SerBase.kerOfAt_alt | (intros; apply _root_.GlobalTheory.BigOn.Exp.SerBase.kerOfAt_alt <;> assumption)
+end

@@ -1,0 +1,405 @@
+module
+
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.FlagStabilizerTensors.RootLatticeThresholds.BDataOf
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.FlagStabilizerTensors.RootLatticeThresholds.RootHaarLoc
+
+@[expose] public section
+
+section -- merged from Formalism.LocalToGlobal.SiegelLatticeTheory.FlagStabilizerTensors.ThmBUseR
+noncomputable section
+
+open MeasureTheory
+open scoped ENNReal
+
+namespace Formalism.L2.SG.ThmBUseR
+
+open Formalism.BasicNotions Formalism.MainNotions.S Formalism.MainNotions.S.ThB Formalism.FourierDecayAlt
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+section Stmt
+
+variable (D : D7)
+
+def JSqR {Ch Cg : ℝ} {T T' : ℕ} {b dist : ℝ} (X : BData D Ch Cg T T' b dist) (γ : Point D.host.E (D.R.rS + 1)) :
+    ENNReal :=
+  ∏ v, orbSq (X.L v) (X.f v) (Formalism.MainNotions.S.Pv.Frames.turnPt (ptLoc D v γ))
+
+def BSumR {Ch Cg : ℝ} {T T' : ℕ} {b dist : ℝ} (X : BData D Ch Cg T T' b dist)
+    (W : Point D.host.E (D.R.rS + 1) → ℝ) : ENNReal :=
+  ∑' γ : {γ : Point D.host.E (D.R.rS + 1) // IsBPt D T T' γ},
+    ENNReal.ofReal (wPt D γ.1 * ptWeightG D (rhoReal D) T T' γ.1.1 * W γ.1) * JSqR D X γ.1
+
+def theoremBRotated (Aw Ch Cg Cb : ℝ) : Prop :=
+  ∀ (T T' : ℕ) (b : ℝ) (X : BData D Ch Cg T T' b 0),
+    (∀ v, AllGaps (X.L v).lam (Cg * ((2 * D.R.rS + 2 : ℕ) : ℝ) ^ 4)) →
+    BSumR D X (fun γ => normWt D T T' γ ^ (Aw * ((D.R.rS : ℝ) + 1) ^ 2)) ≤
+      ENNReal.ofReal (Real.exp (Cb * ((2 * D.R.rS + 2 : ℕ) : ℝ) ^ 5 * (Fintype.card D.what₂.Tau : ℝ) * Real.log b)) *
+        jSqG D X
+
+end Stmt
+
+def JointNormBoundRotatedUniform : Prop :=
+  ∀ Aw Ch : ℝ, 0 ≤ Aw → ∃ Cb Cg₀ : ℝ, ∀ Cg : ℝ, Cg₀ ≤ Cg → ∀ D : D7, theoremBRotated D Aw Ch Cg Cb
+
+section Core
+
+variable {D : D7} {τ Rw I H H₁ : Type} [Fintype I] [NormedAddCommGroup H] [InnerProductSpace ℂ H]
+  [NormedAddCommGroup H₁] [InnerProductSpace ℂ H₁] (X : PB.Terms τ Rw I H H₁)
+  {Cl Nu : Type} (N : PN.NGData τ D.host.E D.R.rS Cl Nu)
+
+def JointNormBoundRotated {Ch Cg : ℝ} {T T' : ℕ} {b : ℝ} (Bd : BData D Ch Cg T T' b 0) (Cj : ℝ) : Prop :=
+  ∀ γ (w : Point D.host.E (D.R.rS + 1)), PN.IsPt X N γ → Formalism.L2.SG.RowsConc.toPts w = γ →
+    Formalism.L2.SG.ThmBUse.IsRowPt D T T' w → ENNReal.ofReal (N.jacobianSquareBound γ) ≤ ENNReal.ofReal Cj * JSqR D Bd w
+
+def TiesR (Ch Cg : ℝ) (T T' : ℕ) (b : ℝ) (A : ℕ) (Cb TB : ℝ) : Prop :=
+  ∃ (Bd : BData D Ch Cg T T' b 0) (Cw Cj : ℝ), 0 ≤ Cw ∧ 0 ≤ Cj ∧
+    (∀ v, AllGaps (Bd.L v).lam (Cg * ((2 * D.R.rS + 2 : ℕ) : ℝ) ^ 4)) ∧
+    Formalism.L2.SG.ThmBUse.PtTie X N T T' ∧ Formalism.L2.SG.ThmBUse.WtTie X N T T' A Cw ∧ JointNormBoundRotated X N Bd Cj ∧
+    Formalism.L2.SG.ThmBUse.NormTie Bd Cw Cj Cb TB
+
+theorem pointSum_of_B3R {Ch Cg Cb : ℝ} {T T' A : ℕ} {b TB : ℝ} (hB3 : theoremBRotated D (A : ℝ) Ch Cg Cb)
+    (hJ0 : ∀ γ, 0 ≤ N.jacobianSquareBound γ) (hTB : 0 ≤ TB) (h : TiesR X N Ch Cg T T' b A Cb TB) :
+    PN.PointSumInput X N (A * (D.R.rS + 1) ^ 2) TB := by
+  classical
+  obtain ⟨Bd, Cw, Cj, hCw, hCj, hgap, hPt, hWt, hJ, hN⟩ := h
+  intro S hS
+
+  have hPt' : ∀ γ : S, ∃ w : Point D.host.E (D.R.rS + 1),
+      Formalism.L2.SG.RowsConc.toPts w = γ.1 ∧ Formalism.L2.SG.ThmBUse.IsRowPt D T T' w :=
+    fun γ => hPt γ.1 (hS γ.1 γ.2)
+  choose w hw hwr using hPt'
+
+  have key : ∀ γ : S, ENNReal.ofReal (Formalism.HermitianLatticeCounting.ExpansionTerms.blockMinorWeight γ.1 * N.n γ.1 * (N.NG γ.1 * N.ND γ.1) ^ (A * (D.R.rS + 1) ^ 2) * N.jacobianSquareBound γ.1) ≤
+      ENNReal.ofReal (Cw * Cj) * (ENNReal.ofReal (wPt D (w γ) * ptWeightG D (rhoReal D) T T' ((w γ)).1 *
+              normWt D T T' (w γ) ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) * JSqR D Bd (w γ)) := by
+    intro γ
+    have hγ := hS γ.1 γ.2
+    have h1 := hWt γ.1 (w γ) hγ (hw γ) (hwr γ)
+    have h2 := hJ γ.1 (w γ) hγ (hw γ) (hwr γ)
+    calc _ ≤ ENNReal.ofReal (Cw * (wPt D (w γ) * ptWeightG D (rhoReal D) T T' (w γ).1 *
+              normWt D T T' (w γ) ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) * N.jacobianSquareBound γ.1) :=
+          ENNReal.ofReal_le_ofReal (mul_le_mul_of_nonneg_right h1 (hJ0 γ.1))
+      _ = ENNReal.ofReal Cw * ENNReal.ofReal (wPt D (w γ) * ptWeightG D (rhoReal D) T T' ((w γ)).1 *
+              normWt D T T' (w γ) ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) * ENNReal.ofReal (N.jacobianSquareBound γ.1) := by
+          rw [ENNReal.ofReal_mul' (hJ0 γ.1), ENNReal.ofReal_mul hCw]
+      _ ≤ ENNReal.ofReal Cw * ENNReal.ofReal (wPt D (w γ) * ptWeightG D (rhoReal D) T T' ((w γ)).1 *
+              normWt D T T' (w γ) ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) * (ENNReal.ofReal Cj * JSqR D Bd (w γ)) := by gcongr
+      _ = _ := by rw [ENNReal.ofReal_mul hCw]; ring
+
+  have hinj : Function.Injective (fun γ : S =>
+      (⟨w γ, (show IsBPt D T T' (w γ) ∧ _ from hwr γ).1⟩ :
+        {p : Point D.host.E (D.R.rS + 1) // IsBPt D T T' p})) := by
+    intro a b hab
+    have hab' : w a = w b := congrArg Subtype.val hab
+    apply Subtype.ext
+    rw [← hw a, ← hw b, hab']
+  have hpart : ∑' γ : S, ENNReal.ofReal (wPt D (w γ) * ptWeightG D (rhoReal D) T T' ((w γ)).1 *
+              normWt D T T' (w γ) ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) * JSqR D Bd (w γ) ≤
+      BSumR D Bd (fun γ => normWt D T T' γ ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) :=
+    ENNReal.tsum_comp_le_tsum_of_injective hinj
+      (fun p : {p : Point D.host.E (D.R.rS + 1) // IsBPt D T T' p} =>
+        ENNReal.ofReal (wPt D p.1 * ptWeightG D (rhoReal D) T T' (p.1).1 *
+              normWt D T T' p.1 ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) * JSqR D Bd p.1)
+  have htot : ∑ γ : S, ENNReal.ofReal (Formalism.HermitianLatticeCounting.ExpansionTerms.blockMinorWeight γ.1 * N.n γ.1 * (N.NG γ.1 * N.ND γ.1) ^ (A * (D.R.rS + 1) ^ 2) * N.jacobianSquareBound γ.1) ≤ ENNReal.ofReal TB :=
+    calc _ ≤ ∑ γ : S, ENNReal.ofReal (Cw * Cj) * (ENNReal.ofReal (wPt D (w γ) * ptWeightG D (rhoReal D) T T' ((w γ)).1 *
+              normWt D T T' (w γ) ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) * JSqR D Bd (w γ)) :=
+          Finset.sum_le_sum fun γ _ => key γ
+      _ = ENNReal.ofReal (Cw * Cj) * ∑' γ : S, ENNReal.ofReal (wPt D (w γ) * ptWeightG D (rhoReal D) T T' ((w γ)).1 *
+              normWt D T T' (w γ) ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) * JSqR D Bd (w γ) := by
+          rw [tsum_fintype, Finset.mul_sum]
+      _ ≤ ENNReal.ofReal (Cw * Cj) *
+          BSumR D Bd (fun γ => normWt D T T' γ ^ ((A : ℝ) * ((D.R.rS : ℝ) + 1) ^ 2)) := by gcongr
+      _ ≤ ENNReal.ofReal (Cw * Cj) *
+          (ENNReal.ofReal (Real.exp (Cb * ((2 * D.R.rS + 2 : ℕ) : ℝ) ^ 5 * (Fintype.card D.what₂.Tau : ℝ) *
+            Real.log b)) * jSqG D Bd) := by gcongr; exact hB3 T T' b Bd hgap
+      _ ≤ ENNReal.ofReal TB := hN
+
+  rw [← Finset.sum_coe_sort S]
+  calc _ ≤ ∑ γ : S, (ENNReal.ofReal (Formalism.HermitianLatticeCounting.ExpansionTerms.blockMinorWeight γ.1 * N.n γ.1 * (N.NG γ.1 * N.ND γ.1) ^ (A * (D.R.rS + 1) ^ 2) * N.jacobianSquareBound γ.1)).toReal :=
+        Finset.sum_le_sum fun γ _ => by rw [ENNReal.toReal_ofReal']; exact le_max_left _ _
+    _ = (∑ γ : S, ENNReal.ofReal (Formalism.HermitianLatticeCounting.ExpansionTerms.blockMinorWeight γ.1 * N.n γ.1 * (N.NG γ.1 * N.ND γ.1) ^ (A * (D.R.rS + 1) ^ 2) * N.jacobianSquareBound γ.1)).toReal :=
+        (ENNReal.toReal_sum fun γ _ => ENNReal.ofReal_ne_top).symm
+    _ ≤ (ENNReal.ofReal TB).toReal := ENNReal.toReal_mono ENNReal.ofReal_ne_top htot
+    _ = TB := ENNReal.toReal_ofReal hTB
+
+end Core
+
+end Formalism.L2.SG.ThmBUseR
+end
+end
+
+section -- merged from Formalism.LocalToGlobal.SiegelLatticeTheory.FlagStabilizerTensors.RootLatticeThresholds.JointAmplitudePoints
+noncomputable section
+
+open scoped Classical
+open MeasureTheory NumberField Formalism.BasicNotions Formalism.MainNotions.S Formalism.MainNotions.S.ThB Formalism.MainNotions.S.Lat Formalism.L2.SG.HidaSetting Formalism.L2.SG.Full
+  Formalism.L2.SG.RowsConc Formalism.L2.SG.NGData Formalism.L2.SG.LocWSOf
+open scoped ENNReal
+
+namespace Formalism.L2.SG.Pf.JointAmplitudePoints
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+section Pt
+
+variable {D : D7} {X : HidaSetting D} {θ : ℝ} (C : Choice X θ) (u u' : D.what₂.Word)
+
+def gamP (w : Point D.host.E (D.R.rS + 1)) (τ : D.what₂.Tau) : MatKR D.R.k D.R.rS :=
+  Formalism.L2.SG.RealObj.trG (C.Q τ) (C.Qi τ) ((Formalism.L2.SG.RealObj.gamW X u u' w) (vOf X τ))
+
+def nu1P (w : Point D.host.E (D.R.rS + 1)) (τ : D.what₂.Tau) : Measure (Formalism.QuantumDeterminants.Mt D.R.k D.R.rS) :=
+  if h : ∃ ν, RMeas D (locW C u u' τ) (gamP C u u' w τ) 1 ν then h.choose else 0
+
+variable {C} (hB : WuBessel C)
+
+def localAmplitudeProduct (w : Point D.host.E (D.R.rS + 1)) : ℝ :=
+  ∏ τ, hsNormSq ((locS hB u u' τ).J (nu1P C u u' w τ) (gamP C u u' w τ))
+
+def thetaP (J2 : ℝ) (w : Point D.host.E (D.R.rS + 1)) : ℝ :=
+  if 0 < J2 ∧ 0 < localAmplitudeProduct u u' hB w then
+    (localAmplitudeProduct u u' hB w / J2) ^ ((1 : ℝ) / (2 * Fintype.card D.what₂.Tau))
+  else 1
+
+end Pt
+
+section Stmts
+
+variable {D : D7} {X : HidaSetting D} (Y : Full X) (u u' : D.what₂.Word) (ν : X.B.I.Ginf → Measure X.B.I.Ginf)
+  {θ : ℝ} (C : Choice X θ) (hB : WuBessel C)
+
+def RMeasExP : Prop :=
+  ∀ w : Point D.host.E (D.R.rS + 1), Formalism.L2.SG.ThmBUse.IsRowPt D (D.mem u).A.T (D.mem u').A.T w →
+    (∃ g, Formalism.L2.SG.RealObj.IsPtRep X u u' w g) → ∀ τ, ∃ ν₁, RMeas D (locW C u u' τ) (gamP C u u' w τ) 1 ν₁
+
+def LocalAmplitudesPositive : Prop :=
+  ∀ w : Point D.host.E (D.R.rS + 1), Formalism.L2.SG.ThmBUse.IsRowPt D (D.mem u).A.T (D.mem u').A.T w →
+    0 < J2of Y u u' ν (toPts w) → 0 < localAmplitudeProduct u u' hB w
+
+def ThetaWinP (large₂ : SizeData₂ D) (C1 : ℝ) : Prop :=
+  ∀ w : Point D.host.E (D.R.rS + 1), Formalism.L2.SG.ThmBUse.IsRowPt D (D.mem u).A.T (D.mem u').A.T w →
+    0 < J2of Y u u' ν (toPts w) → normWin D large₂ C1 (thetaP u u' hB (J2of Y u u' ν (toPts w)) w)
+
+end Stmts
+
+section Proof
+
+variable {D : D7} {X : HidaSetting D}
+
+theorem card_pos' (D : D7) : 0 < Fintype.card D.what₂.Tau := by
+  first
+  | (haveI : Nonempty D.what₂.Tau := ⟨D.eTau.symm 1⟩; exact Fintype.card_pos)
+  | (haveI : Nonempty D.what₂.Tau := ⟨D.eTau.symm ⟨1, one_mem _⟩⟩; exact Fintype.card_pos)
+
+def ofPts {K : Type} {i : ℕ} (s : Σ c : Composition (i + 1), (Fin c.length → K)) : List (K × ℕ) :=
+  List.ofFn fun a => (s.2 a, s.1.blocksFun a)
+
+theorem ofPts_toPts {K : Type} [Zero K] {i : ℕ} (p : Point K (i + 1)) : ofPts (toPts p) = p.1 := by
+  first
+  | (apply List.ext_getElem <;> simp [ofPts, toPts, Composition.blocksFun, Composition.length])
+  | (apply List.ext_get <;> simp [ofPts, toPts, Composition.blocksFun, Composition.length])
+
+theorem toPts_injective {K : Type} [Zero K] {i : ℕ} :
+    Function.Injective (toPts : Point K (i + 1) → Σ c : Composition (i + 1), (Fin c.length → K)) := by
+  intro p q h
+  have h' := congrArg ofPts h
+  rw [ofPts_toPts, ofPts_toPts] at h'
+  exact Subtype.ext h'
+
+theorem isPtRep_of_J2of {Y : Full X} {u u' : D.what₂.Word} {ν : X.B.I.Ginf → Measure X.B.I.Ginf}
+    {w : Point D.host.E (D.R.rS + 1)} (h : 0 < J2of Y u u' ν (toPts w)) :
+    ∃ w' : Point D.host.E (D.R.rS + 1), toPts w' = toPts w ∧ ∃ g, Formalism.L2.SG.RealObj.IsPtRep X u u' w' g := by
+  unfold J2of at h
+  split_ifs at h with hc
+  · exact hc
+  · exact absurd h (lt_irrefl 0)
+
+end Proof
+
+end Formalism.L2.SG.Pf.JointAmplitudePoints
+end
+end
+
+noncomputable section
+
+open scoped Classical
+open MeasureTheory NumberField Formalism.BasicNotions Formalism.MainNotions.S Formalism.MainNotions.S.ThB Formalism.MainNotions.S.Lat Formalism.L2.SG.HidaSetting Formalism.L2.SG.Full
+  Formalism.L2.SG.RowsConc Formalism.L2.SG.NGData Formalism.L2.SG.NGCut Formalism.L2.SG.NGAnalytic Formalism.L2.SG.LocWSOf
+  Formalism.L2.SG.PoincareInHH.PoincareSetting Formalism.L2.SG.TermOp Formalism.L2.SG.Pf.MainEqCut Formalism.L2.SG.Pf.BDat Formalism.L2.SG.ThmBUseR
+open scoped ENNReal
+
+set_option linter.dupNamespace false
+
+namespace Formalism.L2.SG.Pf.BDatR
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+section J2
+
+variable {D : D7}
+
+def JointAmplitudeFactorizationRotated {τ₀ Rw I₀ H H₁ : Type} [Fintype I₀] [NormedAddCommGroup H] [InnerProductSpace ℂ H]
+    [NormedAddCommGroup H₁] [InnerProductSpace ℂ H₁] (X : Formalism.FourierDecayAlt.PB.Terms τ₀ Rw I₀ H H₁)
+    {Cl Nu : Type} (N : Formalism.FourierDecayAlt.PN.NGData τ₀ D.host.E D.R.rS Cl Nu) (large₂ : SizeData₂ D) (C1 : ℝ)
+    (W : D.what₂.Tau → LocW D.R.k D.R.rS) (A : ∀ τ, LocS (W τ)) (T T' : ℕ) (Cfac : ℝ) : Prop :=
+  ∀ γ (w : Point D.host.E (D.R.rS + 1)), Formalism.FourierDecayAlt.PN.IsPt X N γ → Formalism.L2.SG.RowsConc.toPts w = γ →
+    Formalism.L2.SG.ThmBUse.IsRowPt D T T' w → 0 < N.jacobianSquareBound γ →
+    ∃ (g : D.what₂.Tau → MatKR D.R.k D.R.rS) (θ' : D.what₂.Tau → ℝ)
+      (νR : D.what₂.Tau → Measure (Formalism.QuantumDeterminants.Mt D.R.k D.R.rS)),
+      (∀ τ, RelPt D (W τ).z (W τ).z' (g τ) (ptLoc D τ w) ∧ normWin D large₂ C1 (θ' τ) ∧
+        RMeas D (W τ) (g τ) (θ' τ) (νR τ)) ∧
+      ENNReal.ofReal (N.jacobianSquareBound γ) ≤ ENNReal.ofReal Cfac * ∏ τ, ENNReal.ofReal (hsNormSq ((A τ).J (νR τ) (g τ)))
+
+private lemma prod_ofReal_le_lemma {ι : Type*} (s : Finset ι) (x : ι → ℝ) :
+    ∏ i ∈ s, ENNReal.ofReal (x i) ≤ ENNReal.ofReal (∏ i ∈ s, x i) := by
+  classical
+  refine Finset.induction_on s (by simp) ?_
+  intro a s ha ih
+  rw [Finset.prod_insert ha, Finset.prod_insert ha]
+  rcases le_or_gt 0 (x a) with h | h
+  · rw [ENNReal.ofReal_mul h]; gcongr
+  · rw [ENNReal.ofReal_of_nonpos h.le, zero_mul]; simp
+
+theorem jointAmplitude_bound_rotated {τ₀ Rw I₀ H H₁ : Type} [Fintype I₀] [NormedAddCommGroup H] [InnerProductSpace ℂ H]
+    [NormedAddCommGroup H₁] [InnerProductSpace ℂ H₁] (X : Formalism.FourierDecayAlt.PB.Terms τ₀ Rw I₀ H H₁)
+    {Cl Nu : Type} (N : Formalism.FourierDecayAlt.PN.NGData τ₀ D.host.E D.R.rS Cl Nu) {large₂ : SizeData₂ D} {C1 Ca Ch Cg b : ℝ}
+    {u u' : D.what₂.Word} {θ : ℝ} {hT : 0 < Tr D u} {hT' : 0 < Tr D u'} (I : AmpIn large₂ C1 Ca u u' θ hT hT')
+    (hok : ∀ τ, LocOk D Ch Cg (I.L τ) (lamSH D.R (D.hc τ)) (kaRe D) b (kaRe D))
+    (hka : 0 < Formalism.MainNotions.S.Bridge.kaS D) {Cfac : ℝ} (hCfac : 0 ≤ Cfac)
+    (hF : JointAmplitudeFactorizationRotated X N large₂ C1 I.W I.A (D.mem u).A.T (D.mem u').A.T Cfac) :
+    JointNormBoundRotated X N (bdOf I.toInputs hok) (Cfac * ∏ τ, (I.K τ * large₂.sc.b ^ (Ca * (D.R.m : ℝ) ^ 2))) := by
+  intro γ w hpt hw hrow
+  by_cases hpos : 0 < N.jacobianSquareBound γ
+  · obtain ⟨g, θ', νR, hτ, hle⟩ := hF γ w hpt hw hrow hpos
+    have h1 : ∏ τ, ENNReal.ofReal (hsNormSq ((I.A τ).J (νR τ) (g τ))) ≤
+        ∏ τ, (ENNReal.ofReal (I.K τ * large₂.sc.b ^ (Ca * (D.R.m : ℝ) ^ 2)) *
+          orbSq ((bdOf I.toInputs hok).L τ) ((bdOf I.toInputs hok).f τ)
+            (Formalism.MainNotions.S.Pv.Frames.turnPt (ptLoc D τ w))) := by
+      apply Finset.prod_le_prod'
+      intro τ _
+      exact le_trans (I.hJ τ (g τ) (ptLoc D τ w) (hτ τ).1 (θ' τ) (hτ τ).2.1 (νR τ) (hτ τ).2.2)
+        (by gcongr; exact orbSqO_le_bdOf I.toInputs hok hka τ _)
+    rw [Finset.prod_mul_distrib] at h1
+    have h2 := prod_ofReal_le_lemma Finset.univ (fun τ => I.K τ * large₂.sc.b ^ (Ca * (D.R.m : ℝ) ^ 2))
+    calc ENNReal.ofReal (N.jacobianSquareBound γ)
+        ≤ ENNReal.ofReal Cfac * ∏ τ, ENNReal.ofReal (hsNormSq ((I.A τ).J (νR τ) (g τ))) := hle
+      _ ≤ ENNReal.ofReal Cfac * ((∏ τ, ENNReal.ofReal (I.K τ * large₂.sc.b ^ (Ca * (D.R.m : ℝ) ^ 2))) *
+          ∏ τ, orbSq ((bdOf I.toInputs hok).L τ) ((bdOf I.toInputs hok).f τ)
+            (Formalism.MainNotions.S.Pv.Frames.turnPt (ptLoc D τ w))) := by gcongr
+      _ ≤ ENNReal.ofReal Cfac * (ENNReal.ofReal (∏ τ, (I.K τ * large₂.sc.b ^ (Ca * (D.R.m : ℝ) ^ 2))) *
+          ∏ τ, orbSq ((bdOf I.toInputs hok).L τ) ((bdOf I.toInputs hok).f τ)
+            (Formalism.MainNotions.S.Pv.Frames.turnPt (ptLoc D τ w))) := by gcongr
+      _ = ENNReal.ofReal (Cfac * ∏ τ, (I.K τ * large₂.sc.b ^ (Ca * (D.R.m : ℝ) ^ 2))) *
+          JSqR D (bdOf I.toInputs hok) w := by
+        rw [ENNReal.ofReal_mul hCfac, mul_assoc]; rfl
+  · rw [ENNReal.ofReal_of_nonpos (not_lt.mp hpos)]; simp
+
+end J2
+
+section Cut
+
+open Formalism.L2.SG.Pf.JointAmplitudePoints
+
+variable {D : D7} {X : HidaSetting D}
+
+def RelPtExPR (u u' : D.what₂.Word) {θ : ℝ} (C : Choice X θ) : Prop :=
+  ∀ w : Point D.host.E (D.R.rS + 1), Formalism.L2.SG.ThmBUse.IsRowPt D (D.mem u).A.T (D.mem u').A.T w →
+    (∃ g, Formalism.L2.SG.RealObj.IsPtRep X u u' w g) → ∀ τ,
+      RelPt D (zB X (C.Qi τ) u τ) (zB X (C.Qi τ) u' τ) (gamP C u u' w τ) (ptLoc D τ w)
+
+private lemma toPts_inj_lemma {K : Type} [Zero K] {i : ℕ} (p q : Formalism.MainNotions.S.Point K (i + 1))
+    (h : Formalism.L2.SG.RowsConc.toPts p = Formalism.L2.SG.RowsConc.toPts q) : p = q := by
+  have h1 : p.1.map Prod.snd = q.1.map Prod.snd := congrArg (fun s => s.1.blocks) h
+  have key : ∀ r : Formalism.MainNotions.S.Point K (i + 1), List.ofFn (Formalism.L2.SG.RowsConc.toPts r).2 = r.1.map Prod.fst := by
+    intro r
+    apply List.ext_get
+    · simp [Formalism.L2.SG.RowsConc.toPts, Composition.length]
+    · intro n h1 h2
+      simp [Formalism.L2.SG.RowsConc.toPts]
+  have h2 : p.1.map Prod.fst = q.1.map Prod.fst := by
+    rw [← key p, ← key q]
+    exact congrArg (fun s : (Σ c : Composition (i + 1), (Fin c.length → K)) => List.ofFn s.2) h
+  apply Subtype.ext
+  rw [← List.zip_unzip p.1, ← List.zip_unzip q.1, List.unzip_fst, List.unzip_snd, List.unzip_fst,
+    List.unzip_snd, h1, h2]
+
+private lemma quot_scale_lemma_2 {k r : ℕ} {μG μS ν : Measure (Formalism.QuantumDeterminants.Mt k r)}
+    (h : Formalism.MainNotions.S.IsQuotMeas μG μS ν) {c : ENNReal} (hc0 : c ≠ 0) (hct : c ≠ ⊤) :
+    Formalism.MainNotions.S.IsQuotMeas μG (c • μS) (c⁻¹ • ν) := by
+  intro f hf
+  rw [h f hf]
+  simp only [lintegral_smul_measure, smul_eq_mul]
+  rw [lintegral_const_mul' _ _ hct, ← mul_assoc, ENNReal.inv_mul_cancel hc0 hct, one_mul]
+
+theorem jointAmplitudeFactorizationRotated_of (Y : Full X) (u u' : D.what₂.Word) (large₂ : SizeData₂ D) (C1 : ℝ) {θ : ℝ} (C : Choice X θ)
+    (hB : WuBessel C) (ν νL : X.B.I.Ginf → Measure X.B.I.Ginf) (ng : Formalism.FourierDecayAlt.PN.Pts D.host.E D.R.rS → ℝ)
+    (hR : RelPtExPR u u' C) (hM : RMeasExP u u' C) (hP : LocalAmplitudesPositive Y u u' ν C hB) (hT : ThetaWinP Y u u' ν C hB large₂ C1) :
+    JointAmplitudeFactorizationRotated (Y.tO u u') (NOf2 Y u u' νL ν ng) large₂ C1 (WX C u u') (AX hB u u') (D.mem u).A.T (D.mem u').A.T 1 := by
+  intro γ w hpt hw hrow hpos
+  have hJB : (NOf2 Y u u' νL ν ng).jacobianSquareBound γ = J2of Y u u' ν γ := rfl
+  rw [hJB] at hpos ⊢
+  subst hw
+  obtain ⟨w', hw', hrep⟩ := isPtRep_of_J2of hpos
+  have hww : w' = w := toPts_inj_lemma w' w hw'
+  subst hww
+  have hP1 : 0 < localAmplitudeProduct u u' hB w' := hP w' hrow hpos
+  haveI := Formalism.L2.SG.Pf.LTL.tau_nonempty D
+  have hn : 0 < Fintype.card D.what₂.Tau := Fintype.card_pos
+  have hθ0 : thetaP u u' hB (J2of Y u u' ν (toPts w')) w' =
+      (localAmplitudeProduct u u' hB w' / J2of Y u u' ν (toPts w')) ^ ((1 : ℝ) / (2 * Fintype.card D.what₂.Tau)) := by
+    simp only [thetaP, if_pos (And.intro hpos hP1)]
+  have hθpos : 0 < thetaP u u' hB (J2of Y u u' ν (toPts w')) w' := by
+    rw [hθ0]; apply Real.rpow_pos_of_pos; exact div_pos hP1 hpos
+  have hν1 : ∀ τ, RMeas D (locW C u u' τ) (gamP C u u' w' τ) 1 (nu1P C u u' w' τ) := fun τ => by
+    have h := hM w' hrow hrep τ
+    simp only [nu1P, dif_pos h]
+    exact h.choose_spec
+  have hsc : ∀ τ, RMeas D (locW C u u' τ) (gamP C u u' w' τ) (thetaP u u' hB (J2of Y u u' ν (toPts w')) w')
+      (ENNReal.ofReal (thetaP u u' hB (J2of Y u u' ν (toPts w')) w')⁻¹ • nu1P C u u' w' τ) := fun τ => by
+    obtain ⟨p, μR, hroot, hq⟩ := hν1 τ
+    refine ⟨p, μR, hroot, ?_⟩
+    rw [ENNReal.ofReal_one, one_smul] at hq
+    rw [ENNReal.ofReal_inv_of_pos hθpos]
+    exact quot_scale_lemma_2 hq (ENNReal.ofReal_pos.mpr hθpos).ne' ENNReal.ofReal_ne_top
+  refine ⟨fun τ => gamP C u u' w' τ, fun _ => thetaP u u' hB (J2of Y u u' ν (toPts w')) w',
+    fun τ => ENNReal.ofReal (thetaP u u' hB (J2of Y u u' ν (toPts w')) w')⁻¹ • nu1P C u u' w' τ,
+    fun τ => ⟨hR w' hrow hrep τ, hT w' hrow hpos, hsc τ⟩, ?_⟩
+  set θ0 := thetaP u u' hB (J2of Y u u' ν (toPts w')) w' with hθdef
+  set J2 := J2of Y u u' ν (toPts w') with hJ2def
+  have hfac : ∀ τ, hsNormSq ((AX hB u u' τ).J (ENNReal.ofReal θ0⁻¹ • nu1P C u u' w' τ) (gamP C u u' w' τ)) =
+      θ0⁻¹ * θ0⁻¹ * hsNormSq ((locS hB u u' τ).J (nu1P C u u' w' τ) (gamP C u u' w' τ)) := fun τ => by
+    show hsNormSq ((locS hB u u' τ).J (ENNReal.ofReal θ0⁻¹ • nu1P C u u' w' τ) (gamP C u u' w' τ)) = _
+    rw [Formalism.L2.SG.Pf.LTL.locJ_smul, Formalism.L2.SG.Pf.LTL.hsNormSq_smul, Complex.normSq_ofReal,
+      ENNReal.toReal_ofReal (inv_nonneg.mpr hθpos.le)]
+  have hpow : θ0 ^ (2 * Fintype.card D.what₂.Tau) = localAmplitudeProduct u u' hB w' / J2 := by
+    rw [hθ0, ← Real.rpow_natCast, ← Real.rpow_mul (div_pos hP1 hpos).le]
+    have : (1 : ℝ) / (2 * Fintype.card D.what₂.Tau) * ((2 * Fintype.card D.what₂.Tau : ℕ) : ℝ) = 1 := by
+      push_cast; field_simp
+    rw [this, Real.rpow_one]
+  have hprod : ∏ τ, (θ0⁻¹ * θ0⁻¹ * hsNormSq ((locS hB u u' τ).J (nu1P C u u' w' τ) (gamP C u u' w' τ))) = J2 := by
+    rw [Finset.prod_mul_distrib, Finset.prod_const, Finset.card_univ]
+    change (θ0⁻¹ * θ0⁻¹) ^ Fintype.card D.what₂.Tau * localAmplitudeProduct u u' hB w' = J2
+    have e : (θ0⁻¹ * θ0⁻¹) ^ Fintype.card D.what₂.Tau = (θ0 ^ (2 * Fintype.card D.what₂.Tau))⁻¹ := by
+      rw [← mul_inv, ← pow_two, inv_pow, ← pow_mul]
+    rw [e, hpow, inv_div, div_mul_cancel₀ _ hP1.ne']
+  rw [ENNReal.ofReal_one, one_mul]
+  simp only [hfac]
+  rw [← ENNReal.ofReal_prod_of_nonneg (fun τ _ => by
+    have := Formalism.L2.SG.Pf.LTL.hsNormSq_nonneg ((locS hB u u' τ).J (nu1P C u u' w' τ) (gamP C u u' w' τ))
+    positivity), hprod]
+
+end Cut
+
+section Steps
+
+open Formalism.MainNotions.S.Lat Formalism.L2.SG.HidaSetting Formalism.L2.SG.PoincareInHH.PoincareSetting Formalism.L2.SG.TermOp Formalism.L2.SG.Full
+  Formalism.L2.SG.RowsConc Formalism.L2.SG.NGData Formalism.L2.SG.NGCut Formalism.L2.SG.NGAnalytic Formalism.L2.SG.LocWSOf Formalism.QuantumDeterminants NumberField
+  Formalism.L2.SG.Pf.MainEqCut
+
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+variable {D : D7}
+
+end Steps
+
+end Formalism.L2.SG.Pf.BDatR

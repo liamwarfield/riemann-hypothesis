@@ -1,0 +1,12 @@
+module
+
+public import CompanionTheory.RealGroups.GeneralUnitaryRepresentations.ArchimedeanJacquetSegments.SegmentSubquotients.HasFiniteLengthJacSub
+public import Development.WeilBound.RepresentationTheoryGL.GenericUnitaryGL.ComplementarySeries.SegmentJacquetSubquotients.SegTwo
+public import Development.WeilBound.CoreStatements.PublishedTheorems.SegmentRepresentations.IsIrreduciblePiTensorSegTerm
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.LanglandsSocleOfOrderFree
+
+@[expose] public section
+
+namespace PositivityTheory.Pf1.SegRepC.SegTwo
+export CompanionTheory.Pf1.SegRepC.SegTwo (RhoNuRhoReducible revTensor)
+end PositivityTheory.Pf1.SegRepC.SegTwo

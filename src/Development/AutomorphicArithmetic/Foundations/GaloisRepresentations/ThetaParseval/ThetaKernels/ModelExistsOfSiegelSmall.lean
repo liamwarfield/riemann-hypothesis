@@ -1,0 +1,22 @@
+module
+
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.SiegelWeilFormula.LagrangianDecomposition.ModelExistenceOfSiegel
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.HalfIndexLattices.SplitStab
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.HalfIndexLattices.IsLatRepL
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.ThetaKernels.SiegelSmallK
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.ThetaKernels.SiegelWeilAldCut
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.ThetaKernels.ModelExistsOfSmallness
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.ThetaKernels.SiegelWeilAldSmallSTop
+public import Development.AutomorphicArithmetic.Foundations.GaloisRepresentations.ThetaParseval.ThetaKernels.SiegelWeilAldChart
+
+@[expose] public section
+
+set_option synthInstance.maxHeartbeats 200000
+
+section
+noncomputable section
+namespace PositivityTheory.SiegelWeilFormula.Ald
+theorem modelExists_of_siegelSmall (hG : _root_.PositivityTheory.SiegelWeilFormula.Ald.SiegelSmall_k) : _root_.PositivityTheory.SiegelWeilFormula.Ald.ModelEx_k := _root_.PositivityTheory.SiegelWeilFormula.Ald.modelExists_of_smallness hG (_root_.PositivityTheory.SiegelWeilFormula.Ald.smallS_of'_k _root_.PositivityTheory.SiegelWeilFormula.Ald.chartFacts_k sliceFacts)
+end PositivityTheory.SiegelWeilFormula.Ald
+end
+end

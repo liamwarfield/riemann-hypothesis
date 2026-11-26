@@ -1,0 +1,195 @@
+module
+
+public import Development.AbelianVarietyTheory.Definitions.LatticeFrames.TopFormula
+public import Formalism.LocalToGlobal.IndefiniteReal.LevelTypeEquivalence.UnimodInst
+public import Development.AbelianVarietyTheory.PublishedTheorems.TwistedTraceFormula.UnifModGrowthOfIsUnifModerate
+public import Development.AbelianVarietyTheory.Proofs.FlagMeasures.AdelicTransportMeasureFirst
+public import Development.AbelianVarietyTheory.BlockTheory.TwistedDiscreteSeries.GaussianBinomialClosedForm
+public import Development.AbelianVarietyTheory.Proofs.FoundationProofs.ExistsIsSplitChartOfBasis
+public import Development.AbelianVarietyTheory.Proofs.FoundationProofs.IsSplitChartSplitChart
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.UnitaryGroupTwoModelsRationalRealUnipotentDictio
+section -- merged from Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.UnitaryGroupTwoModelsRationalRealUnipotentDictio
+noncomputable section
+
+namespace GlobalTheory.BridgeDict
+
+open NumberField Matrix Formalism.MainNotions.S
+open scoped TensorProduct
+open Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes (AF Ainf HA fstA sndA inclR)
+
+theorem comp_eq_thetaV (I : AutInst) (v : InfinitePlace I.F) (θ : Ainf I.F ⊗[I.F] I.E →+* ℂ)
+    (hθ : Formalism.MainNotions.StandardLattice.IsInfEmb (I.φ v) θ) :
+    θ.comp (Algebra.TensorProduct.map (fstA I.F) (AlgHom.id I.F I.E)).toRingHom =
+      Formalism.L2.SG.AdBridge.thetaV I v := by
+  have key : (fun a : Ainf I.F => θ (a ⊗ₜ[I.F] (1 : I.E))) =
+      fun a : Ainf I.F => InfinitePlace.Completion.extensionEmbedding v (a v) := by
+    refine (InfiniteAdeleRing.denseRange_algebraMap I.F).equalizer hθ.2
+      ((InfinitePlace.Completion.isometry_extensionEmbedding v).continuous.comp (continuous_apply v)) ?_
+    funext x
+    have e : (algebraMap I.F (Ainf I.F) x) ⊗ₜ[I.F] (1 : I.E) =
+        (1 : Ainf I.F) ⊗ₜ[I.F] (algebraMap I.F I.E x) := by
+      rw [Algebra.algebraMap_eq_smul_one, Algebra.algebraMap_eq_smul_one, TensorProduct.smul_tmul]
+    simp only [Function.comp_apply]
+    rw [e, hθ.1, I.φ_over]
+    exact (Formalism.L2.SG.AdBridge.evV_algebraMap I v x).symm
+  refine RingHom.ext fun z => ?_
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a x =>
+    rw [Formalism.L2.SG.AdBridge.thetaV_tmul]
+    have e : (Algebra.TensorProduct.map (fstA I.F) (AlgHom.id I.F I.E)) (a ⊗ₜ[I.F] x) =
+        (a.1 ⊗ₜ[I.F] (1 : I.E)) * ((1 : Ainf I.F) ⊗ₜ[I.F] x) := by
+      rw [Algebra.TensorProduct.map_tmul, Algebra.TensorProduct.tmul_mul_tmul, mul_one, one_mul]; rfl
+    simp only [RingHom.comp_apply, AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
+    rw [e, map_mul, hθ.1, congrFun key a.1]
+    rfl
+  | add x y hx hy => rw [map_add (f := _), map_add (f := _), hx, hy]
+
+theorem tauF_apply (I : AutInst) (z : AF I.F ⊗[I.F] I.E) :
+    Formalism.L2.SG.AdBridge.tauF I z =
+      Algebra.TensorProduct.comm I.F _ _ (Algebra.TensorProduct.map (sndA I.F) (AlgHom.id I.F I.E) z) := by
+  induction z using TensorProduct.induction_on with
+  | zero => simp
+  | tmul a x =>
+    rw [Formalism.L2.SG.AdBridge.tauF_tmul, Algebra.TensorProduct.map_tmul, Algebra.TensorProduct.comm_tmul]
+    rfl
+  | add x y hx hy => simp only [map_add (f := _), hx, hy]
+
+theorem fin_eq (I : AutInst) (h : Formalism.L2.SG.AdBridge.HAd I) :
+    (Formalism.L2.SG.AdBridge.hmat I h).map (Formalism.L2.SG.AdBridge.tauF I) =
+      (Formalism.MainNotions.StandardLattice.finMat I.cm.sig I.J h).map (Algebra.TensorProduct.comm I.F _ _) := by
+  unfold Formalism.MainNotions.StandardLattice.finMat
+  rw [Matrix.map_map]
+  ext i j
+  simp only [Matrix.map_apply, Function.comp_apply]
+  rw [tauF_apply]
+
+theorem infMat_bridge (I : AutInst) (e : I.GA ≃ₜ* Formalism.L2.SG.AdBridge.HAd I) (he : Formalism.L2.SG.AdBridge.IsBridge I e)
+    (v : InfinitePlace I.F) (θv : Ainf I.F ⊗[I.F] I.E →+* ℂ) (hθv : Formalism.MainNotions.StandardLattice.IsInfEmb (I.φ v) θv) (x : I.GA) :
+    Formalism.MainNotions.StandardLattice.infMat I.cm.sig I.J θv (e x) = I.P v * uMat (x.1 v) * (I.P v)⁻¹ := by
+  have hd := (Matrix.isUnit_iff_isUnit_det _).1 (I.P_unit v)
+  rw [(he x).1 v, Formalism.L2.SG.AdBridge.ofHAInf, ← comp_eq_thetaV I v θv hθv, ← Matrix.mul_assoc, ← Matrix.mul_assoc,
+    Matrix.mul_nonsing_inv _ hd, Matrix.one_mul, Matrix.mul_nonsing_inv_cancel_right _ _ hd]
+  unfold Formalism.MainNotions.StandardLattice.infMat
+  rw [Matrix.map_map]
+  rfl
+
+end GlobalTheory.BridgeDict
+
+namespace GlobalTheory.BridgeDict
+
+open Formalism.BasicNotions Formalism.BasicNotions.TH Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes Formalism.MainNotions.StandardLattice Formalism.MainNotions.S Formalism.L2.Theta MeasureTheory NumberField Matrix GlobalTheory.CuspGeo
+open scoped TensorProduct Topology
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+
+theorem bridge_dict : ∀ (D : D7) (θ : D.what₂.Tau → (Ainf D.host.F ⊗[D.host.F] D.host.E →+* ℂ)), IsInfFam θ → ∀ (V : HSp D) (fr : Formalism.IndefR.Eqv.UI.Frames D V), (∀ x, Formalism.IndefR.Eqv.UI.brg fr x ∈ GQ V ↔ x ∈ (Formalism.IndefR.Eqv.UI.instV fr).GFset) ∧ (∀ (x : (Formalism.IndefR.Eqv.UI.instV fr).GA) (τ : D.what₂.Tau) (A : Matrix (Fin V.rank) (Fin V.rank) ℂ), A = uMat (x.1 (Formalism.L2.Host.tauPl D τ)) → infMat D.sp.cm.sig V.gram (θ τ) (Formalism.IndefR.Eqv.UI.brg fr x) = fr.P (Formalism.L2.Host.tauPl D τ) * A * (fr.P (Formalism.L2.Host.tauPl D τ))⁻¹) ∧ ∀ W, (Formalism.IndefR.Eqv.UI.instV fr).IsIsot W → ∃ (r : ℕ) (C₀ : Matrix (Fin V.rank) (Fin r) D.host.E), IsIsoFrame V C₀ ∧ ∀ x, Formalism.IndefR.Eqv.UI.brg fr x ∈ NI V C₀ → x ∈ (Formalism.IndefR.Eqv.UI.instV fr).NA W := by
+  intro D θ hθ V fr
+  have hb := Formalism.IndefR.Eqv.UI.brg_isBridge fr
+  have hθv : ∀ v : InfinitePlace D.host.F,
+      IsInfEmb (Formalism.IndefR.Eqv.UI.phiV D v) (θ ((Formalism.L2.Host.tauPl D).symm v)) := fun v => hθ _
+  refine ⟨fun x => ?_, fun x τ A hA => ?_, fun W hW => ?_⟩
+  · have h1 := (Formalism.L2.SG.Closed.adelic_isomorphism_statement (Formalism.IndefR.Eqv.UI.instV fr)).2.1 (Formalism.IndefR.Eqv.UI.brg fr) hb
+    have e : Formalism.IndefR.Eqv.UI.brg fr x ∈ GQ V ↔
+        Formalism.IndefR.Eqv.UI.brg fr x ∈ Formalism.L2.SG.AdBridge.ratHA (Formalism.IndefR.Eqv.UI.instV fr) := Iff.rfl
+    rw [e, ← h1]
+    exact (Formalism.IndefR.Eqv.UI.brg fr).injective.mem_set_image
+  · subst hA
+    have h := infMat_bridge (Formalism.IndefR.Eqv.UI.instV fr) _ hb (Formalism.L2.Host.tauPl D τ) (θ τ)
+      (by have h := hθv (Formalism.L2.Host.tauPl D τ); rwa [Equiv.symm_apply_apply] at h) x
+    exact h
+  · obtain ⟨r, C, hC, rfl⟩ := (GlobalTheory.CuspCompare.isIsot_iff (Formalism.IndefR.Eqv.UI.instV fr) W).1 hW
+    refine ⟨r, C, hC, fun x hx => ?_⟩
+    obtain ⟨L, R, hL, hR⟩ := GlobalTheory.CuspCompare.exists_inverses (starRingEnd D.host.E)
+      (Formalism.IndefR.Eqv.UI.instV fr).J_det hC.2.1
+    let T : GA D V ≃* (Formalism.IndefR.Eqv.UI.instV fr).GA := (Formalism.IndefR.Eqv.UI.brg fr).symm.toMulEquiv
+    have hT : ∀ g, Formalism.IndefR.Eqv.UI.brg fr (T g) = g := fun g => (Formalism.IndefR.Eqv.UI.brg fr).apply_symm_apply g
+    unfold NI at hx
+    have := (GlobalTheory.CuspCompare.mem_closure_iff_of_equiv T (GlobalTheory.T.strong_approximation_unitaryUnipotentRadical _ _ hW).1 (fun g => ?_) _).1 hx
+    · exact ((Formalism.IndefR.Eqv.UI.brg fr).symm_apply_apply x) ▸ this
+    · rw [GlobalTheory.CuspCompare.mem_NA_iff (Formalism.IndefR.Eqv.UI.instV fr) _ hθv g (T g) ?_ ?_ hL hR]
+      · exact and_congr Iff.rfl (and_congr Iff.rfl (GlobalTheory.CuspCompare.perp_cond (incA D) hL hR _).2)
+      · rw [(hb (T g)).2, Formalism.L2.SG.AdBridge.ofHAFin, fin_eq]
+        exact congrArg (fun h => (finMat _ _ h).map _) (hT g)
+      · intro v
+        rw [← infMat_bridge _ _ hb v _ (hθv v) (T g)]
+        exact congrArg (infMat _ _ _) (hT g)
+
+end GlobalTheory.BridgeDict
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.UnitaryGroupTwoModelsRationalRealUnipotentDictioStatement
+open Formalism.BasicNotions Formalism.BasicNotions.TH Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes Formalism.MainNotions.StandardLattice Formalism.MainNotions.S Formalism.L2.Theta MeasureTheory NumberField Matrix GlobalTheory.CuspGeo
+open scoped TensorProduct Topology
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.unitaryGroup_twoModels_rationalReal_unipotent_dictionary : ∀ (D : D7) (θ : D.what₂.Tau → (Ainf D.host.F ⊗[D.host.F] D.host.E →+* ℂ)), IsInfFam θ → ∀ (V : HSp D) (fr : Formalism.IndefR.Eqv.UI.Frames D V), (∀ x, Formalism.IndefR.Eqv.UI.brg fr x ∈ GQ V ↔ x ∈ (Formalism.IndefR.Eqv.UI.instV fr).GFset) ∧ (∀ (x : (Formalism.IndefR.Eqv.UI.instV fr).GA) (τ : D.what₂.Tau) (A : Matrix (Fin V.rank) (Fin V.rank) ℂ), A = uMat (x.1 (Formalism.L2.Host.tauPl D τ)) → infMat D.sp.cm.sig V.gram (θ τ) (Formalism.IndefR.Eqv.UI.brg fr x) = fr.P (Formalism.L2.Host.tauPl D τ) * A * (fr.P (Formalism.L2.Host.tauPl D τ))⁻¹) ∧ ∀ W, (Formalism.IndefR.Eqv.UI.instV fr).IsIsot W → ∃ (r : ℕ) (C₀ : Matrix (Fin V.rank) (Fin r) D.host.E), IsIsoFrame V C₀ ∧ ∀ x, Formalism.IndefR.Eqv.UI.brg fr x ∈ NI V C₀ → x ∈ (Formalism.IndefR.Eqv.UI.instV fr).NA W := by
+  first | exact @GlobalTheory.BridgeDict.bridge_dict | exact GlobalTheory.BridgeDict.bridge_dict | (intros; apply GlobalTheory.BridgeDict.bridge_dict <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.NormCmExtensionSplitPlaceEqZpow
+section -- merged from Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.NormCmExtensionSplitPlaceEqZpow
+open scoped TensorProduct NNReal Matrix
+open NumberField IsDedekindDomain MeasureTheory Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.AdelicU GlobalTheory.Doubling GlobalTheory.PRep
+open Formalism.UG (IsUnifV qV IsUnramInv GU KU IsInertAt Hecke ordL)
+open Formalism.MainNotions.SchurIrreducible (IsSplit)
+open GlobalTheory.LGrp (bcParam)
+open GlobalTheory.LFun (toCompl locMat locChar IsSplitChart IsInertChart IsFrameAt KGL IsSatVecGL IsSatVecU eulerFac UnrAt LvTw dv Fam)
+
+noncomputable section
+
+namespace GlobalTheory.Doubling.AbsSplit
+
+theorem norm_eq_zpow {F : Type} [Field F] [NumberField F] (v : HeightOneSpectrum (𝓞 F)) {a : Fv F v} (ha : a ≠ 0) :
+    ‖a‖ = (qV F v : ℝ) ^ (-ordL a) := by
+  have h0 : Valued.v a ≠ 0 := (map_ne_zero _).2 ha
+  rw [NumberField.FinitePlace.norm_def, WithZeroMulInt.toNNReal_neg_apply _ h0, ordL, dite_eq_right h0, neg_neg]
+  simp [qV, WithZero.toAdd_unzero_eq_log h0]
+
+theorem ordL_congr {L L' : Type} [Field L] [Valued L (WithZero (Multiplicative ℤ))] [Field L']
+    [Valued L' (WithZero (Multiplicative ℤ))] {x : L} {y : L'} (h : Valued.v x = Valued.v y) : ordL x = ordL y := by
+  unfold ordL
+  simp only [h]
+
+theorem absEv_split : ∀ (F E : Type) [Field F] [NumberField F] [Field E] [NumberField E] [Algebra F E] (σ : E →ₐ[F] E), IsCMExt F E σ → ∀ (v : HeightOneSpectrum (𝓞 F)) (w : HeightOneSpectrum (𝓞 E)) (h : w.under (𝓞 F) = v), ∀ (w' : HeightOneSpectrum (𝓞 E)) (h' : w'.under (𝓞 F) = v), w ≠ w' → ∀ x : (Fv F v ⊗[F] E)ˣ, (absEv F E v x : ℝ) = (qV E w : ℝ) ^ (-(ordL (toCompl h x.1) + ordL (toCompl h' x.1))) := by
+  intro F E _ _ _ _ _ σ hE v w h w' h' hne x
+  obtain ⟨τ, hτ, -⟩ := existsUnique_splitPrime_eq hE hne h h'
+  obtain ⟨τ', hτ', -⟩ := existsUnique_splitPrime_eq hE hne.symm h' h
+  obtain rfl : τ' = τ.comp σ := (eq_or_eq_comp_conj hE τ τ').resolve_left fun e => hne (hτ.symm.trans (e ▸ hτ'))
+  have hN : Algebra.norm (Fv F v) x.1 = splitProj τ x.1 * splitProj (τ.comp σ) x.1 := by
+    have := congrArg (splitProj τ) (algebraMap_norm_eq hE x.1)
+    rw [AlgHom.commutes, map_mul, ← splitProj_comp] at this
+    exact this
+  have hq : qV E w = qV F v := hτ ▸ GlobalTheory.LFun.SplitTie.qV_splitPrime τ
+  have e1 : ordL (toCompl h x.1) = ordL (splitProj τ x.1) := ordL_congr (by
+    rw [GlobalTheory.LFun.ConjPlace.toCompl_eq hE h hτ, GlobalTheory.LFun.ConjPlace.valued_complMap hE h hτ])
+  have e2 : ordL (toCompl h' x.1) = ordL (splitProj (τ.comp σ) x.1) := ordL_congr (by
+    rw [GlobalTheory.LFun.ConjPlace.toCompl_eq hE h' hτ', GlobalTheory.LFun.ConjPlace.valued_complMap hE h' hτ'])
+  have hq0 : (qV F v : ℝ) ≠ 0 := by
+    have := NumberField.HeightOneSpectrum.one_lt_absNorm v
+    unfold qV
+    exact_mod_cast (by omega)
+  rw [absEv_apply, coe_nnnorm, hN, norm_mul, hq, e1, e2, neg_add, zpow_add₀ hq0,
+    norm_eq_zpow v (x.isUnit.map (splitProj τ)).ne_zero, norm_eq_zpow v (x.isUnit.map (splitProj (τ.comp σ))).ne_zero]
+
+end GlobalTheory.Doubling.AbsSplit
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.DecoratedLatticeProofs.NormCmExtensionSplitPlaceEqZpowStatement
+open scoped TensorProduct NNReal Matrix
+open NumberField IsDedekindDomain MeasureTheory Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.AdelicU GlobalTheory.Doubling GlobalTheory.PRep
+open Formalism.UG (IsUnifV qV IsUnramInv GU KU IsInertAt Hecke ordL)
+open Formalism.MainNotions.SchurIrreducible (IsSplit)
+open GlobalTheory.LGrp (bcParam)
+open GlobalTheory.LFun (toCompl locMat locChar IsSplitChart IsInertChart IsFrameAt KGL IsSatVecGL IsSatVecU eulerFac UnrAt LvTw dv Fam)
+
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.norm_cmExtension_splitPlace_eq_zpow : ∀ (F E : Type) [Field F] [NumberField F] [Field E] [NumberField E] [Algebra F E] (σ : E →ₐ[F] E), IsCMExt F E σ → ∀ (v : HeightOneSpectrum (𝓞 F)) (w : HeightOneSpectrum (𝓞 E)) (h : w.under (𝓞 F) = v), ∀ (w' : HeightOneSpectrum (𝓞 E)) (h' : w'.under (𝓞 F) = v), w ≠ w' → ∀ x : (Fv F v ⊗[F] E)ˣ, (absEv F E v x : ℝ) = (qV E w : ℝ) ^ (-(ordL (toCompl h x.1) + ordL (toCompl h' x.1))) := by
+  first | exact @GlobalTheory.Doubling.AbsSplit.absEv_split | exact GlobalTheory.Doubling.AbsSplit.absEv_split | (intros; apply GlobalTheory.Doubling.AbsSplit.absEv_split <;> assumption)
+end
+end

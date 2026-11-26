@@ -1,0 +1,15 @@
+module
+
+public import Mathlib
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.SmoothIntegralLinear
+public import Development.WeilBound.CoreStatements.TemperedRepresentationTheory.SquareIntegrableTempered.CasselmanNecTemp
+public import Development.WeilBound.CoreStatements.TemperedRepresentationTheory.ZelevinskyJacquet.PropsCos
+public import Development.AbelianVarietyTheory.PublishedTheorems.GaloisCohomology₂.StandardCosocleGL
+public import Development.AbelianVarietyTheory.PublishedTheorems.TwistedTraceFormula.HasFiniteLengthOfIsIrreducible
+
+@[expose] public section
+
+open GlobalTheory.PRep GlobalTheory.SplitWeil GlobalTheory.SmGL GlobalTheory.LocGL Filter Topology
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_unit_pow_tendsto_zero' : ∀ (k : Type) [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k], ∃ t : kˣ, Tendsto (fun n : ℕ => (t : k) ^ n) atTop (𝓝 0) := by
+  first | exact @GlobalTheory.CompanionTheory.LocalFieldPow.exists_unit_pow_tendsto_zero | exact GlobalTheory.CompanionTheory.LocalFieldPow.exists_unit_pow_tendsto_zero | (intros; apply GlobalTheory.CompanionTheory.LocalFieldPow.exists_unit_pow_tendsto_zero <;> assumption)

@@ -1,0 +1,133 @@
+module
+
+public import Formalism.FilteredPoleLength.ReducedBasisBounds.LengthBaseChangeLocal
+public import Formalism.FilteredPoleLength.LocalDescentLevels.MemSpanBasisFun
+public import Formalism.GelfandTransference.HadamardGelfand.Hadamard
+
+@[expose] public section
+
+section -- merged from Formalism.FilteredPoleLength.LocalDescentLevels.LengthBaseChange
+noncomputable section
+
+namespace Formalism.LatticeBaseChangeAlt
+
+open Module TensorProduct
+
+namespace LengthBaseChangeAlt
+
+theorem length_baseChange_eq_mul {O O₁ : Type} [CommRing O] [CommRing O₁] [Algebra O O₁]
+    [Module.Flat O O₁] (ε : ℕ∞)
+    (hs : ∀ (S : Type) [AddCommGroup S] [Module O S], IsSimpleModule O S →
+      Module.length O₁ (TensorProduct O O₁ S) = ε)
+    (Q : Type) [AddCommGroup Q] [Module O Q] (h : IsFiniteLength O Q) :
+    Module.length O₁ (TensorProduct O O₁ Q) = ε * Module.length O Q := by
+  induction h with
+  | of_subsingleton =>
+    rw [Module.length_eq_zero (R := O), mul_zero, Module.length_eq_zero_iff]
+    refine ⟨fun x y => ?_⟩
+    rw [← sub_eq_zero]
+    generalize x - y = z
+    induction z using TensorProduct.induction_on with
+    | zero => rfl
+    | tmul a b => rw [Subsingleton.elim b 0, TensorProduct.tmul_zero]
+    | add u v hu hv => rw [hu, hv, add_zero]
+  | of_simple_quotient hN ih =>
+    rename_i M _ _ N hS
+    have e1 := Module.length_eq_add_of_exact N.subtype N.mkQ N.injective_subtype N.mkQ_surjective
+      (LinearMap.exact_subtype_mkQ N)
+    have e2 := Module.length_eq_add_of_exact ((N.subtype).baseChange O₁) ((N.mkQ).baseChange O₁)
+      (by
+        rw [LinearMap.baseChange_eq_ltensor]
+        exact Module.Flat.lTensor_preserves_injective_linearMap (M := O₁) _ N.injective_subtype)
+      (by
+        rw [LinearMap.baseChange_eq_ltensor]
+        exact LinearMap.lTensor_surjective O₁ N.mkQ_surjective)
+      (by
+        rw [LinearMap.baseChange_eq_ltensor, LinearMap.baseChange_eq_ltensor]
+        exact Module.Flat.lTensor_exact (M := O₁) (LinearMap.exact_subtype_mkQ N))
+    rw [e1, e2, ih, hs _ hS, Module.length_eq_one_iff.mpr hS]
+    ring
+
+end LengthBaseChangeAlt
+
+theorem lengthBaseChangeLocal : LengthBaseChangeLocal := by
+  intro O O₁ Q _ _ _ _ _ _ _ _ _ ϖ ϖ₁ u ε hϖ hϖ₁ hu hQ
+  have hinj : Function.Injective (algebraMap O O₁) := by
+    set_option backward.isDefEq.respectTransparency.instanceSearchTypes false in rw [injective_iff_map_eq_zero]
+    intro x hx
+    by_contra hx0
+    obtain ⟨k, v, rfl⟩ := IsDiscreteValuationRing.eq_unit_mul_pow_irreducible hx0 hϖ
+    rw [map_mul, map_pow, hu] at hx
+    rcases mul_eq_zero.1 hx with h | h
+    · exact ((v.isUnit.map (algebraMap O O₁)).ne_zero) h
+    · exact (pow_ne_zero _ (mul_ne_zero u.ne_zero (pow_ne_zero _ hϖ₁.ne_zero))) h
+  have : Module.IsTorsionFree O O₁ := Module.isTorsionFree_iff_algebraMap_injective.2 hinj
+  have : Module.Flat O O₁ := inferInstance
+  rw [Module.length_ne_top_iff] at hQ
+  refine LengthBaseChangeAlt.length_baseChange_eq_mul (ε : ℕ∞) ?_ Q hQ
+  intro S _ _ hS
+  obtain ⟨m, hm, ⟨e⟩⟩ := isSimpleModule_iff_quot_maximal.mp hS
+  obtain rfl := IsLocalRing.eq_maximalIdeal hm
+  rw [(TensorProduct.AlgebraTensorModule.congr (LinearEquiv.refl O₁ O₁) e).length_eq,
+    ← (Algebra.TensorProduct.quotIdealMapEquivTensorQuot O₁
+      (IsLocalRing.maximalIdeal O)).toLinearEquiv.length_eq,
+    hϖ.maximalIdeal_eq, Ideal.map_span, Set.image_singleton, hu]
+  change Ring.ord O₁ _ = _
+  rw [Ring.ord_eq_addVal, IsDiscreteValuationRing.addVal_mul, IsDiscreteValuationRing.addVal_pow,
+    IsDiscreteValuationRing.addVal_uniformizer hϖ₁]
+  simp
+
+namespace LengthBaseChangeAlt
+
+open BQuot
+
+section Ext
+
+variable {O K K₁ V : Type} [CommRing O] [IsDomain O] [IsDiscreteValuationRing O] [Field K]
+  [Algebra O K] [IsFractionRing O K] [Field K₁] [Algebra K K₁] [FiniteDimensional K K₁]
+  [Algebra.IsSeparable K K₁] [Algebra O K₁] [IsScalarTower O K K₁]
+  [AddCommGroup V] [Module K V] [Module O V] [IsScalarTower O K V]
+
+end Ext
+
+end LengthBaseChangeAlt
+
+
+end Formalism.LatticeBaseChangeAlt
+end
+end
+
+section -- merged from Formalism.FilteredPoleLength.LocalDescentLevels.InvFromBlocksApplyZero
+noncomputable section
+
+namespace Formalism.LatticeBaseChangeAlt
+
+open Module Matrix MeasureTheory
+
+theorem complexHadamard : ComplexHadamard := by
+  intro n M A hA
+  have h1 := Formalism.HadamardInequality.P.hadamard_inequality_holds n M.transpose
+  rw [Matrix.det_transpose] at h1
+  simp only [Matrix.transpose_apply] at h1
+  have hprod : (∏ j, Real.sqrt (∑ i, ‖M i j‖ ^ 2)) ^ 2 = ∏ j, ∑ i, ‖M i j‖ ^ 2 := by
+    rw [← Finset.prod_pow]
+    exact Finset.prod_congr rfl fun j _ =>
+      Real.sq_sqrt (Finset.sum_nonneg fun i _ => by positivity)
+  refine ⟨?_, ?_⟩
+  · refine (pow_le_pow_iff_left₀ (norm_nonneg _)
+      (Finset.prod_nonneg fun j _ => Real.sqrt_nonneg _) two_ne_zero).1 ?_
+    rw [hprod]
+    exact h1
+  · have h2 := Formalism.HadamardInequality.P.hadamard_maximum_holds n M A hA
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp
+    have hA0 : 0 ≤ A := le_trans (norm_nonneg _) (hA ⟨0, hn⟩ ⟨0, hn⟩)
+    have h3 : ((Real.sqrt n * A) ^ n) ^ 2 = ((n : ℝ) * A ^ 2) ^ n := by
+      rw [← pow_mul, mul_comm n 2, pow_mul, mul_pow, Real.sq_sqrt (Nat.cast_nonneg _)]
+    refine (pow_le_pow_iff_left₀ (norm_nonneg _) (by positivity) two_ne_zero).1 ?_
+    rw [h3]
+    exact h2
+
+end Formalism.LatticeBaseChangeAlt
+end
+end

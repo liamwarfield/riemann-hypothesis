@@ -1,0 +1,575 @@
+module
+
+public import Development.AbelianVarietyTheory.Definitions.HeightFunctions.GrowthConstantBoundGcR
+public import Development.AbelianVarietyTheory.Definitions.ArchimedeanThetaValues.CarchAt
+public import Development.AbelianVarietyTheory.Proofs.UnitaryExistence.IsOpenOfRangeGenericSubset
+public import Development.AbelianVarietyTheory.Proofs.TorusSplitting.CardMulPhiLeValuationProductForm
+public import Formalism.SharpRestriction.Divisibility.GeneratorPowers.RPfVal
+public import Development.AbelianVarietyTheory.Proofs.TorusSplitting.ExistsProductCuspFormNeZeroArchSupNormBounds
+public import Development.AbelianVarietyTheory.Proofs.TorusSplitting.PageRows
+public import Development.AbelianVarietyTheory.Counterexamples.JetSurvey.FormAtOfClause
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.EtaleExtensionDegreeTwoConstants
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.ExistsCuspFormFourClausesExplicitConstant
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.EtaProductFormValuationBound
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.PhiCLeNormalizedValuationProductFormAlgebraic
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.LogbNormUniformizerNormalisation
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.LogbNormUniformizerNormalisation
+open AlgebraicGeometry CategoryTheory Limits MonoidalCategory CartesianMonoidalCategory MonObj NumberField IsLocalRing IsDedekindDomain
+open ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Semi ReciprocityTheory.ChartRestriction.G.Out ReciprocityTheory.ChartRestriction.G.Geo.Tor ReciprocityTheory.ChartRestriction.G.DVR Formalism.L2.Pj GlobalTheory.EtaForm GlobalTheory.EtaVal
+open Formalism.MainNotions.DIV.Cons (SCF intO)
+open scoped CategoryTheory.Obj
+attribute [local instance] Over.cartesianMonoidalCategory
+
+noncomputable section
+
+namespace GlobalTheory.EtaVal.UnitNorm
+
+theorem vV_unit_mul_pow {V : Type} [CommRing V] [IsDomain V] [IsDiscreteValuationRing V] {ϖ : V}
+    (hϖ : Irreducible ϖ) (u : Vˣ) (n : ℕ) :
+    vV V (algebraMap V (FractionRing V) (u * ϖ ^ n)) = n := by
+  have h1 : (IsDiscreteValuationRing.maximalIdeal V).intValuation (u : V) = 1 := by
+    rw [HeightOneSpectrum.intValuation_eq_one_iff]
+    exact fun h => (IsLocalRing.mem_maximalIdeal (u : V)).1 h u.isUnit
+  have h2 : (IsDiscreteValuationRing.maximalIdeal V).intValuation ϖ = WithZero.exp (-1 : ℤ) :=
+    HeightOneSpectrum.intValuation_singleton _ hϖ.ne_zero hϖ.maximalIdeal_eq
+  rw [vV, valV, HeightOneSpectrum.valuation_of_algebraMap, map_mul, map_pow, h1, h2, _root_.one_mul,
+    ← WithZero.exp_nsmul, WithZero.log_exp]
+  simp
+
+theorem norm_map_unit {V F : Type} [CommRing V] [NormedField F] (f : V →+* F) (hf : ∀ a, ‖f a‖ ≤ 1)
+    (u : Vˣ) : ‖f u‖ = 1 := by
+  have h : ‖f u‖ * ‖f (u⁻¹ : Vˣ)‖ = 1 := by
+    rw [← norm_mul, ← map_mul, Units.mul_inv, map_one, norm_one]
+  refine le_antisymm (hf _) ?_
+  calc (1 : ℝ) = ‖f u‖ * ‖f (u⁻¹ : Vˣ)‖ := h.symm
+    _ ≤ ‖f u‖ * 1 := mul_le_mul_of_nonneg_left (hf _) (norm_nonneg _)
+    _ = ‖f u‖ := _root_.mul_one _
+
+theorem logb_norm_uniformiser : ∀ (K : Type) [Field K] [NumberField K] (la : HeightOneSpectrum (𝓞 K)) (T : CDVR) (io : K →+* T.Fr) (e : ℕ), OverLa la T.V io e → ∀ (ϖ : T.V), Irreducible ϖ → ∀ (C : SCF (Formalism.MainNotions.WeightAlgebra.resCh la)) (f : T.V →+* ↥C.S), (∀ a, ‖f a‖ ≤ 1) → -Real.logb (Formalism.MainNotions.WeightAlgebra.resCh la) ‖f ϖ‖ * ((e : ℝ) * Formalism.BasicNotions.eWL K la) = 1 ∧ 0 < Formalism.BasicNotions.eWL K la := by
+  intro K _ _ la T io e ho ϖ hϖ C f hf
+  have hE := Formalism.MainNotions.ModuliIntegralCharts.H1.H1algLink.eWL_eq la
+  refine ⟨?_, hE ▸ Nat.pos_of_ne_zero (Formalism.MainNotions.ModuliIntegralCharts.H1.H1algLink.ramOverZ_ne_zero la)⟩
+  have hp : (Formalism.MainNotions.WeightAlgebra.resCh la).Prime := Crude.resCharOf_prime la
+  have hv : vLa la ((Formalism.MainNotions.WeightAlgebra.resCh la : ℕ) : K) = Formalism.BasicNotions.eWL K la := by
+    rw [hE]; exact Crude.crv_vLa_char la
+  have hn := C.norm_p
+  generalize Formalism.BasicNotions.eWL K la = E at hv ⊢
+  have h0 : ((Formalism.MainNotions.WeightAlgebra.resCh la : ℕ) : T.V) ≠ 0 := by exact_mod_cast hp.ne_zero
+  obtain ⟨n, u, hu⟩ := IsDiscreteValuationRing.eq_unit_mul_pow_irreducible h0 hϖ
+  have h1 := vV_unit_mul_pow hϖ u n
+  rw [← hu, map_natCast, ← map_natCast io, ho.2, hv] at h1
+  have h2 : ((e : ℝ) * E) = n := by exact_mod_cast h1
+  have h3 : ‖f ϖ‖ ^ n = ((Formalism.MainNotions.WeightAlgebra.resCh la : ℕ) : ℝ)⁻¹ := by
+    rw [← hn, ← map_natCast f, hu, map_mul, norm_mul, norm_map_unit f hf u, _root_.one_mul, map_pow, norm_pow]
+  have hp1 : (1 : ℝ) < ((Formalism.MainNotions.WeightAlgebra.resCh la : ℕ) : ℝ) := by exact_mod_cast hp.one_lt
+  have h4 := congrArg (Real.logb (Formalism.MainNotions.WeightAlgebra.resCh la)) h3
+  rw [Real.logb_pow, Real.logb_inv, Real.logb_self_eq_one hp1] at h4
+  rw [h2]
+  linarith
+
+end GlobalTheory.EtaVal.UnitNorm
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.LogbNormUniformizerNormalisationStatement
+open AlgebraicGeometry CategoryTheory Limits MonoidalCategory CartesianMonoidalCategory MonObj NumberField IsLocalRing IsDedekindDomain
+open ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Semi ReciprocityTheory.ChartRestriction.G.Out ReciprocityTheory.ChartRestriction.G.Geo.Tor ReciprocityTheory.ChartRestriction.G.DVR Formalism.L2.Pj GlobalTheory.EtaForm GlobalTheory.EtaVal
+open Formalism.MainNotions.DIV.Cons (SCF intO)
+open scoped CategoryTheory.Obj
+attribute [local instance] Over.cartesianMonoidalCategory
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.logb_norm_uniformizer_normalisation : ∀ (K : Type) [Field K] [NumberField K] (la : HeightOneSpectrum (𝓞 K)) (T : CDVR) (io : K →+* T.Fr) (e : ℕ), OverLa la T.V io e → ∀ (ϖ : T.V), Irreducible ϖ → ∀ (C : SCF (Formalism.MainNotions.WeightAlgebra.resCh la)) (f : T.V →+* ↥C.S), (∀ a, ‖f a‖ ≤ 1) → -Real.logb (Formalism.MainNotions.WeightAlgebra.resCh la) ‖f ϖ‖ * ((e : ℝ) * Formalism.BasicNotions.eWL K la) = 1 ∧ 0 < Formalism.BasicNotions.eWL K la := by
+  first | exact @GlobalTheory.EtaVal.UnitNorm.logb_norm_uniformiser | exact GlobalTheory.EtaVal.UnitNorm.logb_norm_uniformiser | (intros; apply GlobalTheory.EtaVal.UnitNorm.logb_norm_uniformiser <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.PhiCLeNormalizedValuationProductFormAlgebraic
+set_option autoImplicit false
+
+noncomputable section
+
+open AlgebraicGeometry CategoryTheory Limits MonoidalCategory CartesianMonoidalCategory MonObj NumberField IsLocalRing IsDedekindDomain
+open ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Semi ReciprocityTheory.ChartRestriction.G.Out ReciprocityTheory.ChartRestriction.G.Geo.Tor ReciprocityTheory.ChartRestriction.G.DVR Formalism.L2.Pj GlobalTheory.EtaForm GlobalTheory.EtaVal
+open Formalism.MainNotions.DIV.Cons (SCF intO)
+open scoped CategoryTheory.Obj
+attribute [local instance] Over.cartesianMonoidalCategory
+
+namespace GlobalTheory.EtaVal
+
+theorem phiC_le_normalized_valuation_local_model_base_change (E : Type) [Field E] [NumberField E] [IsCMField E] (H : Geo.Tor.Host E) (Dw : Datum H)
+    (l : Level H) (Xo : Moduli Dw l) (c : Coeff l) (la : HeightOneSpectrum (𝓞 c.F)) (O : Type) [CommRing O]
+    (β₀ : O →+* c.F) (Y : Model Xo c β₀) (hB : PointsOfFlagModel.BaseAt la β₀) (T : CDVR) (io : c.F →+* T.Fr) (e : ℕ)
+    (y : IntFr Xo c T io) (C : SCF (Formalism.MainNotions.WeightAlgebra.resCh la)) (Pc : PointsOfFlagModel.PtC Y C) (hO : OverLa la T.V io e)
+    (hAlg : T.FinRes) (eF : T.Fr →+* ↥C.S) (heF : eF.comp io = Pc.fK)
+    (hle : ∀ a : T.V, ‖eF (algebraMap T.V T.Fr a)‖ ≤ 1)
+    (hlt : ∀ a ∈ maximalIdeal T.V, ‖eF (algebraMap T.V T.Fr a)‖ < 1)
+    (hy : letI := io.toAlgebra; Pc.y ≫ pullback.fst _ _ = spMap eF ≫ y.1.x)
+    (cj : E → E) (hcj : ∀ a, cj a = IsCMField.complexConj E a) :
+    ∃ (A : DatAt Y Pc) (bA : Formalism.MainNotions.ModuliIntegralCharts.SymB cj A.Ylat), (∀ a b, (bA : _ →ₗ[ℤ] _ →ₗ[ℤ] ℝ) a b = A.beta a b) ∧
+      ∀ (R : ℕ), Odd R → 1 < R → ∀ (J : Type) [Fintype J] (n : ℕ) (cf : J → ℤ)
+        (xs : J → Fin n → LatMod Dw (R ^ 4)) (f : Rul Xo c), GlobalTheory.EtaAn.Spans xs → IsEtaRule Xo c R cf xs f →
+        ((((Nat.card (LevGrp Dw (R ^ 4)) : ℝ) / (R : ℝ) ^ 4 *
+          (Formalism.BasicNotions.eWL c.F la * Formalism.MainNotions.ModuliIntegralCharts.phiC cj bA) : ℝ)) : EReal) ≤ nval T.V e (evI y f) := by
+  letI := io.toAlgebra
+  obtain ⟨G, ⟨I⟩⟩ := (GlobalTheory.T.integralThetaSection_exists_and_baseChange E H Dw l Xo c).1 T io y
+  obtain ⟨T', φ, G', m, hφi, hφf, -, -, U, hU, hUt⟩ :=
+    GlobalTheory.UnifAfterExt.exists_finite_ext_uniformised E H Dw l Xo T G I.t' I.m2 y.1.x I.m1 hAlg
+  obtain ⟨i, ρ, hρ, hi, hiv, hf⟩ := GlobalTheory.T.exists_injective_intO_embedding_of_norm_lt_one T T' φ hφi hφf
+  obtain ⟨f, hfi, hfφ, hfm⟩ := hf _ C eF hle hlt
+  obtain ⟨A, e', hA⟩ := GlobalTheory.T.degeneration_data_at_model_point_of_uniformisation E H Dw l Xo c O β₀ Y la hB
+    T io e hO y.1.x y.1.s G I y.1.x_over T' φ G' m U hU hUt _ C Pc eF f heF hy hfφ hfm
+  obtain ⟨ϖ, hϖ⟩ := IsDiscreteValuationRing.exists_irreducible T'.V
+  obtain ⟨Q, β, hQ, hQ0, -, hβQ, hβ⟩ := GlobalTheory.T.valuationForm_psi_balanced_symmetric_periodForm E H T'.V G' U ϖ hϖ cj hcj
+  have hf1 : ∀ a, ‖((intO ↥C.S).subtype.comp f) a‖ ≤ 1 := fun a => (f a).2
+  have hfi' : Function.Injective ((intO ↥C.S).subtype.comp f) :=
+    (intO ↥C.S).subtype_injective.comp hfi
+  have hO' := hO.bc i hρ hiv
+  obtain ⟨hun, hew⟩ := GlobalTheory.T.logb_norm_uniformizer_normalisation c.F la T' (i.comp io) (ρ * e) hO' ϖ hϖ C _ hf1
+  set t : ℝ := -Real.logb (Formalism.MainNotions.WeightAlgebra.resCh la) ‖((intO ↥C.S).subtype.comp f) ϖ‖ with ht
+  have hρe : (0 : ℝ) < ((ρ * e : ℕ) : ℝ) := by exact_mod_cast hO'.1
+  have hew' : (0 : ℝ) < (Formalism.BasicNotions.eWL c.F la : ℝ) := by exact_mod_cast hew
+  have ht0 : 0 ≤ t := by
+    by_contra hneg
+    have := mul_neg_of_neg_of_pos (not_le.1 hneg) (mul_pos hρe hew')
+    linarith
+  obtain ⟨bA, hbA, hφ⟩ := GlobalTheory.T.exists_symB_phiC_eq_mul_of_pullback E cj A.Ylat U.D.toPre.X e' β t ht0
+  refine ⟨A, bA, fun a b => ?_, ?_⟩
+  · rw [hbA, hA, hβ _ _ _ hfi' hf1]
+  intro R hR hR1 J _ n cf xs g hsp hg
+  letI : Algebra c.F T'.Fr := (i.comp io).toAlgebra
+  let ψ : T.Fr →ₐ[c.F] T'.Fr := { i with commutes' := fun _ => rfl }
+  obtain ⟨y', hy'⟩ := GlobalTheory.FramedBaseChange.exists_frMap GlobalTheory.firstFiveLaws.1 E H Dw l Xo c T.Fr T'.Fr ψ y.1
+  obtain ⟨I'⟩ := (GlobalTheory.T.integralThetaSection_exists_and_baseChange E H Dw l Xo c).2 T.V T'.V φ ψ y.1 y' G G' m I hi hy'
+  have hval := (GlobalTheory.EtaForm.etaValAt_evR_of_fromTest E H Dw l Xo c R hR J n cf xs g hg T.Fr y.1 y.2.1).2
+    T'.Fr ψ y' hy'
+  by_cases h0 : evI y g = 0
+  · rw [h0, nval_zero]; exact le_top
+  have h0' : i (evI y g) ≠ 0 := (map_ne_zero i).2 h0
+  have hpt := GlobalTheory.T.card_mul_phi_le_valuation_productForm E H Dw l Xo c T'.V y' G' I' U ϖ hϖ Q hQ hQ0 cj hcj β hβQ R hR hR1 J n cf xs
+    (i (evI y g)) hsp hval h0'
+  rw [← nval_bc (V' := T'.V) i hρ hiv e, nval_of_ne h0', EReal.coe_le_coe_iff, le_div_iff₀ hρe, hφ]
+  refine le_trans (le_of_eq ?_) hpt
+  calc _ = (Nat.card (LevGrp Dw (R ^ 4)) : ℝ) / (R : ℝ) ^ 4 * Formalism.MainNotions.ModuliIntegralCharts.phiC cj β *
+        (t * (((ρ * e : ℕ) : ℝ) * Formalism.BasicNotions.eWL c.F la)) := by ring
+    _ = _ := by rw [hun, _root_.mul_one]
+
+theorem phiC_le_nval_of_lies :
+    ∀ (E : Type) [Field E] [NumberField E] [IsCMField E] (H : Geo.Tor.Host E) (Dw : Datum H) (l : Level H) (Xo : Moduli Dw l) (c : Coeff l) (la : HeightOneSpectrum (𝓞 c.F)) (Tw : PointsOfFlagModel.Tower (Formalism.MainNotions.WeightAlgebra.resCh la) Xo c), PointsOfFlagModel.TowerAt Tw → ∀ (T : CDVR) (io : c.F →+* T.Fr) (e : ℕ) (y : IntFr Xo c T io) (z : PointsOfFlagModel.Pt Tw .yy), OverLa la T.V io e → y.IsAlg → LiesOverBaseChange la Tw T io y z → ∀ (cj : E → E), (∀ a, cj a = IsCMField.complexConj E a) → ∃ (A : DatAt (Tw.Y z.1) z.2.2.1) (bA : Formalism.MainNotions.ModuliIntegralCharts.SymB cj A.Ylat), (∀ a b, (bA : _ →ₗ[ℤ] _ →ₗ[ℤ] ℝ) a b = A.beta a b) ∧ ∀ (R : ℕ), Odd R → 1 < R → ∀ (J : Type) [Fintype J] (n : ℕ) (cf : J → ℤ) (xs : J → Fin n → LatMod Dw (R ^ 4)) (f : Rul Xo c), GlobalTheory.EtaAn.Spans xs → IsEtaRule Xo c R cf xs f → ((((Nat.card (LevGrp Dw (R ^ 4)) : ℝ) / (R : ℝ) ^ 4 * (Formalism.BasicNotions.eWL c.F la * Formalism.MainNotions.ModuliIntegralCharts.phiC cj bA) : ℝ)) : EReal) ≤ nval T.V e (evI y f) := by
+  intro E _ _ _ H Dw l Xo c la Tw hTw T io e y z hO hAlg hL cj hcj
+  have hv : z.1.1 = la := congrArg Subtype.val hL.1
+  have hB : PointsOfFlagModel.BaseAt la (Tw.β z.1) := by
+    have h := (hTw.1 z.1).1
+    rwa [hv] at h
+  refine hL.2.elim fun eF h => ?_
+  exact phiC_le_normalized_valuation_local_model_base_change E H Dw l Xo c la _ (Tw.β z.1) (Tw.Y z.1) hB T io e y z.2.1 z.2.2.1
+    hO hAlg eF h.1 h.2.1 h.2.2.1 h.2.2.2.1 cj hcj
+
+end GlobalTheory.EtaVal
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.PhiCLeNormalizedValuationProductFormAlgebraicStatement
+open AlgebraicGeometry CategoryTheory Limits MonoidalCategory CartesianMonoidalCategory MonObj NumberField IsLocalRing IsDedekindDomain
+open ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Semi ReciprocityTheory.ChartRestriction.G.Out ReciprocityTheory.ChartRestriction.G.Geo.Tor ReciprocityTheory.ChartRestriction.G.DVR Formalism.L2.Pj GlobalTheory.EtaForm GlobalTheory.EtaVal
+open Formalism.MainNotions.DIV.Cons (SCF intO)
+open scoped CategoryTheory.Obj
+attribute [local instance] Over.cartesianMonoidalCategory
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.phiC_le_normalized_valuation_product_form_algebraic : ∀ (E : Type) [Field E] [NumberField E] [IsCMField E] (H : Geo.Tor.Host E) (Dw : Datum H) (l : Level H) (Xo : Moduli Dw l) (c : Coeff l) (la : HeightOneSpectrum (𝓞 c.F)) (Tw : PointsOfFlagModel.Tower (Formalism.MainNotions.WeightAlgebra.resCh la) Xo c), PointsOfFlagModel.TowerAt Tw → ∀ (T : CDVR) (io : c.F →+* T.Fr) (e : ℕ) (y : IntFr Xo c T io) (z : PointsOfFlagModel.Pt Tw .yy), OverLa la T.V io e → y.IsAlg → LiesOverBaseChange la Tw T io y z → ∀ (cj : E → E), (∀ a, cj a = IsCMField.complexConj E a) → ∃ (A : DatAt (Tw.Y z.1) z.2.2.1) (bA : Formalism.MainNotions.ModuliIntegralCharts.SymB cj A.Ylat), (∀ a b, (bA : _ →ₗ[ℤ] _ →ₗ[ℤ] ℝ) a b = A.beta a b) ∧ ∀ (R : ℕ), Odd R → 1 < R → ∀ (J : Type) [Fintype J] (n : ℕ) (cf : J → ℤ) (xs : J → Fin n → LatMod Dw (R ^ 4)) (f : Rul Xo c), GlobalTheory.EtaAn.Spans xs → IsEtaRule Xo c R cf xs f → ((((Nat.card (LevGrp Dw (R ^ 4)) : ℝ) / (R : ℝ) ^ 4 * (Formalism.BasicNotions.eWL c.F la * Formalism.MainNotions.ModuliIntegralCharts.phiC cj bA) : ℝ)) : EReal) ≤ nval T.V e (evI y f) := by
+  first | exact @GlobalTheory.EtaVal.phiC_le_nval_of_lies | exact GlobalTheory.EtaVal.phiC_le_nval_of_lies | (intros; apply GlobalTheory.EtaVal.phiC_le_nval_of_lies <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.EtaProductFormValuationBound
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+
+namespace GlobalTheory.EtaVal
+
+theorem two_mul_le_of_card_div_le {N i : ℕ} {a p p' : ℝ} {v : EReal} (hN : N = 2 * 5 ^ 4 * i) (hp : p = p')
+    (hv : (((N : ℝ) / ((5 : ℕ) : ℝ) ^ 4 * (a * p') : ℝ) : EReal) ≤ v) : ((2 * i * (a * p) : ℝ) : EReal) ≤ v := by
+  have h5 : (N : ℝ) / ((5 : ℕ) : ℝ) ^ 4 = 2 * i := by
+    rw [hN]; push_cast; ring
+  rw [h5, ← hp] at hv
+  exact hv
+
+theorem val_at_partner {D : D7} {Q : Par D} (G : In66 Q) (hT : G.PinTower) (hL : G.PinLat) {j : ℕ} (h1 : 1 ≤ j)
+    (h2 : j < D.R.m) (i : ℕ) (f : Rul (Q.Xo j) Q.c) (J : Type) [Fintype J] (n : ℕ) (cf : J → ℤ)
+    (xs : J → Fin n → LatMod (Q.Dw j) (5 ^ 4)) (hcard : Nat.card (LevGrp (Q.Dw j) (5 ^ 4)) = 2 * 5 ^ 4 * i)
+    (hsp : Spans xs) (hrule : IsEtaRule (Q.Xo j) Q.c 5 cf xs f) (la : HeightOneSpectrum (𝓞 Q.c.F))
+    (y : PtV (Q.Xo j) Q.c (algCls (Q.Xo j) Q.c) (G.PY j (WeightAlgebra.resCh la)) (G.lies j la) la) :
+    ((2 * i * ((eWL Q.c.F la : ℝ) * (G.P.loc (G.dat j) (WeightAlgebra.resCh la)).phiCy (imgV y)) : ℝ) : EReal) ≤ vAtV y f := by
+  obtain ⟨S, io, e, ho, y', hy, eta, hl, hq⟩ := y.2
+  have hi : imgV y = eta := congrArg Prod.snd hq
+  have hf : vAtV y f = nval S.V e (evI y' f) := congrFun (congrArg Prod.fst hq) f
+  rw [hi, hf]
+  obtain ⟨z, hr, hz⟩ := hl h2
+  obtain ⟨A, bA, hb, hv⟩ := GlobalTheory.T.phiC_le_normalized_valuation_product_form_algebraic D.host.E _ (Q.Dw j) _ (Q.Xo j) Q.c la
+    (G.Tw j (WeightAlgebra.resCh la)) (hT j h1 h2 _ (resCh_prime la)) S io e y' z ho hy hz
+    (fun x : D.host.E => D.host.conj x) (fun a => by
+      apply D.host.φ₀.injective
+      rw [NumberField.IsCMField.complexEmbedding_complexConj]
+      exact WeightFamilies.emb_conj D _ a)
+  have hphi := In66.phiCy_eq G hL h1 h2 ⟨S, io, e, y', ho, hy, hz⟩ hr A bA hb
+  have key := hv 5 (by decide) (by norm_num) J n cf xs f hsp hrule
+  exact two_mul_le_of_card_div_le hcard hphi key
+
+theorem recPJ_phiC {D : D7} {T : Top D} (h : LawsP T) {j : ℕ} (hj : InR D j) (h2 : j < D.R.m)
+    (la : HeightOneSpectrum (𝓞 T.Q.c.F)) (y : T.PtA j la) :
+    (recPJ h j hj).phiC la y =
+      (eWL T.Q.c.F la : ℝ) * (T.G.P.loc (T.G.dat j) (WeightAlgebra.resCh la)).phiCy (imgV y) := by
+  unfold WeightAlgebra.PJ.phiC
+  rw [if_pos h2]
+  rfl
+
+theorem etVal_of_isEtaRule : ∀ (D : D7) (T : Top D) (h : LawsP T) (j : ℕ) (h1 : 1 ≤ j) (h2 : j < D.R.m) (i : ℕ) (η : (recB h.toLawsCore).Cusp j (wEt D j i)) (J : Type) [Fintype J] (n : ℕ) (cf : J → ℤ) (xs : J → Fin n → LatMod (T.Q.Dw j) (5 ^ 4)), Nat.card (LevGrp (T.Q.Dw j) (5 ^ 4)) = 2 * 5 ^ 4 * i → Spans xs → IsEtaRule (T.Q.Xo j) T.Q.c 5 cf xs η.1 → EtVal h j ⟨h1, h2.le⟩ i η := by
+  intro D T h j h1 h2 i η J _ n cf xs hcard hsp hrule la y
+  have e1 := recPJ_vAt_inc h j ⟨h1, h2.le⟩ la y _ η
+  have e2 := recPJ_phiC h ⟨h1, h2.le⟩ h2 la y
+  have key := val_at_partner T.G h.tower h.lattice_condition h1 h2 i η.1 J n cf xs hcard hsp hrule la y
+  rw [← e2, ← e1] at key
+  exact key
+
+end GlobalTheory.EtaVal
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.EtaProductFormValuationBoundStatement
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.etaProductForm_valuation_bound : ∀ (D : D7) (T : Top D) (h : LawsP T) (j : ℕ) (h1 : 1 ≤ j) (h2 : j < D.R.m) (i : ℕ) (η : (recB h.toLawsCore).Cusp j (wEt D j i)) (J : Type) [Fintype J] (n : ℕ) (cf : J → ℤ) (xs : J → Fin n → LatMod (T.Q.Dw j) (5 ^ 4)), Nat.card (LevGrp (T.Q.Dw j) (5 ^ 4)) = 2 * 5 ^ 4 * i → Spans xs → IsEtaRule (T.Q.Xo j) T.Q.c 5 cf xs η.1 → EtVal h j ⟨h1, h2.le⟩ i η := by
+  first | exact @GlobalTheory.EtaVal.etVal_of_isEtaRule | exact GlobalTheory.EtaVal.etVal_of_isEtaRule | (intros; apply GlobalTheory.EtaVal.etVal_of_isEtaRule <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.ExistsCuspFormFourClausesExplicitConstant
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+
+namespace GlobalTheory.EtaAn
+
+theorem wtA_wEt_eq_zero (D : D7) (j i : ℕ) : wtA (wEt D j i) = 0 := by
+  funext x
+  simp [wtA, wEt, WeightAlgebra.wscalar, Formalism.L2.Pj.ext0]
+
+theorem exists_form_four_clauses (D : D7) (T : Top D) (h : LawsP T) (DF q : ℕ) (R0 P tableLineDegreeTwo : ℝ)
+    (hrun : RunOK D.host.E D.R.r DF q R0 D.R.m)
+    (hp : ∀ j, InR D j → p16 D.host.E D.R.r q D.R.m 5
+      (max 1 (Fintype.card (T.U j T.σ₀).Comp) * 5 ^ (8 * I2.PT.f D.host.E * D.R.r ^ 2)) ≤ min P tableLineDegreeTwo)
+    (hP : 0 ≤ P) : ETEx h P (EtArch h (I2.th (E := D.host.E) q R0) tableLineDegreeTwo) := by
+  intro j h1 h2
+  have hj : InR D j := ⟨h1, h2.le⟩
+  have hdat := h.pins.2.2.2 j hj
+  have hq : (T.Q.Dw j).q ≤ D.R.m := by
+    rw [hdat.2.1]; simp [Ranks.sigW]
+  have hr : 2 ≤ D.R.r := by
+    have := D.R.m_add_three_le_k
+    unfold Ranks.r; omega
+  obtain ⟨i, J, fJ, cf, xs, f, hi, hcard, hsp, hrule, hcusp, hne, -, hnzd, harch, hsup⟩ :=
+    GlobalTheory.T.exists_product_cuspForm_ne_zero_arch_supNorm_bounds D.host.E T.Q.H (T.Q.Dw j) T.Q.l (T.Q.Xo j) T.Q.c D.R.r
+      (fun σ => Formalism.L2.PjFree.Unf.ofPj (T.U j σ)) T.σ₀ (fun σ hσ => h.unf j hj σ hσ) T.good_σ₀
+      (h.allTest j hj) hr 5 (by decide) (by norm_num) DF q D.R.m R0 hrun (Or.inr hq)
+  have hw := wtA_wEt_eq_zero D j i
+  have hn : (wEt D j i).n = 2 * 5 ^ 4 * D.R.r * i := rfl
+  have hmemC : f ∈ T.C j (wEt D j i) := by
+    change f ∈ cusp (T.Q.Xo j) T.Q.c (T.U j) (wtA (wEt D j i)) (wEt D j i).n
+    rw [hw, hn]; exact hcusp
+  have hmem : f ∈ cutR T.C j (wEt D j i) := by rw [cutR_eq T.C hj]; exact hmemC
+  have hpj := hp j hj
+  have hi' : (0 : ℝ) < i := by exact_mod_cast hi
+  refine ⟨i, hi, ⟨f, hmem⟩, ⟨fun h0 => hne (congrArg Subtype.val h0), ?_⟩, ?_, ?_, ?_⟩
+  · intro w' G hFG
+    have hGc : (G : T.R j) ∈ T.C j w' := cutR_le T.C j w' G.2
+    have hm : f * (G : T.R j) ∈ cutR T.C j (WeightAlgebra.wadd (wEt D j i) w') := by
+      rw [cutR_eq T.C hj]; exact h.toLawsCore.mul j hj _ w' _ hmemC _ hGc
+    have hval : f * (G : T.R j) = 0 := by
+      have e1 : incG deg (cutR T.C j) (wEt D j i) ⟨f, hmem⟩ * incG deg (cutR T.C j) w' G = 0 := hFG
+      rw [incG_mul deg (cutR T.C j) (deg_wadd (wEt D j i) w') ⟨f, hmem⟩ G hm] at e1
+      have e2 := incG_inj deg (cutR T.C j) _ (e1.trans (map_zero _).symm)
+      exact congrArg Subtype.val e2
+    exact Subtype.ext (hnzd _ _ _ (dom_wtA w') (cusp_le_sec _ _ _ _ _ hGc) hval)
+  · exact GlobalTheory.T.etaProductForm_valuation_bound D T h j h1 h2 i ⟨f, hmem⟩ J D.R.r cf xs hcard hsp hrule
+  · intro σ
+    have e : (recB h.toLawsCore).supN j _ σ ⟨f, hmem⟩ =
+        supC (T.Q.Xo j) T.Q.c (T.U j) (xiR D) (goodOf T.Q.c σ) 0 (2 * 5 ^ 4 * D.R.r * i) f := by
+      change cutN T.C T.Ns j (wEt D j i) σ ⟨f, hmem⟩ = _
+      unfold cutN
+      rw [if_pos hj]
+      unfold Core.Ns
+      rw [hw, hn]
+    have hs0 := (recB h.toLawsCore).supN_nonneg j _ σ ⟨f, hmem⟩
+    have hb := hsup (goodOf T.Q.c σ) (xiR D) (goodEmb_goodOf _ σ)
+    have hb' : (recB h.toLawsCore).supN j _ σ ⟨f, hmem⟩ ≤ Real.exp (i * P) := by
+      rw [e]
+      refine le_trans hb (Real.exp_le_exp.mpr ?_)
+      exact mul_le_mul_of_nonneg_left (hpj.trans (min_le_left _ _)) hi'.le
+    rw [div_le_iff₀ hi', mul_comm]
+    rcases hs0.eq_or_lt with h0 | h0
+    · rw [← h0, Real.log_zero]; positivity
+    · exact (Real.log_le_iff_le_exp h0).mpr hb'
+  · intro σ hσ k x hx
+    have hb := harch σ hσ k x hx
+    have hl : lieFac (T.Q.Dw j) (xiR D) 0 = 1 := by simp [lieFac]
+    rw [hw, hn, hl, one_mul]
+    refine le_trans hb (Real.exp_le_exp.mpr ?_)
+    have := hpj.trans (min_le_right _ _)
+    refine mul_le_mul_of_nonpos_left ?_ (by linarith)
+    exact sub_le_sub_left this _
+
+end GlobalTheory.EtaAn
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.ExistsCuspFormFourClausesExplicitConstantStatement
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_cuspForm_four_clauses_explicitConstant : ∀ (D : D7) (T : Top D) (h : LawsP T) (DF q : ℕ) (R0 P tableLineDegreeTwo : ℝ), RunOK D.host.E D.R.r DF q R0 D.R.m → (∀ j, InR D j → p16 D.host.E D.R.r q D.R.m 5 (max 1 (Fintype.card (T.U j T.σ₀).Comp) * 5 ^ (8 * I2.PT.f D.host.E * D.R.r ^ 2)) ≤ min P tableLineDegreeTwo) → 0 ≤ P → ETEx h P (EtArch h (I2.th (E := D.host.E) q R0) tableLineDegreeTwo) := by
+  first | exact @GlobalTheory.EtaAn.exists_form_four_clauses | exact GlobalTheory.EtaAn.exists_form_four_clauses | (intros; apply GlobalTheory.EtaAn.exists_form_four_clauses <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.LogCardComponentsLeOfRowsBound
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.ExistsPerfectTraceIdeal
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+
+namespace GlobalTheory.EtaAn.PerfectTrace
+
+open FractionalIdeal
+
+theorem cc_eq_conj (D : D7) (z : D.host.E) : FD.cc z = D.host.conj z := by
+  unfold FD.cc
+  apply D.host.φ₀.injective
+  rw [NumberField.IsCMField.complexEmbedding_complexConj, Formalism.HC.HostAx.conjE_apply]
+
+theorem isIntegral_of_trace (D : D7) (x : D.host.E)
+    (h : ∀ a ∈ D.host.AA, ∀ b ∈ D.host.AA,
+      ∃ z : ℤ, Algebra.trace ℚ D.host.E (D.host.xi0 * x * a * D.host.conj b) = z) :
+    IsIntegral ℤ x := by
+  have hP := Formalism.IndefR.Fin.factPrincipalDatum
+  have h1ne : (1 : FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E) ≠ 0 :=
+    @one_ne_zero (FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E) _ _ _
+  have key : ∀ e ∈ D.host.AA * D.host.AAbar, D.host.xi0 * x * e ∈
+      FractionalIdeal.dual ℤ ℚ (1 : FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E) := by
+    intro e he
+    refine FractionalIdeal.mul_induction_on (C := fun e => D.host.xi0 * x * e ∈
+      FractionalIdeal.dual ℤ ℚ (1 : FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E)) he
+      (fun a ha b hb => ?_) (fun u w hu hw => ?_)
+    · show D.host.xi0 * x * (a * b) ∈ _
+      rw [mem_dual h1ne]
+      intro c hc
+      rw [mem_one_iff] at hc
+      obtain ⟨c, rfl⟩ := hc
+      have hca : c • a ∈ D.host.AA := (D.host.AA : Submodule (𝓞 D.host.E) D.host.E).smul_mem c ha
+      obtain ⟨n, hn⟩ := h _ hca _ (conj_mem_AA D hb)
+      rw [conj_conj, Algebra.smul_def] at hn
+      rw [Algebra.traceForm_apply, show D.host.xi0 * x * (a * b) * algebraMap (𝓞 D.host.E) D.host.E c =
+        D.host.xi0 * x * (algebraMap (𝓞 D.host.E) D.host.E c * a) * b by ring, hn]
+      exact ⟨n, eq_intCast (algebraMap ℤ ℚ) _⟩
+    · show D.host.xi0 * x * (u + w) ∈ _
+      rw [mul_add]
+      exact (FractionalIdeal.dual ℤ ℚ (1 : FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E) :
+        Submodule (𝓞 D.host.E) D.host.E).add_mem hu hw
+  have hle : FractionalIdeal.spanSingleton (nonZeroDivisors (𝓞 D.host.E)) x *
+      FractionalIdeal.dual ℤ ℚ (1 : FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E) ≤
+      FractionalIdeal.dual ℤ ℚ (1 : FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E) := by
+    conv_lhs => rw [← dual_eq hP D, mul_assoc, ← mul_assoc, spanSingleton_mul_spanSingleton, mul_comm x]
+    rw [spanSingleton_mul_le_iff]
+    exact key
+  have hJ : FractionalIdeal.dual ℤ ℚ (1 : FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E) ≠ 0 :=
+    FractionalIdeal.dual_ne_zero ℤ ℚ h1ne
+  generalize FractionalIdeal.dual ℤ ℚ (1 : FractionalIdeal (nonZeroDivisors (𝓞 D.host.E)) D.host.E) = J at hle hJ
+  have hle2 : FractionalIdeal.spanSingleton (nonZeroDivisors (𝓞 D.host.E)) x ≤ 1 := by
+    calc FractionalIdeal.spanSingleton (nonZeroDivisors (𝓞 D.host.E)) x
+        = J⁻¹ * (FractionalIdeal.spanSingleton (nonZeroDivisors (𝓞 D.host.E)) x * J) := by
+          rw [mul_comm _ J, ← mul_assoc, inv_mul_cancel₀ hJ, one_mul]
+      _ ≤ J⁻¹ * J := CovariantClass.elim J⁻¹ hle
+      _ = 1 := inv_mul_cancel₀ hJ
+  have hx := hle2 (mem_spanSingleton_self _ _)
+  obtain ⟨c, rfl⟩ := (mem_one_iff _).1 hx
+  exact c.isIntegral_coe
+
+theorem exists_perfect_trace_ideal :
+    ∀ (D : D7), ∃ (ξ : D.host.E) (AA : Submodule (𝓞 D.host.E) D.host.E), FD.cc ξ = -ξ ∧ ξ ≠ 0 ∧ AA.FG ∧ AA ≠ ⊥ ∧ ∀ x : D.host.E, (∀ a ∈ AA, ∀ b ∈ AA, ∃ z : ℤ, Algebra.trace ℚ D.host.E (ξ * x * a * FD.cc b) = z) ↔ IsIntegral ℤ x := by
+  intro D
+  have hP := Formalism.IndefR.Fin.factPrincipalDatum
+  refine ⟨D.host.xi0, (D.host.AA : Submodule (𝓞 D.host.E) D.host.E), conj_xi0_alt D, cmHost_imaginaryGenerator_ne_zero hP D,
+    FractionalIdeal.fg_of_isUnit _ (Ne.isUnit (AA_ne_zero hP D)), ?_, fun x => ⟨fun h => ?_, fun hx a ha b hb => ?_⟩⟩
+  · intro h
+    exact AA_ne_zero hP D (FractionalIdeal.coeToSubmodule_eq_bot.1 h)
+  · refine isIntegral_of_trace D x (fun a ha b hb => ?_)
+    rw [← cc_eq_conj]
+    exact h a ha b hb
+  · have hxa : (⟨x, hx⟩ : 𝓞 D.host.E) • a ∈ D.host.AA :=
+      (D.host.AA : Submodule (𝓞 D.host.E) D.host.E).smul_mem _ ha
+    have hm : x * a * D.host.conj b ∈ NAA D := mul_mem_mul hxa (conj_mem_AAbar D hb)
+    obtain ⟨n, hn⟩ := trace_int_of_mem hP D hm
+    refine ⟨n, ?_⟩
+    rw [cc_eq_conj, ← hn]
+    congr 1; ring
+
+end GlobalTheory.EtaAn.PerfectTrace
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.LogCardComponentsLeOfRowsBound
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+
+namespace GlobalTheory.EtaAn
+
+theorem log_card_comp_le_of_rows : ∀ (D : D7) (T : Top D) (_h : LawsP T) (large₂ : SizeData₂ D), (2 ≤ large₂.sc.L ∧ Real.log D.R.r ≤ large₂.sc.L ∧ Real.log D.host.rdE ≤ 2 * large₂.sc.L ∧ Real.log D.R.f ≤ 2 * large₂.sc.L ∧ (∀ i, Real.log (D.host.g i) ≤ 9 * large₂.sc.L + 1) ∧ 16 ≤ D.R.f) → ∀ j, InR D j → ∀ σ : T.Q.c.F →+* ℂ, GoodEmb T.Q.c σ → Real.log (Fintype.card (T.U j σ).Comp) ≤ 41 * zBase large₂ ^ 2 := by
+  intro D T h large₂ ⟨h2, hrL, hrd, hf, hg, h16⟩ j hj σ hσ
+  obtain ⟨ξ, AA, hsk, hne, hFG, hA, hdual⟩ := PerfectTrace.exists_perfect_trace_ideal D
+  obtain ⟨-, -, hM, -, -, hfin, hJ⟩ := GlobalTheory.PinNum.numerics_of_pins D T.Q h.pins
+  obtain ⟨-, hr, -⟩ := hJ j hj
+  have hMg : T.Q.l.M = D.host.g 0 * D.host.g 1 := h.pins.2.1.1
+  have hfd : FD.fdeg D.host.E = D.R.f := by
+    unfold FD.fdeg; rw [hfin]; omega
+  have hfR : (0 : ℝ) < D.R.f := by exact_mod_cast (by omega : 0 < D.R.f)
+  have hdisc : 0 < |((NumberField.discr D.host.E : ℤ) : ℝ)| :=
+    abs_pos.2 (by exact_mod_cast NumberField.discr_ne_zero D.host.E)
+  have hdE : Real.log (FD.dE D.host.E) ≤ 4 * FD.fdeg D.host.E * large₂.sc.L := by
+    unfold Formalism.BasicNotions.Host.rdE at hrd
+    rw [Real.log_rpow hdisc, hfin, one_div_mul_eq_div, div_le_iff₀ (by push_cast; positivity)] at hrd
+    push_cast at hrd
+    rw [hfd]
+    unfold FD.dE
+    linarith
+  have hML : Real.log T.Q.l.M' ≤ 30 * large₂.sc.L := by
+    rw [hM, hMg]
+    have h0 := hg 0
+    have h1 := hg 1
+    have a := (D.host.g_prime 0).pos
+    have b := (D.host.g_prime 1).pos
+    rw [Nat.cast_mul, Real.log_mul (by exact_mod_cast a.ne') (by exact_mod_cast b.ne')]
+    linarith
+  have key := GlobalTheory.log_card_comp_unf_le GlobalTheory.QNorm.hasseNormSt GlobalTheory.thetaUnifAV_all GlobalTheory.firstFiveLaws.1
+    D.host.E _ _ _ (T.Q.Xo j) T.Q.c σ D.R.r
+    (Formalism.L2.PjFree.Unf.ofPj (T.U j σ)) hr hσ ((Formalism.L2.PjFree.isUnf_ofPj _).2 (h.unf j hj σ hσ))
+    ξ AA hsk hne hFG hA hdual large₂.sc.L (by rw [hfd]; exact h16) h2 hdE hrL
+    (by rw [hfd]; exact hf) hML
+  rw [hfd] at key
+  exact key
+
+end GlobalTheory.EtaAn
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.LogCardComponentsLeOfRowsBoundStatement
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.log_card_components_le_of_rows_bound : ∀ (D : D7) (T : Top D) (_h : LawsP T) (large₂ : SizeData₂ D), (2 ≤ large₂.sc.L ∧ Real.log D.R.r ≤ large₂.sc.L ∧ Real.log D.host.rdE ≤ 2 * large₂.sc.L ∧ Real.log D.R.f ≤ 2 * large₂.sc.L ∧ (∀ i, Real.log (D.host.g i) ≤ 9 * large₂.sc.L + 1) ∧ 16 ≤ D.R.f) → ∀ j, InR D j → ∀ σ : T.Q.c.F →+* ℂ, GoodEmb T.Q.c σ → Real.log (Fintype.card (T.U j σ).Comp) ≤ 41 * zBase large₂ ^ 2 := by
+  first | exact @GlobalTheory.EtaAn.log_card_comp_le_of_rows | exact GlobalTheory.EtaAn.log_card_comp_le_of_rows | (intros; apply GlobalTheory.EtaAn.log_card_comp_le_of_rows <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.EtaleExtensionDegreeTwoConstants
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+
+namespace GlobalTheory.EtaAn
+
+private lemma etexnum_one_le_rd (E : Type) [Field E] [NumberField E] [IsCMField E] : 1 ≤ I2.PT.rd E := by
+  unfold I2.PT.rd
+  refine Real.one_le_rpow ?_ (by positivity)
+  have h : (1 : ℤ) ≤ |NumberField.discr E| := Int.one_le_abs (NumberField.discr_ne_zero E)
+  exact_mod_cast h
+
+theorem etEx_deg_two : ∀ (D : D7) (T : Top D) (h : LawsP T) (large₂ : SizeData₂ D), (2 ≤ large₂.sc.L ∧ Real.log D.R.r ≤ large₂.sc.L ∧ Real.log D.host.rdE ≤ 2 * large₂.sc.L ∧ Real.log D.R.f ≤ 2 * large₂.sc.L ∧ (∀ i, Real.log (D.host.g i) ≤ 9 * large₂.sc.L + 1) ∧ 16 ≤ D.R.f) → ∀ (DF q : ℕ) (R0 : ℝ), RunOK D.host.E D.R.r DF q R0 D.R.m → 1 ≤ q → Real.log q ≤ 70 * large₂.sc.L → ETEx h (WeightFamilies.PPv D large₂ 200000 2) (EtArch h (I2.th (E := D.host.E) q R0) (200000 * zBase large₂ ^ 2)) := by
+  intro D T h large₂ hrows DF q R0 hrun hq lq
+  have hP : WeightFamilies.PPv D large₂ 200000 2 = 200000 * zBase large₂ ^ 2 := by
+    unfold WeightFamilies.PPv
+    rw [Real.rpow_two]
+  rw [hP]
+  refine GlobalTheory.T.exists_cuspForm_four_clauses_explicitConstant D T h DF q R0 _ _ hrun (fun j hj => ?_) (by positivity)
+  rw [min_self]
+  have hN := GlobalTheory.T.log_card_components_le_of_rows_bound D T h large₂ hrows j hj T.σ₀ T.good_σ₀
+  obtain ⟨hL, lr, lρ, lf, -, hf⟩ := hrows
+  have hm := D.R.two_le_m
+  have hk := D.R.f_le_k
+  have hn : 1 ≤ D.R.n := Formalism.HC.Frame.ord_pos _
+  have hmr : D.R.m ≤ D.R.r := by
+    unfold Ranks.r
+    unfold Ranks.n at hn
+    omega
+  have hz : zBase large₂ = (I2.PT.f D.host.E : ℝ) * D.R.r * large₂.sc.L := by
+    rw [hostSize_f]; rfl
+  rw [hz] at hN ⊢
+  exact (archimedeanBoundTotalConstant_size D.host.E D.R.r q D.R.m _ large₂.sc.L hL (by rw [hostSize_f]; omega) (by omega) (by omega) hmr hq
+    (etexnum_one_le_rd _) lρ (by rw [hostSize_f]; exact lf) lr lq hN).2
+
+end GlobalTheory.EtaAn
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.EtaleExtensionDegreeTwoConstantsStatement
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.etaleExtension_degreeTwo_constants : ∀ (D : D7) (T : Top D) (h : LawsP T) (large₂ : SizeData₂ D), (2 ≤ large₂.sc.L ∧ Real.log D.R.r ≤ large₂.sc.L ∧ Real.log D.host.rdE ≤ 2 * large₂.sc.L ∧ Real.log D.R.f ≤ 2 * large₂.sc.L ∧ (∀ i, Real.log (D.host.g i) ≤ 9 * large₂.sc.L + 1) ∧ 16 ≤ D.R.f) → ∀ (DF q : ℕ) (R0 : ℝ), RunOK D.host.E D.R.r DF q R0 D.R.m → 1 ≤ q → Real.log q ≤ 70 * large₂.sc.L → ETEx h (WeightFamilies.PPv D large₂ 200000 2) (EtArch h (I2.th (E := D.host.E) q R0) (200000 * zBase large₂ ^ 2)) := by
+  first | exact @GlobalTheory.EtaAn.etEx_deg_two | exact GlobalTheory.EtaAn.etEx_deg_two | (intros; apply GlobalTheory.EtaAn.etEx_deg_two <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.EtValIntegral
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.EtaForm GlobalTheory.EtaAn
+
+namespace GlobalTheory.EtaInt
+
+theorem etVal_integral :
+    ∀ (D : D7) (T : Top D) (h : LawsP T) (j : ℕ) (hj : InR D j) (i : ℕ) (η : (recB h.toLawsCore).Cusp j (wEt D j i)), (Formalism.MainNotions.ModuliIntegralCharts.H1.EtVal (recPJ h j hj) i η ↔ Formalism.L2.Pj.EtVal h j hj i η) ∧ (∀ la (y : (recPJ h j hj).Pt la), 0 ≤ (recPJ h j hj).phiC la y) ∧ (Formalism.L2.Pj.EtVal h j hj i η → IntAlg η.1 ∧ η ∈ (recB h.toLawsCore).Mlat j (wEt D j i)) := by
+  intro D T h j hj i η
+  refine ⟨Iff.rfl, GlobalTheory.EtaValuationTest.phiC_nonneg _, fun hv => ?_⟩
+  have hm : η ∈ (recB h.toLawsCore).Mlat j (wEt D j i) :=
+    GlobalTheory.EtaValuationTest.mem_Mlat (recPJ h j hj) i η hv
+  refine ⟨?_, hm⟩
+  have h0 := ((recPJ h j hj).Mlat_eq _ η).1 hm
+  refine (nonneg_iff_of_liesTotal (T.G.liesTotal h.points_condition h.bc66 hj) η.1).2 fun la y => ?_
+  exact le_of_le_of_eq (h0 la y) (recPJ_vAt_inc h j hj la y _ η)
+
+end GlobalTheory.EtaInt
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.ExistsScalarWeightAuxiliaryFormOfRunConditions
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.WeightAlgebra Formalism.MainNotions.DIV.Cons Formalism.MainNotions.Gaps Formalism.MainNotions.Gaps.EtaleWeightGaps Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.RunJoin
+
+namespace GlobalTheory.EtaBoundForm
+
+
+set_option maxHeartbeats 4000000 in
+set_option synthInstance.maxHeartbeats 400000 in
+theorem exists_etaOK : ∀ (D : D7) (T : Top D) (h : LawsP T) (j : ℕ) (hj : InR D j) (large₂ : SizeData₂ D) (H : KHyp) (C2 A2 CT : ℝ) (ka wL wF : WeightFamilies.Wt D j) (Tn nP nW : ℕ) (h0 : ℝ), PageOK large₂ (recPJ h j hj) H C2 A2 CT ka wL wF Tn nP nW h0 → j < D.R.m → ∃ (i : ℕ) (et : (recB h.toLawsCore).Cusp j (etWt D j i)), EtaOK h j hj large₂ wL i et := by
+  intro D T h j hj large₂ H C2 A2 CT ka wL wF Tn nP nW h0 hP hjm
+  obtain ⟨Q, PT, hS, -, -⟩ := id hP.page
+  have what₂ := GlobalTheory.EtaAn.page_rows D large₂ H.CA hP.hyp.1 hS
+  obtain ⟨t1, t2, t3, t4, t5, t6⟩ := hP.tie
+  have htie : TieC ⟨1, 2, 1, 2, 1, 2, 1, 4, 7⟩ H 1 4 0 11 C2 A2 7 :=
+    ⟨t1, t2, t3, t4, t5, rfl, rfl, t6, le_rfl, le_rfl, le_rfl, le_rfl, le_rfl, le_rfl, le_rfl⟩
+  have hsupp : EtaleWeightGaps.PageSupp D large₂ (recB h.toLawsCore) C2 A2 nW
+      ⟨(((D.host.g 0 * D.host.g 1) ^ DF wL : ℕ) : 𝓞 (recB h.toLawsCore).KO), 1, 1, 1⟩ wL := by
+    refine ⟨hP.p13, fun σ => ?_, hP.frd, hP.r8, hP.df⟩
+    have e : σ (((((D.host.g 0 * D.host.g 1) ^ DF wL : ℕ) : 𝓞 (recB h.toLawsCore).KO)) : (recB h.toLawsCore).KO) =
+        (((D.host.g 0 * D.host.g 1) ^ DF wL : ℕ) : ℂ) := by
+      rw [← map_natCast σ]
+      exact congrArg σ (map_natCast (algebraMap (𝓞 (recB h.toLawsCore).KO) (recB h.toLawsCore).KO) _)
+    change _ ≤ Real.log ‖σ (((((D.host.g 0 * D.host.g 1) ^ DF wL : ℕ) : 𝓞 (recB h.toLawsCore).KO)) : (recB h.toLawsCore).KO)‖
+    rw [e, Complex.norm_natCast, Nat.cast_pow, Real.log_pow, ← Nat.cast_mul]
+    have h1 : 0 ≤ Real.log ((D.host.g 0 * D.host.g 1 : ℕ) : ℝ) := Real.log_natCast_nonneg _
+    have h2 : (0 : ℝ) ≤ (DF wL : ℝ) := Nat.cast_nonneg _
+    nlinarith [mul_nonneg h2 h1]
+  have hrun := (GlobalTheory.RunParametersAtRecord.run_at_record D _ _ j (recPJ h j hj) _ _ _ _ _ _ large₂ H C2 A2 7 CT ka wL wF Tn nP nW h0
+    hP.hyp htie hP.page hsupp).1
+  have hq1 : 1 ≤ D.host.g 0 * D.host.g 1 :=
+    Nat.mul_pos (D.host.g_prime 0).pos (D.host.g_prime 1).pos
+  have hlog : Real.log ((D.host.g 0 * D.host.g 1 : ℕ) : ℝ) ≤ 70 * large₂.sc.L := by
+    have a0 : D.host.g 0 ≠ 0 := fun e => by simp [e] at hq1
+    have a1 : D.host.g 1 ≠ 0 := fun e => by simp [e] at hq1
+    rw [Nat.cast_mul, Real.log_mul (by exact_mod_cast a0) (by exact_mod_cast a1)]
+    have b0 := what₂.2.2.2.2.1 0
+    have b1 := what₂.2.2.2.2.1 1
+    linarith [what₂.1]
+  obtain ⟨i, hi, η, ha, hb, hc, hd⟩ := GlobalTheory.T.etaleExtension_degreeTwo_constants D T h large₂ what₂ _ _ _ hrun hq1 hlog j hj.1 hjm
+  exact ⟨i, η, hi, ha, hb, hc, hd, ((GlobalTheory.EtaInt.etVal_integral D T h j hj i η).2.2 hb).2⟩
+
+end GlobalTheory.EtaBoundForm
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TorusSplitting.ExistsScalarWeightAuxiliaryFormOfRunConditionsStatement
+open NumberField IsDedekindDomain Formalism.BasicNotions Formalism.MainNotions Formalism.MainNotions.WeightAlgebra Formalism.MainNotions.DIV.Cons Formalism.MainNotions.Gaps Formalism.MainNotions.Gaps.EtaleWeightGaps Formalism.L2.Pj ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo.Tor GlobalTheory.RunJoin
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_scalarWeight_auxiliaryForm_of_runConditions : ∀ (D : D7) (T : Top D) (h : LawsP T) (j : ℕ) (hj : InR D j) (large₂ : SizeData₂ D) (H : KHyp) (C2 A2 CT : ℝ) (ka wL wF : WeightFamilies.Wt D j) (Tn nP nW : ℕ) (h0 : ℝ), PageOK large₂ (recPJ h j hj) H C2 A2 CT ka wL wF Tn nP nW h0 → j < D.R.m → ∃ (i : ℕ) (et : (recB h.toLawsCore).Cusp j (etWt D j i)), EtaOK h j hj large₂ wL i et := by
+  first | exact @GlobalTheory.EtaBoundForm.exists_etaOK | exact GlobalTheory.EtaBoundForm.exists_etaOK | (intros; apply GlobalTheory.EtaBoundForm.exists_etaOK <;> assumption)
+end

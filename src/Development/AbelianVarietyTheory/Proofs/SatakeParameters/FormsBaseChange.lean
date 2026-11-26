@@ -1,0 +1,222 @@
+module
+
+public import Development.AbelianVarietyTheory.Definitions.GaloisGeometry.KaehlerOneFormsToExtensionDeRhamMulSelf
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.ThetaIntegralIntegrable
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.UnitaryAdmissibleMatrixCoefficient
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.FormsBaseChange
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.FormsBaseChange
+set_option autoImplicit false
+noncomputable section
+open GlobalTheory.W1 GlobalTheory.PD GlobalTheory.CechDR KaehlerDifferential
+
+namespace GlobalTheory.W1.Base
+
+variable (k K L : Type) [Field k] [Field K] [Field L] [Algebra k K] [Algebra k L] [Algebra K L] [IsScalarTower k K L]
+
+theorem mapDR_ιMulti (n : ℕ) (v : Fin n → Ω[K⁄k]) :
+    mapDR k K L (ExteriorAlgebra.ιMulti K n v) =
+      ExteriorAlgebra.ιMulti L n (fun i => KaehlerDifferential.map k k K L (v i)) := by
+  rw [ExteriorAlgebra.ιMulti_apply, ExteriorAlgebra.ιMulti_apply, map_list_prod, List.map_ofFn]
+  exact congrArg (fun l => List.prod l) (congrArg List.ofFn (funext fun i => by
+    show mapDR k K L (ExteriorAlgebra.ι K (v i)) = _
+    rw [mapDR, ExteriorAlgebra.lift_ι_apply]; rfl))
+
+variable {k K L} in
+theorem mapDR_basis {I : Type} [LinearOrder I] (bK : Module.Basis I K Ω[K⁄k]) (bL : Module.Basis I L Ω[L⁄k])
+    (h : ∀ i, bL i = KaehlerDifferential.map k k K L (bK i)) (s : Finset I) :
+    mapDR k K L (bK.ExteriorAlgebra s) = bL.ExteriorAlgebra s := by
+  rw [ExteriorAlgebra.basis_apply_ofCard _ rfl, ExteriorAlgebra.basis_apply_ofCard _ rfl,
+    ExteriorAlgebra.ιMulti_family, ExteriorAlgebra.ιMulti_family, mapDR_ιMulti]
+  exact congrArg _ (funext fun i => (h _).symm)
+
+variable {k K L} in
+theorem repr_mapDR {I : Type} [LinearOrder I] (bK : Module.Basis I K Ω[K⁄k]) (bL : Module.Basis I L Ω[L⁄k])
+    (h : ∀ i, bL i = KaehlerDifferential.map k k K L (bK i)) (ω : DR k K) (s : Finset I) :
+    bL.ExteriorAlgebra.repr (mapDR k K L ω) s = algebraMap K L (bK.ExteriorAlgebra.repr ω s) := by
+  have : ((bL.ExteriorAlgebra.coord s).restrictScalars K ∘ₗ (mapDR k K L).toLinearMap) =
+      Algebra.linearMap K L ∘ₗ bK.ExteriorAlgebra.coord s := by
+    refine bK.ExteriorAlgebra.ext fun t => ?_
+    simp only [LinearMap.coe_comp, Function.comp_apply, AlgHom.toLinearMap_apply, mapDR_basis bK bL h,
+      LinearMap.coe_restrictScalars, Module.Basis.coord_apply, Module.Basis.repr_self, Algebra.linearMap_apply]
+    by_cases hts : t = s
+    · subst hts; simp
+    · simp [Finsupp.single_apply, hts]
+  exact congrArg (· ω) this
+
+end GlobalTheory.W1.Base
+
+namespace GlobalTheory.W1.Base
+
+theorem forms_baseChange : ∀ (k K L : Type) [Field k] [CharZero k] [Field K] [Field L] [Algebra k K] [Algebra k L]
+    [Algebra K L] [IsScalarTower k K L] [FiniteDimensional K L],
+    (∀ y : DR k L, ∃ (m : ℕ) (b : Fin m → L) (ω : Fin m → DR k K), y = ∑ j, b j • mapDR k K L (ω j)) ∧
+      ∀ (m : ℕ) (b : Fin m → L) (ω : Fin m → DR k K), LinearIndependent K b →
+        ∑ j, b j • mapDR k K L (ω j) = 0 → ∀ j, ω j = 0 := by
+  intro k K L _ _ _ _ _ _ _ _ _
+  classical
+  haveI : CharZero K := charZero_of_injective_algebraMap (algebraMap k K).injective
+  haveI : Algebra.IsSeparable K L := Algebra.IsAlgebraic.isSeparable_of_perfectField
+  haveI : Algebra.FormallyEtale K L := Algebra.FormallyEtale.of_isSeparable K L
+  let I := Module.Basis.ofVectorSpaceIndex K Ω[K⁄k]
+  letI : LinearOrder I := linearOrderOfSTO WellOrderingRel
+  let bK : Module.Basis I K Ω[K⁄k] := Module.Basis.ofVectorSpace K Ω[K⁄k]
+  let bL : Module.Basis I L Ω[L⁄k] := (bK.baseChange L).map (tensorKaehlerEquivOfFormallyEtale k K L)
+  have h : ∀ i, bL i = KaehlerDifferential.map k k K L (bK i) := fun i => by
+    simp only [bL, Module.Basis.map_apply, Module.Basis.baseChange_apply, tensorKaehlerEquivOfFormallyEtale_apply,
+      mapBaseChange_tmul, one_smul]
+  set BK := bK.ExteriorAlgebra
+  set BL := bL.ExteriorAlgebra
+  refine ⟨fun y => ?_, fun m b ω hb hsum j => ?_⟩
+  · set S := (BL.repr y).support
+    refine ⟨S.card, fun j => BL.repr y (S.equivFin.symm j), fun j => BK (S.equivFin.symm j), ?_⟩
+    simp only [BK, BL, mapDR_basis bK bL h]
+    conv_lhs => rw [← BL.linearCombination_repr y, Finsupp.linearCombination_apply, Finsupp.sum, ← Finset.sum_coe_sort]
+    exact (Fintype.sum_equiv S.equivFin _ _ fun _ => by rw [Equiv.symm_apply_apply])
+  · have hc : ∀ s, ∀ j, BK.repr (ω j) s = 0 := by
+      intro s
+      have h0 := congrArg (fun z => BL.repr z s) hsum
+      set_option synthInstance.maxHeartbeats 100000 in
+        simp only [map_sum, map_smul, Finset.sum_apply', Finsupp.smul_apply, smul_eq_mul,
+        map_zero, Finsupp.zero_apply, BK, BL, repr_mapDR bK bL h] at h0
+      refine Fintype.linearIndependent_iff.1 hb (fun j => BK.repr (ω j) s) ?_
+      simpa [Algebra.smul_def, mul_comm] using h0
+    exact BK.repr.injective (Finsupp.ext fun s => by simpa using hc s j)
+
+end GlobalTheory.W1.Base
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.FormsBaseChangeStatement
+open GlobalTheory.W1 GlobalTheory.PD GlobalTheory.CechDR KaehlerDifferential
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.mapDR_span_and_linearIndependent_baseChange : ∀ (k K L : Type) [Field k] [CharZero k] [Field K] [Field L] [Algebra k K] [Algebra k L] [Algebra K L] [IsScalarTower k K L] [FiniteDimensional K L], (∀ y : DR k L, ∃ (m : ℕ) (b : Fin m → L) (ω : Fin m → DR k K), y = ∑ j, b j • mapDR k K L (ω j)) ∧ ∀ (m : ℕ) (b : Fin m → L) (ω : Fin m → DR k K), LinearIndependent K b → ∑ j, b j • mapDR k K L (ω j) = 0 → ∀ j, ω j = 0 := by
+  first | (exact @GlobalTheory.W1.Base.forms_baseChange) | (exact GlobalTheory.W1.Base.forms_baseChange) | (intros; apply GlobalTheory.W1.Base.forms_baseChange  <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.SatakeParameters.ThetaPairDetTwist
+noncomputable section
+
+open MeasureTheory GlobalTheory.PRep GlobalTheory.SmGL GlobalTheory.SplitWeil GlobalTheory.ThetaGL GlobalTheory.Published ValuativeRel GlobalTheory.RootEx
+open scoped TensorProduct Topology
+
+namespace GlobalTheory.GodementJacquet
+
+variable {k : Type} [Field k] [ValuativeRel k] [TopologicalSpace k] [IsNonarchimedeanLocalField k]
+  {r t : ℕ} {V : Type} [AddCommGroup V] [Module ℂ V]
+
+section Mat
+
+variable {α β : Type} [Fintype α]
+
+theorem _root_.GlobalTheory.GodementJacquet.parab_mul_eMat
+    (p : _root_.GlobalTheory.SmGL.parab k
+      (_root_.GlobalTheory.SmGL.two (_root_.GlobalTheory.SmGL.stdSum (rfl : r + t = r + t)))) :
+    (p : GL (Fin (r + t)) k).val * _root_.GlobalTheory.GodementJacquet.eMat k r t =
+      _root_.GlobalTheory.GodementJacquet.eMat k r t * (_root_.GlobalTheory.SmGL.leviProj k
+        (_root_.GlobalTheory.SmGL.two (_root_.GlobalTheory.SmGL.stdSum (rfl : r + t = r + t))) p false :
+          GL (Fin r) k).val := by
+  have hE : ∀ (i : Fin (r + t)) (j : Fin r),
+      _root_.GlobalTheory.GodementJacquet.eMat k r t i j = if i = Fin.castAdd t j then 1 else 0 := by
+    intro i j
+    simp [_root_.GlobalTheory.GodementJacquet.eMat, Fin.ext_iff]
+  have hlow : ∀ (i : Fin t) (j : Fin r),
+      (p : GL (Fin (r + t)) k).val (Fin.natAdd r i) (Fin.castAdd t j) = 0 := by
+    intro i j
+    have := (_root_.GlobalTheory.SmGL.mem_parab_two k).1 p.2 i j
+    simpa [_root_.GlobalTheory.SmGL.stdSum] using this
+  have hL : ∀ (i j : Fin r), (_root_.GlobalTheory.SmGL.leviProj k
+      (_root_.GlobalTheory.SmGL.two (_root_.GlobalTheory.SmGL.stdSum (rfl : r + t = r + t))) p false :
+        GL (Fin r) k).val i j = (p : GL (Fin (r + t)) k).val (Fin.castAdd t i) (Fin.castAdd t j) := by
+    intro i j
+    rw [_root_.GlobalTheory.SmGL.leviProj_apply]
+    rfl
+  ext i j
+  simp only [Matrix.mul_apply, hE, hL, mul_ite, ite_mul, mul_one, one_mul, mul_zero, zero_mul,
+    Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  refine Fin.addCases (fun i => ?_) (fun i => ?_) i
+  · simp [eq_comm]
+  · rw [hlow]
+    refine (Finset.sum_eq_zero fun x _ => ?_).symm
+    rw [if_neg]
+    simp only [Fin.ext_iff, Fin.coe_natAdd, Fin.coe_castAdd]
+    omega
+
+end Mat
+
+section Coef
+
+variable {σ : Representation ℂ (GL (Fin r) k) V} {Bf : V →ₗ[ℂ] V →ₗ⋆[ℂ] ℂ}
+
+end Coef
+
+section Law
+
+end Law
+
+section Int
+
+variable [MeasurableSpace (GL (Fin r) k)] [BorelSpace (GL (Fin r) k)] [SecondCountableTopology (GL (Fin r) k)]
+  {m : Measure (GL (Fin r) k)} {μ : kˣ →* ℂˣ} {σ : Representation ℂ (GL (Fin r) k) V}
+  {Bf : V →ₗ[ℂ] V →ₗ⋆[ℂ] ℂ}
+
+variable (hσ : IsSmooth σ) (hs : ∀ v w, Bf w v = starRingEnd ℂ (Bf v w))
+    (hp : ∀ v, v ≠ 0 → 0 < (Bf v v).re) (hu : ∀ g v w, Bf (σ g v) (σ g w) = Bf v w)
+include hσ hs hp hu
+
+end Int
+
+section Family
+
+variable [MeasurableSpace (GL (Fin r) k)] [BorelSpace (GL (Fin r) k)] [SecondCountableTopology (GL (Fin r) k)]
+  {m : Measure (GL (Fin r) k)} {μ : kˣ →* ℂˣ} {σ : Representation ℂ (GL (Fin r) k) V}
+  {Bf : V →ₗ[ℂ] V →ₗ⋆[ℂ] ℂ}
+
+variable [m.IsMulLeftInvariant] (hσ : IsSmooth σ) (hs : ∀ v w, Bf w v = starRingEnd ℂ (Bf v w))
+    (hp : ∀ v, v ≠ 0 → 0 < (Bf v v).re) (hu : ∀ g v w, Bf (σ g v) (σ g w) = Bf v w)
+    (hI : ∀ (h : GL (Fin (r + t)) k) (Φ : Matrix (Fin (r + t)) (Fin r) k → ℂ),
+      Φ ∈ SB (Matrix (Fin (r + t)) (Fin r) k) →
+      Integrable (fun g : GL (Fin r) k => om μ g h Φ (eMat k r t)) m)
+
+end Family
+
+section Abstract
+
+variable {Bf : V →ₗ[ℂ] V →ₗ⋆[ℂ] ℂ}
+
+end Abstract
+
+section Pairing
+
+variable [MeasurableSpace (GL (Fin r) k)] [BorelSpace (GL (Fin r) k)] [SecondCountableTopology (GL (Fin r) k)]
+  {m : Measure (GL (Fin r) k)} {μ : kˣ →* ℂˣ} {σ : Representation ℂ (GL (Fin r) k) V}
+  {Bf : V →ₗ[ℂ] V →ₗ⋆[ℂ] ℂ}
+  [m.IsMulLeftInvariant] [m.IsMulRightInvariant] (hσ : IsSmooth σ)
+  (hs : ∀ v w, Bf w v = starRingEnd ℂ (Bf v w))
+  (hp : ∀ v, v ≠ 0 → 0 < (Bf v v).re) (hu : ∀ g v w, Bf (σ g v) (σ g w) = Bf v w)
+  (hI : ∀ (h : GL (Fin (r + t)) k) (Φ : Matrix (Fin (r + t)) (Fin r) k → ℂ),
+    Φ ∈ SB (Matrix (Fin (r + t)) (Fin r) k) →
+    Integrable (fun g : GL (Fin r) k => om μ g h Φ (eMat k r t)) m)
+
+end Pairing
+
+section NonVanishing
+
+variable [MeasurableSpace (GL (Fin r) k)] [BorelSpace (GL (Fin r) k)] [SecondCountableTopology (GL (Fin r) k)]
+  {m : Measure (GL (Fin r) k)} {μ : kˣ →* ℂˣ} {σ : Representation ℂ (GL (Fin r) k) V}
+  {Bf : V →ₗ[ℂ] V →ₗ⋆[ℂ] ℂ}
+  [m.IsMulLeftInvariant] [m.IsOpenPosMeasure] (hσ : IsSmooth σ)
+  (hs : ∀ v w, Bf w v = starRingEnd ℂ (Bf v w))
+  (hp : ∀ v, v ≠ 0 → 0 < (Bf v v).re) (hu : ∀ g v w, Bf (σ g v) (σ g w) = Bf v w)
+  (hI : ∀ (h : GL (Fin (r + t)) k) (Φ : Matrix (Fin (r + t)) (Fin r) k → ℂ),
+    Φ ∈ SB (Matrix (Fin (r + t)) (Fin r) k) →
+    Integrable (fun g : GL (Fin r) k => om μ g h Φ (eMat k r t)) m)
+
+end NonVanishing
+
+end GlobalTheory.GodementJacquet
+end
+end

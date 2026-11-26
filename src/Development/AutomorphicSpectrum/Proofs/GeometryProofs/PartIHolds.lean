@@ -1,0 +1,15 @@
+module
+
+public import Development.AbelianVarietyTheory.Proofs.ModuliProofs.PartOneOfSemistableReductionPadicPolarized
+
+@[expose] public section
+
+open AlgebraicGeometry CategoryTheory Limits MonoidalCategory CartesianMonoidalCategory MonObj NumberField
+open ReciprocityTheory.ChartRestriction.G ReciprocityTheory.ChartRestriction.G.Geo ReciprocityTheory.ChartRestriction.G.Geo.Tor ReciprocityTheory.ChartRestriction.G.Semi
+
+namespace GlobalTheory.CompanionTheory.Ar.Top
+
+theorem partI_holds : PartI :=
+  GlobalTheory.partI_of_semistableReduction GlobalTheory.SS.semistableReductionSt
+
+end GlobalTheory.CompanionTheory.Ar.Top

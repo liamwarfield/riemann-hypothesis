@@ -1,0 +1,38 @@
+module
+
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.ModularityArgument.CuspidalTwists.PromodularityCaseThree
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.ChCore
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.Pur
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.RestrT
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.OverFacts
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.FlagFacts
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.ChainBetweenPairs
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.BuildingsResidueChars.ExistsResidualRepRestrictionOfLatticeShape
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.Labels
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.LatSix
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.X2
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.LayerEx
+public import Development.AutomorphicArithmetic.AutomorphicVarieties.WeakShimuraTheory.CompactIntegralFields.SmallCo
+
+@[expose] public section
+
+section -- merged from Development.AutomorphicArithmetic.AutomorphicVarieties.ModularityArgument.CuspidalTwists.PChainIV
+open NumberField IsDedekindDomain Formalism.ConjugateSelfDual Formalism.HC ReciprocityTheory.Gal IsLocalRing Polynomial UpperTheory.V.Base UpperTheory.V.Alg UpperTheory.V.HV UpperTheory.V.GradeZeroInterpolatingElement UpperTheory.V.Ws
+
+namespace UpperTheory.V.Cu.RankFourChainReduction
+
+open UpperTheory.V.Ws.Chn
+
+theorem inA_of {O Γ k : Type} [CommRing O] [Group Γ] [TopologicalSpace Γ] [Field k] {Φ : Fr O Γ} {a : O →+* k}
+    {P P' : PD Φ.ι Γ k} (h : Φ.IsRes a P) (hq : Supp qQ P.r) (e : P.SameAl P') (h' : InA P') : InA P := by
+  have r10 : ∀ g, P.r g 1 0 = 0 := fun g => (e.1 g).trans (h'.1 g 1 0 (by decide) (by decide))
+  refine ⟨fun g i j hij hw => ?_, fun v => (e.2 v).symm ▸ h'.2 v⟩
+  have : wt i j ∉ qQ ∨ i = 1 ∧ j = 0 ∨ i = 3 ∧ j = 2 := by revert hw; revert i j; decide
+  rcases this with h1 | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+  · exact hq g i j hij h1
+  · exact r10 g
+  · exact al_zero h (qM hq) (r10 g)
+
+end UpperTheory.V.Cu.RankFourChainReduction
+end
+

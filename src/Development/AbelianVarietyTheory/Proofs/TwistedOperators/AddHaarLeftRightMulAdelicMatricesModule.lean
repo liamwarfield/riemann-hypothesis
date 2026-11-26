@@ -1,0 +1,391 @@
+module
+
+public import Development.AbelianVarietyTheory.BlockTheory.TwistedDiscreteSeries.AdjointIsotropicDecomposition
+
+@[expose] public section
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.IsOpenEmbeddingPairOfTuplesToTupleOfPairs
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.IsOpenEmbeddingPairOfTuplesToTupleOfPairs
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+
+namespace GlobalTheory.ModuLR
+
+theorem zipHom_isOpenEmbedding : ∀ (κ X Y : Type) [Fintype κ] [AddCommGroup X] [TopologicalSpace X]
+    [AddCommGroup Y] [TopologicalSpace Y], IsOpenEmbedding (zipHom κ X Y) := by
+  intro κ X Y _ _ _ _ _
+  let e : ((κ → X) × (κ → Y)) ≃ₜ (κ → X × Y) :=
+    { toFun := fun p i => (p.1 i, p.2 i)
+      invFun := fun q => (fun i => (q i).1, fun i => (q i).2)
+      left_inv := fun _ => rfl
+      right_inv := fun _ => rfl
+      continuous_toFun := continuous_pi fun i =>
+        ((continuous_apply i).comp continuous_fst).prodMk ((continuous_apply i).comp continuous_snd)
+      continuous_invFun :=
+        (continuous_pi fun i => continuous_fst.comp (continuous_apply i)).prodMk
+          (continuous_pi fun i => continuous_snd.comp (continuous_apply i)) }
+  exact e.isOpenEmbedding
+
+end GlobalTheory.ModuLR
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.IsOpenEmbeddingPairOfTuplesToTupleOfPairsStatement
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.isOpenEmbedding_pairOfTuplesToTupleOfPairs : ∀ (κ X Y : Type) [Fintype κ] [AddCommGroup X] [TopologicalSpace X] [AddCommGroup Y] [TopologicalSpace Y], IsOpenEmbedding (zipHom κ X Y) := by
+  first | exact @GlobalTheory.ModuLR.zipHom_isOpenEmbedding | exact GlobalTheory.ModuLR.zipHom_isOpenEmbedding | (intros; apply GlobalTheory.ModuLR.zipHom_isOpenEmbedding <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.FiniteIntegersTopology
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.FiniteIntegersTopology
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+
+namespace GlobalTheory.ModuLR
+
+theorem finiteIntegers_compact_secondCountable_t2 : ∀ (F : Type) [Field F] [NumberField F] (S : Finset (HeightOneSpectrum (𝓞 F))), CompactSpace (OPart F S) ∧ SecondCountableTopology (OPart F S) ∧ T2Space (OPart F S) := by
+  intro F _ _ S
+  haveI := GlobalTheory.AdelicUnitaryTop.properSpace_adicCompletion F
+  haveI := GlobalTheory.AdelicUnitaryTop.countable_heightOneSpectrum F
+  haveI : ∀ v : {v : HeightOneSpectrum (𝓞 F) // v ∉ S}, CompactSpace (v.1.adicCompletionIntegers F) :=
+    fun v => GlobalTheory.AdelicUnitaryTop.compactSpace_adicCompletionIntegers F v.1
+  haveI : ∀ v : HeightOneSpectrum (𝓞 F), SecondCountableTopology (v.adicCompletion F) :=
+    fun v => secondCountable_of_proper
+  haveI : ∀ v : {v : HeightOneSpectrum (𝓞 F) // v ∉ S}, SecondCountableTopology (v.1.adicCompletionIntegers F) :=
+    fun v => TopologicalSpace.Subtype.secondCountableTopology _
+  exact ⟨inferInstance, inferInstance, inferInstance⟩
+
+end GlobalTheory.ModuLR
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.FiniteIntegersTopologyStatement
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.finiteIntegers_topology : ∀ (F : Type) [Field F] [NumberField F] (S : Finset (HeightOneSpectrum (𝓞 F))), CompactSpace (OPart F S) ∧ SecondCountableTopology (OPart F S) ∧ T2Space (OPart F S) := by
+  first | exact @GlobalTheory.ModuLR.finiteIntegers_compact_secondCountable_t2 | exact GlobalTheory.ModuLR.finiteIntegers_compact_secondCountable_t2 | (intros; apply GlobalTheory.ModuLR.finiteIntegers_compact_secondCountable_t2 <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.AdicCompletionIntegersNormEqOneOfMulEqOne
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.AdicCompletionIntegersNormEqOneOfMulEqOne
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+
+namespace GlobalTheory
+
+theorem adicCompletionIntegers_norm_eq_one_of_mul_eq_one (F : Type) [Field F] [NumberField F] (v : HeightOneSpectrum (𝓞 F)) (x y : v.adicCompletionIntegers F) (h : x * y = 1) : ‖(x : Fv F v)‖ = 1 := by
+  have hx : ‖(x : Fv F v)‖ ≤ 1 := (Valued.toNormedField.norm_le_one_iff).mpr x.2
+  have hy : ‖(y : Fv F v)‖ ≤ 1 := (Valued.toNormedField.norm_le_one_iff).mpr y.2
+  have hxy : ‖(x : Fv F v)‖ * ‖(y : Fv F v)‖ = 1 := by
+    rw [← norm_mul]
+    have : ((x : Fv F v) * (y : Fv F v)) = 1 := by
+      have := congrArg (fun z : v.adicCompletionIntegers F => (z : Fv F v)) h
+      simpa using this
+    rw [this, norm_one]
+  have h0 := norm_nonneg (x : Fv F v)
+  have h0' := norm_nonneg (y : Fv F v)
+  nlinarith
+
+end GlobalTheory
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.AdicCompletionIntegersNormEqOneOfMulEqOneStatement
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.norm_eq_one_of_mul_eq_one_adicCompletionIntegers : ∀ (F : Type) [Field F] [NumberField F] (v : HeightOneSpectrum (𝓞 F)) (x y : v.adicCompletionIntegers F), x * y = 1 → ‖(x : Fv F v)‖ = 1 := by
+  first | exact @GlobalTheory.adicCompletionIntegers_norm_eq_one_of_mul_eq_one | exact GlobalTheory.adicCompletionIntegers_norm_eq_one_of_mul_eq_one | (intros; apply GlobalTheory.adicCompletionIntegers_norm_eq_one_of_mul_eq_one <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.IsOpenEmbeddingFiniteAdeleOfSPartAndIntegralPart
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.IsOpenEmbeddingFiniteAdeleOfSPartAndIntegralPart
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+
+noncomputable section
+
+namespace GlobalTheory.ModuLR
+
+open Filter
+open scoped RestrictedProduct
+
+variable (F : Type) [Field F] [NumberField F] (S : Finset (HeightOneSpectrum (𝓞 F)))
+
+theorem cofinite_le_principal_compl :
+    cofinite ≤ 𝓟 ((S : Set (HeightOneSpectrum (𝓞 F)))ᶜ) := by
+  rw [le_principal_iff]; exact S.finite_toSet.compl_mem_cofinite
+
+
+open Classical in
+def jSP : SPart F S × OPart F S →
+    Πʳ v : HeightOneSpectrum (𝓞 F), [v.adicCompletion F, (v.adicCompletionIntegers F : Set (v.adicCompletion F))]_[𝓟 ((S : Set (HeightOneSpectrum (𝓞 F)))ᶜ)] :=
+  fun p => ⟨fun v => if h : v ∈ S then p.1 ⟨v, h⟩ else (p.2 ⟨v, h⟩ : Fv F v), by
+    rw [eventually_principal]
+    intro v hv
+    have hv' : v ∉ S := hv
+    simp only [dif_neg hv']
+    exact (p.2 ⟨v, hv'⟩).2⟩
+
+def jSPinv : Πʳ v : HeightOneSpectrum (𝓞 F), [v.adicCompletion F, (v.adicCompletionIntegers F : Set (v.adicCompletion F))]_[𝓟 ((S : Set (HeightOneSpectrum (𝓞 F)))ᶜ)] →
+    SPart F S × OPart F S :=
+  fun x => (fun v => x v.1, fun v => ⟨x v.1, x.2 v.2⟩)
+
+theorem continuous_jSP : Continuous (jSP F S) := by
+  rw [RestrictedProduct.isEmbedding_coe_of_principal.continuous_iff]
+  refine continuous_pi fun v => ?_
+  by_cases h : v ∈ S
+  · have : (fun p : SPart F S × OPart F S => ((jSP F S p : _) : ∀ w : HeightOneSpectrum (𝓞 F), w.adicCompletion F) v)
+        = fun p => p.1 ⟨v, h⟩ := by
+      funext p; simp [jSP, h]
+    show Continuous (fun p : SPart F S × OPart F S => ((jSP F S p : _) : ∀ w : HeightOneSpectrum (𝓞 F), w.adicCompletion F) v)
+    rw [this]; exact (continuous_apply _).comp continuous_fst
+  · have : (fun p : SPart F S × OPart F S => ((jSP F S p : _) : ∀ w : HeightOneSpectrum (𝓞 F), w.adicCompletion F) v)
+        = fun p => ((p.2 ⟨v, h⟩ : v.adicCompletionIntegers F) : v.adicCompletion F) := by
+      funext p; simp [jSP, h]
+    show Continuous (fun p : SPart F S × OPart F S => ((jSP F S p : _) : ∀ w : HeightOneSpectrum (𝓞 F), w.adicCompletion F) v)
+    rw [this]; exact continuous_subtype_val.comp ((continuous_apply _).comp continuous_snd)
+
+theorem continuous_jSPinv : Continuous (jSPinv F S) := by
+  have hc : Continuous (fun x : Πʳ v : HeightOneSpectrum (𝓞 F), [v.adicCompletion F, (v.adicCompletionIntegers F : Set (v.adicCompletion F))]_[𝓟 ((S : Set (HeightOneSpectrum (𝓞 F)))ᶜ)] =>
+      (x : ∀ w : HeightOneSpectrum (𝓞 F), w.adicCompletion F)) :=
+    RestrictedProduct.isEmbedding_coe_of_principal.continuous
+  refine Continuous.prodMk (continuous_pi fun v => (continuous_apply v.1).comp hc)
+    (continuous_pi fun v => ((continuous_apply v.1).comp hc).subtype_mk _)
+
+def jSPHomeo : SPart F S × OPart F S ≃ₜ
+    Πʳ v : HeightOneSpectrum (𝓞 F), [v.adicCompletion F, (v.adicCompletionIntegers F : Set (v.adicCompletion F))]_[𝓟 ((S : Set (HeightOneSpectrum (𝓞 F)))ᶜ)] where
+  toFun := jSP F S
+  invFun := jSPinv F S
+  left_inv p := by
+    ext v
+    · simp [jSP, jSPinv, v.2]
+    · simp [jSP, jSPinv, v.2]
+  right_inv x := by
+    ext v
+    by_cases h : v ∈ S <;> simp [jSP, jSPinv, h]
+  continuous_toFun := continuous_jSP F S
+  continuous_invFun := continuous_jSPinv F S
+
+theorem jS_eq_comp : (jS F S : SPart F S × OPart F S → Af F) =
+    RestrictedProduct.inclusion _ _ (cofinite_le_principal_compl F S) ∘ jSP F S := by
+  funext p; rfl
+
+theorem isOpenEmbedding_jS : IsOpenEmbedding (jS F S) := by
+  rw [jS_eq_comp]
+  exact (RestrictedProduct.isOpenEmbedding_inclusion_principal
+    (fun v => Valued.isOpen_valuationSubring (v.adicCompletion F)) (cofinite_le_principal_compl F S)).comp
+    (jSPHomeo F S).isOpenEmbedding
+
+end GlobalTheory.ModuLR
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.IsOpenEmbeddingFiniteAdeleOfSPartAndIntegralPartStatement
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.isOpenEmbedding_finiteAdeleOfSPartAndIntegralPart : ∀ (F : Type) [Field F] [NumberField F] (S : Finset (HeightOneSpectrum (𝓞 F))), IsOpenEmbedding (jS F S) := by
+  first | exact @GlobalTheory.ModuLR.isOpenEmbedding_jS | exact GlobalTheory.ModuLR.isOpenEmbedding_jS | (intros; apply GlobalTheory.ModuLR.isOpenEmbedding_jS <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.ExistsFinsetMatrixPairIntegralOutside
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.ExistsFinsetMatrixPairIntegralOutside
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+
+namespace GlobalTheory
+
+theorem matrixPair_integral_cofinite (F : Type) [Field F] [NumberField F] (κ : Type) [Fintype κ]
+    (M N : Matrix κ κ (Af F)) :
+    ∃ S : Finset (HeightOneSpectrum (𝓞 F)), ∀ v ∉ S, ∀ i j,
+      evalV F v (M i j) ∈ v.adicCompletionIntegers F ∧
+      evalV F v (N i j) ∈ v.adicCompletionIntegers F := by
+  have hM : ∀ᶠ v in Filter.cofinite, ∀ p : κ × κ,
+      (M p.1 p.2).1 v ∈ (v : HeightOneSpectrum (𝓞 F)).adicCompletionIntegers F :=
+    Filter.eventually_all.2 fun p => (M p.1 p.2).2
+  have hN : ∀ᶠ v in Filter.cofinite, ∀ p : κ × κ,
+      (N p.1 p.2).1 v ∈ (v : HeightOneSpectrum (𝓞 F)).adicCompletionIntegers F :=
+    Filter.eventually_all.2 fun p => (N p.1 p.2).2
+  have h := hM.and hN
+  rw [Filter.eventually_cofinite] at h
+  refine ⟨h.toFinset, fun v hv i j => ?_⟩
+  rw [Set.Finite.mem_toFinset, Set.mem_ofPred_eq, not_not] at hv
+  exact ⟨hv.1 (i, j), hv.2 (i, j)⟩
+
+end GlobalTheory
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.ExistsFinsetMatrixPairIntegralOutsideStatement
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx GlobalTheory.ModuLR
+open scoped NNReal ENNReal TensorProduct
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.exists_finset_matrixPair_integral_outside : ∀ (F : Type) [Field F] [NumberField F] (κ : Type) [Fintype κ] (M N : Matrix κ κ (Af F)), ∃ S : Finset (HeightOneSpectrum (𝓞 F)), ∀ v ∉ S, ∀ i j, evalV F v (M i j) ∈ v.adicCompletionIntegers F ∧ evalV F v (N i j) ∈ v.adicCompletionIntegers F := by
+  first | exact @GlobalTheory.matrixPair_integral_cofinite | exact GlobalTheory.matrixPair_integral_cofinite | (intros; apply GlobalTheory.matrixPair_integral_cofinite <;> assumption)
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.AddHaarLeftRightMulAdelicMatricesModule
+noncomputable section
+
+namespace GlobalTheory.ModuLR
+
+open MeasureTheory Topology Matrix NumberField IsDedekindDomain Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes GlobalTheory.GaugeEx
+open scoped NNReal ENNReal TensorProduct
+
+theorem chi_Af (F : Type) [Field F] [NumberField F] {κ : Type} [Fintype κ] [DecidableEq κ]
+    (M : Matrix κ κ (Af F)) (hM : IsUnit M.det) :
+    (addEquivAddHaarChar (mulVecCE M hM) : ℝ) = ∏ᶠ v, ‖evalV F v M.det‖ := by
+  classical
+  obtain ⟨S, hS⟩ := GlobalTheory.T.exists_finset_matrixPair_integral_outside F κ M M⁻¹
+  obtain ⟨hOc, hOs, hOt⟩ := GlobalTheory.T.finiteIntegers_topology F S
+  let _ : MeasurableSpace (OPart F S) := borel _
+  have _ : BorelSpace (OPart F S) := ⟨rfl⟩
+
+  let φS : Af F →+* SPart F S := RingHom.pi fun v => (evalV F v.1).toRingHom
+  let φO : Af F →+* (∀ v : {v : HeightOneSpectrum (𝓞 F) // v ∉ S}, Fv F v.1) :=
+    RingHom.pi fun v => (evalV F v.1).toRingHom
+  let ι : OPart F S →+* (∀ v : {v : HeightOneSpectrum (𝓞 F) // v ∉ S}, Fv F v.1) :=
+    RingHom.pi fun v => (v.1.adicCompletionIntegers F).toSubring.subtype.comp (Pi.evalRingHom _ v)
+  have hι : Function.Injective ι := fun x y h => funext fun v => Subtype.ext (congrFun h v)
+  let MS : Matrix κ κ (SPart F S) := φS.mapMatrix M
+  let MO : Matrix κ κ (OPart F S) := fun i j v => ⟨evalV F v.1 (M i j), (hS v.1 v.2 i j).1⟩
+  let NO : Matrix κ κ (OPart F S) := fun i j v => ⟨evalV F v.1 (M⁻¹ i j), (hS v.1 v.2 i j).2⟩
+  have hdS : MS.det = φS M.det := (RingHom.map_det φS M).symm
+  have huS : IsUnit MS.det := hdS ▸ hM.map φS
+  have hMO : ι MO.det = φO M.det := by
+    rw [RingHom.map_det, RingHom.map_det]; rfl
+  have hNO : ι NO.det = φO M⁻¹.det := by
+    rw [RingHom.map_det, RingHom.map_det]; rfl
+  have hON : MO.det * NO.det = 1 := hι (by
+    rw [map_mul, hMO, hNO, ← map_mul, ← Matrix.det_mul, Matrix.mul_nonsing_inv M hM, Matrix.det_one,
+      map_one, map_one])
+  have huO : IsUnit MO.det := ⟨⟨_, _, hON, by rw [mul_comm]; exact hON⟩, rfl⟩
+  let j : ((κ → SPart F S) × (κ → OPart F S)) →+ (κ → Af F) :=
+    ((jS F S).toAddMonoidHom.compLeft κ).comp (zipHom κ (SPart F S) (OPart F S))
+  have hj : IsOpenEmbedding j :=
+    (IsOpenEmbedding.piMap fun _ => GlobalTheory.T.isOpenEmbedding_finiteAdeleOfSPartAndIntegralPart F S).comp (GlobalTheory.T.isOpenEmbedding_pairOfTuplesToTupleOfPairs κ (SPart F S) (OPart F S))
+  have key := GlobalTheory.T.addEquivAddHaarChar_eq_of_isOpenEmbedding_restrict (κ → Af F) ((κ → SPart F S) × (κ → OPart F S)) j hj (mulVecCE M hM)
+    (prodCE (mulVecCE MS huS) (mulVecCE MO huO)) (by
+      intro x
+      funext i
+      rw [mulVecCE_apply, prodCE_apply, mulVecCE_apply, mulVecCE_apply]
+      apply RestrictedProduct.ext
+      intro v
+      change evalV F v ((M *ᵥ j x) i) = evalV F v (jS F S ((MS *ᵥ x.1) i, (MO *ᵥ x.2) i))
+      rw [evalV_jS]
+      by_cases hv : v ∈ S
+      · rw [dite_eq_left hv]
+        set_option synthInstance.maxHeartbeats 100000 in
+          simp only [Matrix.mulVec, dotProduct, map_sum, map_mul, Finset.sum_apply, Pi.mul_apply]
+        refine Finset.sum_congr rfl fun k _ => ?_
+        change evalV F v (M i k) * evalV F v (jS F S (x.1 k, x.2 k)) = _
+        rw [evalV_jS, dite_eq_left hv]
+        rfl
+      · rw [dite_eq_right hv]
+        change _ = ι ((MO *ᵥ x.2) i) ⟨v, hv⟩
+        set_option synthInstance.maxHeartbeats 100000 in
+          simp only [Matrix.mulVec, dotProduct, map_sum, map_mul, Finset.sum_apply, Pi.mul_apply]
+        refine Finset.sum_congr rfl fun k _ => ?_
+        change evalV F v (M i k) * evalV F v (jS F S (x.1 k, x.2 k)) = _
+        rw [evalV_jS, dite_eq_right hv]
+        rfl)
+  rw [key, GlobalTheory.T.addEquivAddHaarChar_prodCongr, addEquivAddHaarChar_eq_one_of_compactSpace (mulVecCE MO huO), mul_one,
+    GlobalTheory.T.addEquivAddHaarChar_mulVec_artinian_reduced (SPart F S)
+      (by show IsArtinianRing (∀ v : S, Fv F v.1); infer_instance)
+      ⟨fun x ⟨n, hn⟩ => funext fun v => IsReduced.eq_zero (x v) ⟨n, congrFun hn v⟩⟩ κ _ huS,
+    GlobalTheory.T.haarModulusOfUnit_completionsAtPlaces_eq_prod_norm F S _ huS, hdS,
+    finprod_eq_prod_of_mulSupport_subset (s := S), ← Finset.prod_coe_sort S]
+  · rfl
+  · intro v hv
+    by_contra hvS
+    apply hv
+    have h1 := GlobalTheory.T.norm_eq_one_of_mul_eq_one_adicCompletionIntegers F v (MO.det ⟨v, hvS⟩) (NO.det ⟨v, hvS⟩) (congrFun hON ⟨v, hvS⟩)
+    have h2 : (MO.det ⟨v, hvS⟩ : Fv F v) = evalV F v M.det := congrFun hMO ⟨v, hvS⟩
+    show ‖evalV F v M.det‖ = 1
+    rw [← h2]
+    exact h1
+
+theorem chi_AF (F : Type) [Field F] [NumberField F] [IsTotallyReal F] {κ : Type} [Fintype κ] [DecidableEq κ]
+    (M : Matrix κ κ (AF F)) (hM : IsUnit M.det) :
+    (addEquivAddHaarChar (mulVecCE M hM) : ℝ) =
+      (∏ w, ‖(fstA F M.det) w‖) * ∏ᶠ v, ‖evalV F v (sndA F M.det)‖ := by
+  classical
+  have hd₁ : (M.map (fstA F)).det = fstA F M.det := (RingHom.map_det (fstA F).toRingHom M).symm
+  have hd₂ : (M.map (sndA F)).det = sndA F M.det := (RingHom.map_det (sndA F).toRingHom M).symm
+  have hu₁ : IsUnit (M.map (fstA F)).det := hd₁ ▸ hM.map (fstA F)
+  have hu₂ : IsUnit (M.map (sndA F)).det := hd₂ ▸ hM.map (sndA F)
+  let j : ((κ → Ainf F) × (κ → Af F)) →+ (κ → AF F) := zipHom κ (Ainf F) (Af F)
+  have hj : IsOpenEmbedding j := GlobalTheory.T.isOpenEmbedding_pairOfTuplesToTupleOfPairs κ (Ainf F) (Af F)
+  have key := GlobalTheory.T.addEquivAddHaarChar_eq_of_isOpenEmbedding_restrict (κ → AF F) ((κ → Ainf F) × (κ → Af F)) j hj (mulVecCE M hM)
+    (prodCE (mulVecCE (M.map (fstA F)) hu₁) (mulVecCE (M.map (sndA F)) hu₂)) (by
+      intro x
+      funext i
+      rw [mulVecCE_apply, prodCE_apply, mulVecCE_apply, mulVecCE_apply]
+      refine Prod.ext ?_ ?_
+      · change fstA F _ = _
+        set_option synthInstance.maxHeartbeats 100000 in
+          simp only [Matrix.mulVec, dotProduct, map_sum, map_mul]
+        exact Finset.sum_congr rfl fun k _ => rfl
+      · change sndA F _ = _
+        set_option synthInstance.maxHeartbeats 100000 in
+          simp only [Matrix.mulVec, dotProduct, map_sum, map_mul]
+        exact Finset.sum_congr rfl fun k _ => rfl)
+  rw [key, GlobalTheory.T.addEquivAddHaarChar_prodCongr, NNReal.coe_mul, chi_Af F _ hu₂, hd₂,
+    GlobalTheory.T.addEquivAddHaarChar_mulVec_artinian_reduced (Ainf F)
+      (by show IsArtinianRing (∀ v : InfinitePlace F, v.Completion); infer_instance)
+      ⟨fun x ⟨n, hn⟩ => funext fun v => IsReduced.eq_zero (x v) ⟨n, congrFun hn v⟩⟩ κ _ hu₁, hd₁,
+    GlobalTheory.GaugeProdFormula.modu_infinite F _ (hM.map (fstA F))]
+
+theorem chi_lr (F E : Type) [Field F] [NumberField F] [IsTotallyReal F] [Field E] [NumberField E] [Algebra F E] (m n : ℕ)
+    [LocallyCompactSpace (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))] [SecondCountableTopology (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))]
+    [MeasurableSpace (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))] [BorelSpace (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))]
+    (g : GL (Fin m) (AF F ⊗[F] E)) (a : GL (Fin n) (AF F ⊗[F] E)) :
+    addEquivAddHaarChar (lrCE g a) = GlobalTheory.Doubling.absE F E (Matrix.GeneralLinearGroup.det g) ^ n *
+      GlobalTheory.Doubling.absE F E (Matrix.GeneralLinearGroup.det a) ^ m := by
+  obtain ⟨κ, _, _, Λ, hΛ, hdet, hchar⟩ := GlobalTheory.T.exists_restrictScalars_matrix_leftRightMul_adeleTensor F E m n g a
+  apply NNReal.coe_injective
+  rw [hchar, chi_AF F Λ hΛ, hdet, GlobalTheory.T.tensorIdeleNormalizedAbs_eq_adelic_abs_norm F E]
+  simp [map_mul, map_pow]
+
+theorem smul_map_lr (F E : Type) [Field F] [NumberField F] [IsTotallyReal F] [Field E] [NumberField E] [Algebra F E] (m n : ℕ)
+    [LocallyCompactSpace (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))] [SecondCountableTopology (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))]
+    [MeasurableSpace (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))] [BorelSpace (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))]
+    (μ : Measure (Matrix (Fin m) (Fin n) (AF F ⊗[F] E))) [μ.IsAddHaarMeasure]
+    (g : GL (Fin m) (AF F ⊗[F] E)) (a : GL (Fin n) (AF F ⊗[F] E)) :
+    μ = ((GlobalTheory.Doubling.absE F E (Matrix.GeneralLinearGroup.det g) : ℝ≥0∞) ^ n *
+      (GlobalTheory.Doubling.absE F E (Matrix.GeneralLinearGroup.det a) : ℝ≥0∞) ^ m) • μ.map (lrCE g a) := by
+  have h := addEquivAddHaarChar_smul_map μ (lrCE g a)
+  rw [chi_lr F E m n g a] at h
+  calc μ = _ := h.symm
+    _ = _ := by rw [ENNReal.smul_def]; push_cast; rfl
+
+
+open Formalism.BasicNotions Formalism.BasicNotions.TH Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes Formalism.L2.Theta Formalism.IndefR Formalism.IndefR.Datum MeasureTheory NumberField Matrix in
+attribute [local instance] Formalism.BasicNotions.Host.cmStar in
+theorem modu_lrMul : ∀ (D : D7) (m n : ℕ) (μ : Measure (Mx D m n)), μ.IsAddHaarMeasure → ∀ (g : GL (Fin m) (AE D)) (a : GL (Fin n) (AE D)), μ = ((GlobalTheory.Doubling.absE D.host.F D.host.E (Matrix.GeneralLinearGroup.det g) : ENNReal) ^ n * (GlobalTheory.Doubling.absE D.host.F D.host.E (Matrix.GeneralLinearGroup.det a) : ENNReal) ^ m) • Measure.map (fun u : Mx D m n => (HMul.hMul (HMul.hMul g.val (u : Matrix (Fin m) (Fin n) (AE D))) a.val : Mx D m n)) μ := by
+  intro D m n μ hμ g a
+  have _ : LocallyCompactSpace (Matrix (Fin m) (Fin n) (AF D.host.F ⊗[D.host.F] D.host.E)) :=
+    inferInstanceAs (LocallyCompactSpace (Fin m → Fin n → AF D.host.F ⊗[D.host.F] D.host.E))
+  have _ : SecondCountableTopology (Matrix (Fin m) (Fin n) (AF D.host.F ⊗[D.host.F] D.host.E)) :=
+    inferInstanceAs (SecondCountableTopology (Fin m → Fin n → AF D.host.F ⊗[D.host.F] D.host.E))
+  have hb : BorelSpace (Fin m → Fin n → AE D) := inferInstance
+  have _ : BorelSpace (Matrix (Fin m) (Fin n) (AF D.host.F ⊗[D.host.F] D.host.E)) :=
+    ⟨by first | rfl | exact hb.measurable_eq⟩
+  exact smul_map_lr D.host.F D.host.E m n μ g a
+
+end GlobalTheory.ModuLR
+end
+end
+
+section -- merged from Development.AbelianVarietyTheory.Proofs.TwistedOperators.AddHaarLeftRightMulAdelicMatricesModuleStatement
+open Formalism.BasicNotions Formalism.BasicNotions.TH Formalism.MainNotions.GlobalTheoryTheory.GenusMassVolumes Formalism.L2.Theta Formalism.IndefR Formalism.IndefR.Datum MeasureTheory NumberField Matrix
+attribute [local instance] Formalism.BasicNotions.Host.cmStar
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.addHaar_leftRightMul_adelicMatrices_module : ∀ (D : D7) (m n : ℕ) (μ : Measure (Mx D m n)), μ.IsAddHaarMeasure → ∀ (g : GL (Fin m) (AE D)) (a : GL (Fin n) (AE D)), μ = ((GlobalTheory.Doubling.absE D.host.F D.host.E (Matrix.GeneralLinearGroup.det g) : ENNReal) ^ n * (GlobalTheory.Doubling.absE D.host.F D.host.E (Matrix.GeneralLinearGroup.det a) : ENNReal) ^ m) • Measure.map (fun u : Mx D m n => (HMul.hMul (HMul.hMul g.val (u : Matrix (Fin m) (Fin n) (AE D))) a.val : Mx D m n)) μ := by
+  first | exact @GlobalTheory.ModuLR.modu_lrMul | exact GlobalTheory.ModuLR.modu_lrMul | (intros; apply GlobalTheory.ModuLR.modu_lrMul <;> assumption)
+end

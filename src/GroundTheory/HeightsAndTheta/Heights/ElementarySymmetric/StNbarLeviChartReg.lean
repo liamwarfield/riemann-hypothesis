@@ -1,0 +1,245 @@
+module
+
+public import GroundTheory.HeightsAndTheta.Heights.HodgeLowerBound.StatementsPushDown
+public import GroundTheory.HeightsAndTheta.Heights.HilbertSamuel.PPullSectionIntegral
+
+@[expose] public section
+
+section -- merged from GroundTheory.HeightsAndTheta.Heights.ElementarySymmetric.StNbarLeviChartReg
+set_option maxSynthPendingDepth 1
+
+noncomputable section
+
+namespace GroundTheory.Heights₂.Heights.NineStatements
+
+open MvPolynomial ReciprocityTheory.ChartRestriction.G.Geo GroundTheory.Heights₂.Heights.LowerBoundFree Filter Topology
+open ReciprocityTheory.AnForm (levi)
+
+variable {K : Type} [Fintype K] {ι : K → Type} [∀ k, Fintype (ι k)]
+  {II : IntersectionSystem} {Ψ : Type} [Fintype Ψ] [DecidableEq Ψ] {Ω : Type} [Field Ω] [Algebra ℚ Ω]
+  {E : Ψ → Type} [∀ τ, AddCommGroup (E τ)] [∀ τ, Module Ω (E τ)]
+  {D : ComponentData II Ψ K ι Ω E}
+
+def regNbarQ (H : HodgeData D) (M : XModel D) (S : LogLogRegularisationSetting M D.Xo (muLine H)) (B p q : ℕ) (t : ℝ) :
+    ReciprocityTheory.ChartRestriction.G.Geo.HermLine ι :=
+  smoothRep (mCoordIdeal D.y)
+    (hermOfFun ι ((q : ℤ) • muTwDeg H B + (p : ℤ) • D.a') fun z =>
+      (S.ref.h z * Real.exp (S.regWeight t (M.proj z))) ^ q *
+        (∏ p' ∈ D.SB B, D.vertFactor p' z) ^ q * D.A'.h z ^ p)
+
+def NbarLeviChartReg.Statement : Prop :=
+  ∀ (II : IntersectionSystem) (Ψ : Type) [Fintype Ψ] [DecidableEq Ψ] (K : Type) [Fintype K] (ι : K → Type)
+    [∀ k, Fintype (ι k)] (Ω : Type) [Field Ω] [Algebra ℚ Ω] (E : Ψ → Type) [∀ τ, AddCommGroup (E τ)]
+    [∀ τ, Module Ω (E τ)] (D : ComponentData II Ψ K ι Ω E) (H : HodgeData D) (M : XModel D)
+    (S : LogLogRegularisationSetting M D.Xo (muLine H)), S.IsTied → ∀ (B p q : ℕ) (t : ℝ),
+    M.atlas.Smooth (S.regWeight t) →
+    ∀ z ∈ mcPts (mCoordIdeal D.y), ∀ w, IsConeTangent (Int.castRingHom ℂ) (mCoordIdeal D.y) z w →
+    ∀ k : Fin S.R.N, M.proj z ∈ S.R.mid k →
+      ∃ v : Fin D.n → ℂ, IsChartVel M (S.R.chart k) z w v ∧
+        levi (fun y => Real.log ((regNbarQ H M S B p q t).h y)) z w =
+          q * levi (S.R.chartFun (S.regWeight t) k) (S.R.chart k (M.proj z)) v +
+            p * levi (fun y => Real.log (D.A'.h y)) z w
+
+theorem NbarLeviChart.of_reg (h : NbarLeviChartReg.Statement) : LowerBoundFree.NbarLeviChart.Statement := by
+  intro II Ψ _ _ K _ ι _ Ω _ _ E _ _ D O Lt _ _ _ X B p q t hs z hz w hw k hk
+  exact h II Ψ K ι Ω E D X.H X.M X.S X.S_tied B p q t hs z hz w hw k hk
+
+namespace Line
+
+variable (II : IntersectionSystem)
+  (hII : ∀ W : Ideal (MRing (PBlk 2)), IsArithVar W 1 → 0 ≤ II Unit (PBlk 2) W 1 ![fsLine 2])
+
+end Line
+
+end GroundTheory.Heights₂.Heights.NineStatements
+end
+end
+
+section -- merged from GroundTheory.HeightsAndTheta.Heights.ElementarySymmetric.PFibreNormPullbackX
+section -- merged from GroundTheory.HeightsAndTheta.Heights.HilbertSamuel.PFibreNormPullback
+set_option maxSynthPendingDepth 1
+
+namespace GroundTheory.Heights₂.Heights.HilbertSamuel
+
+open ReciprocityTheory.ChartRestriction.G.Geo ReciprocityTheory.ChartRestriction.G.ArakelovGeometry MvPolynomial
+
+noncomputable section
+
+namespace FibreNormPullback
+
+theorem charZero_of_isArithVar {K : Type} [Fintype K] {ι : K → Type} [∀ k, Fintype (ι k)] {Ω : Type} [Field Ω]
+    {y : (Σ k, ι k) → Ω} {d : ℕ} (hV : IsArithVar (mCoordIdeal y) d) : CharZero Ω := by
+  refine charZero_of_inj_zero fun m hm => ?_
+  have hmem : (m : ℤ) ∈ (mCoordIdeal y).comap (C : ℤ →+* MRing ι) := by
+    show mConeMap y (C (m : ℤ)) = 0
+    simp only [mConeMap, eq_intCast, Int.cast_natCast]
+    rw [map_natCast, ← map_natCast (MvPolynomial.C : Ω →+* MvPolynomial K Ω), hm, map_zero]
+  rw [hV.2.2.1, Ideal.mem_bot] at hmem
+  exact_mod_cast hmem
+
+theorem isHomogeneous_of_map {σ : Type} {F : MvPolynomial σ ℤ} {m : ℕ}
+    (h : (map (Int.castRingHom ℚ) F).IsHomogeneous m) : F.IsHomogeneous m := fun {d} hd =>
+  h (by rw [coeff_map, eq_intCast, ne_eq, Int.cast_eq_zero]; exact hd)
+
+theorem norm_prod_le_pow {B : ℝ} (hB : 0 ≤ B) (m : Multiset ℂ) (h : ∀ x ∈ m, ‖x‖ ≤ B) :
+    ‖m.prod‖ ≤ B ^ Multiset.card m := by
+  induction m using Multiset.induction_on with
+  | empty => simp
+  | cons a m ih =>
+    rw [Multiset.prod_cons, norm_mul, Multiset.card_cons, pow_succ']
+    exact mul_le_mul (h a (Multiset.mem_cons_self a m)) (ih fun x hx => h x (Multiset.mem_cons_of_mem hx))
+      (norm_nonneg _) hB
+
+theorem norm_last_le {n : ℕ} (a : ℕ → ℂ) (ha : a 0 = 1) {B : ℝ} (hB : 0 ≤ B)
+    (hroot : ∀ w : ℂ, ∑ i ∈ Finset.range (n + 1), a i * w ^ (n - i) = 0 → ‖w‖ ≤ B) :
+    ‖a n‖ ≤ B ^ n := by
+  classical
+  set p : Polynomial ℂ := ∑ i ∈ Finset.range (n + 1), Polynomial.C (a i) * Polynomial.X ^ (n - i) with hp
+  have hcoeff : ∀ k, p.coeff k = ∑ i ∈ Finset.range (n + 1), if k = n - i then a i else 0 := by
+    intro k
+    rw [hp, Polynomial.finsetSum_coeff]
+    simp only [Polynomial.coeff_C_mul_X_pow]
+  have hdeg : p.natDegree ≤ n :=
+    Polynomial.natDegree_sum_le_of_forall_le _ _ fun i _ =>
+      (Polynomial.natDegree_C_mul_X_pow_le _ _).trans (Nat.sub_le n i)
+  have hlead : p.coeff n = 1 := by
+    rw [hcoeff, Finset.sum_eq_single 0]
+    · simp [ha]
+    · intro i hi hi0
+      rw [Finset.mem_range] at hi
+      rw [if_neg]
+      omega
+    · intro h; exact absurd (Finset.mem_range.mpr (Nat.succ_pos n)) h
+  have hmon : p.Monic := Polynomial.monic_of_degree_le n (Polynomial.degree_le_of_natDegree_le hdeg) hlead
+  have hnat : p.natDegree = n :=
+    Polynomial.natDegree_eq_of_le_of_coeff_ne_zero hdeg (by rw [hlead]; exact one_ne_zero)
+  have hzero : p.coeff 0 = a n := by
+    rw [hcoeff, Finset.sum_eq_single n]
+    · simp
+    · intro i hi hin
+      rw [Finset.mem_range] at hi
+      rw [if_neg]
+      omega
+    · intro h; exact absurd (Finset.mem_range.mpr (Nat.lt_succ_self n)) h
+  have hsplit : p.Splits := IsAlgClosed.splits p
+  have hcard : Multiset.card p.roots = n := by rw [Polynomial.splits_iff_card_roots.mp hsplit, hnat]
+  have hprod := hsplit.coeff_zero_eq_prod_roots_of_monic hmon
+  rw [hzero, hnat] at hprod
+  rw [hprod, norm_mul, norm_pow, norm_neg, norm_one, one_pow, one_mul, ← hcard]
+  refine norm_prod_le_pow hB _ fun w hw => hroot w ?_
+  have hw' := (Polynomial.mem_roots hmon.ne_zero).mp hw
+  rw [Polynomial.IsRoot.def, hp, Polynomial.eval_finsetSum] at hw'
+  simpa using hw'
+
+end FibreNormPullback
+
+end
+
+end GroundTheory.Heights₂.Heights.HilbertSamuel
+end
+
+set_option maxSynthPendingDepth 1
+
+namespace GroundTheory.Heights₂.Heights.HilbertSamuel
+
+open ReciprocityTheory.ChartRestriction.G.Geo ReciprocityTheory.ChartRestriction.G.ArakelovGeometry MvPolynomial
+
+noncomputable section
+
+namespace FibreNormPullback
+
+theorem proof_dehom (hG : PullFormsGeneric.Statement) (hC : FibreNormDehomCharpoly.Statement)
+    (hI : FibreNormDehomIntegral.Statement) (hR : FibreNormDehomRoots.Statement) :
+    FibreNormPullback.Statement := by
+  intro K _ ι _ Ω _ y D e L q hV hBir he hL hL0
+  classical
+  have : CharZero Ω := charZero_of_isArithVar hV
+  obtain ⟨j, hj⟩ : ∃ j, aeval y (L j) ≠ 0 := by
+    by_contra h
+    push Not at h
+    have h0 := hG K ι Ω y D e L hV hBir he hL hL0 1 (X 0) (isHomogeneous_X ℚ 0) (by rw [aeval_X]; exact h 0)
+    exact X_ne_zero _ h0
+  obtain ⟨hfin, hC'⟩ := hC K ι Ω y D e L q hV hBir he hL hL0
+  obtain ⟨M₀, hM₀, hI'⟩ := hI K ι Ω y D e L q hV hBir he hL hL0
+  have hR' := hR K ι Ω y D e L q hV hBir he hL hL0
+  have hP : IsMultiHomogIdeal (mCoordIdeal y) := hV.2.1.2.1
+  set n := Module.finrank (pullField y L) Ω
+  have hn1 : 1 ≤ n := Module.finrank_pos
+  refine ⟨n, M₀, hn1, by exact_mod_cast hM₀, fun τ s hs hs0 => ?_⟩
+  obtain ⟨c, hc, hcn⟩ := hC' τ s hs j hj
+  obtain ⟨F, hF⟩ := hI' τ s hs j c hc
+  have hRc := hR' τ s hs j c hc
+  obtain ⟨-, _, hc0, hch, -⟩ := hc
+  have hM₀q : ((M₀ : ℚ) ^ τ) ≠ 0 := pow_ne_zero _ (by exact_mod_cast (show M₀ ≠ 0 by omega))
+  refine ⟨F, ?_, ?_, fun ζ hζ S hS M hM hrep => ?_⟩
+  · rintro rfl
+    rw [map_zero, eq_comm, smul_eq_zero] at hF
+    exact hF.elim hM₀q (hcn hs0)
+  · apply isHomogeneous_of_map
+    rw [hF, smul_eq_C_mul, show n * q * τ = 0 + n * (q * τ) by ring]
+    exact (isHomogeneous_C _ _).mul (hch n le_rfl)
+
+  have hmapF : eval ζ (map (Int.castRingHom ℂ) F) = (M₀ : ℂ) ^ τ * eval ζ (map (algebraMap ℚ ℂ) (c n)) := by
+    have h1 : map (Int.castRingHom ℂ) F = map (algebraMap ℚ ℂ) (map (Int.castRingHom ℚ) F) := by
+      rw [map_map]
+      congr 1
+    rw [h1, hF, smul_eq_C_mul, map_mul, map_C, eval_mul, eval_C]
+    simp
+  set B := M * ‖ζ‖ ^ (q * τ) with hBdef
+  have hB0 : 0 ≤ B := mul_nonneg hM (pow_nonneg (norm_nonneg _) _)
+  have hroot : ∀ w : ℂ, ∑ i ∈ Finset.range (n + 1), eval ζ (map (algebraMap ℚ ℂ) (c i)) * w ^ (n - i) = 0 →
+      ‖w‖ ≤ B := by
+    intro w hw
+    obtain ⟨z, hz, t, ht0, hLz, hval⟩ := hRc ζ hζ w hw
+    obtain ⟨z', hz'S, r, hr0, rfl⟩ := hS z hz ⟨t, hLz⟩
+    have hz'm : z' ∈ mcPts (mCoordIdeal y) := by
+      have h1 := mcPts_smul hP (fun k => (r k)⁻¹) (fun k => inv_ne_zero (hr0 k)) hz
+      convert h1 using 1
+      funext p
+      simp [hr0 p.1]
+    obtain ⟨dg, dh, g, h, hg, hh, hd, hgh, hz'0, hle⟩ := hrep z' hz'S hz'm
+    have hgz := eval_smul_homog g dg hg r z'
+    have hhz := eval_smul_homog h dh hh r z'
+    have hhz0 : eval (fun p => r p.1 * z' p) (map (Int.castRingHom ℂ) h) ≠ 0 := by
+      rw [hhz]
+      exact mul_ne_zero (Finset.prod_ne_zero_iff.mpr fun k _ => pow_ne_zero _ (hr0 k)) hz'0
+    have hv := hval dg dh g h hg hh hd hgh hhz0
+    have hRg : (∏ k, r k ^ dg k) = (∏ k, r k ^ dh k) * (∏ k, r k ^ e k) ^ (q * τ) := by
+      rw [← Finset.prod_pow, ← Finset.prod_mul_distrib]
+      refine Finset.prod_congr rfl fun k _ => ?_
+      rw [hd k, ← pow_mul, ← pow_add]
+      ring
+    have hnormL : ‖∏ k, r k ^ e k‖ * ‖fun j => eval z' (map (Int.castRingHom ℂ) (L j))‖ = ‖t‖ * ‖ζ‖ := by
+      have h1 : (∏ k, r k ^ e k) • (fun j => eval z' (map (Int.castRingHom ℂ) (L j))) = t • ζ := by
+        funext j
+        simp only [Pi.smul_apply, smul_eq_mul]
+        rw [← eval_smul_homog (L j) e (hL j) r z', hLz j]
+      rw [← norm_smul, h1, norm_smul]
+    have hpos : 0 < ‖t‖ ^ (q * τ) * ‖eval (fun p => r p.1 * z' p) (map (Int.castRingHom ℂ) h)‖ :=
+      mul_pos (pow_pos (norm_pos_iff.mpr ht0) _) (norm_pos_iff.mpr hhz0)
+    refine le_of_mul_le_mul_right ?_ hpos
+    calc ‖w‖ * (‖t‖ ^ (q * τ) * ‖eval (fun p => r p.1 * z' p) (map (Int.castRingHom ℂ) h)‖)
+        = ‖eval (fun p => r p.1 * z' p) (map (Int.castRingHom ℂ) g)‖ := by
+          rw [hv, norm_mul, norm_mul, norm_pow]; ring
+      _ = ‖∏ k, r k ^ dg k‖ * ‖eval z' (map (Int.castRingHom ℂ) g)‖ := by rw [hgz, norm_mul]
+      _ ≤ ‖∏ k, r k ^ dg k‖ * (M * ‖fun j => eval z' (map (Int.castRingHom ℂ) (L j))‖ ^ (q * τ) *
+            ‖eval z' (map (Int.castRingHom ℂ) h)‖) := mul_le_mul_of_nonneg_left hle (norm_nonneg _)
+      _ = M * (‖∏ k, r k ^ e k‖ * ‖fun j => eval z' (map (Int.castRingHom ℂ) (L j))‖) ^ (q * τ) *
+            (‖∏ k, r k ^ dh k‖ * ‖eval z' (map (Int.castRingHom ℂ) h)‖) := by
+          rw [hRg, norm_mul, norm_pow]; ring
+      _ = B * (‖t‖ ^ (q * τ) * ‖eval (fun p => r p.1 * z' p) (map (Int.castRingHom ℂ) h)‖) := by
+          rw [hnormL, hhz, norm_mul, hBdef]; ring
+  have key := norm_last_le (fun i => eval ζ (map (algebraMap ℚ ℂ) (c i))) (by simp [hc0]) hB0 hroot
+  rw [hmapF, norm_mul, norm_pow, Complex.norm_natCast]
+  calc (M₀ : ℝ) ^ τ * ‖eval ζ (map (algebraMap ℚ ℂ) (c n))‖ ≤ (M₀ : ℝ) ^ τ * B ^ n :=
+        mul_le_mul_of_nonneg_left key (pow_nonneg (Nat.cast_nonneg _) _)
+    _ = (M₀ : ℝ) ^ τ * ‖ζ‖ ^ (n * q * τ) * M ^ n := by
+        rw [hBdef, mul_pow, ← pow_mul, show q * τ * n = n * q * τ by ring]
+        ring
+
+end FibreNormPullback
+
+end
+
+end GroundTheory.Heights₂.Heights.HilbertSamuel
+end

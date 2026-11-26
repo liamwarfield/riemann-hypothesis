@@ -1,0 +1,119 @@
+module
+
+public import Formalism.HermitianCurvature.WeylElementCommutesLevelOne
+
+@[expose] public section
+
+section -- merged from Development.AutomorphicArithmetic.IntegralCasts.CapelliIdentities.BlochKatoDuality
+section -- merged from Development.AutomorphicArithmetic.IntegralCasts.CapelliIdentities.MapInvolutionEqSelf
+theorem UpperTheory.map_involution_eq_self :
+    ∀ (X : Type) [MeasurableSpace X] (μ : MeasureTheory.Measure X) [MeasureTheory.SigmaFinite μ] (ι : X → X) (c : NNReal), Measurable ι → (∀ᵐ x ∂μ, ι (ι x) = x) → μ.map ι = c • μ → μ.map ι = μ := by
+  intro X _ μ _ ι c hι hinv hc
+  by_cases h0 : μ = 0
+  · subst h0
+    simp
+  have h1 : (μ.map ι).map ι = μ := by
+    rw [MeasureTheory.Measure.map_map hι hι]
+    have h : (ι ∘ ι) =ᵐ[μ] id := hinv
+    rw [MeasureTheory.Measure.map_congr h, MeasureTheory.Measure.map_id]
+  have h2 : (c * c) • μ = μ := by
+    calc (c * c) • μ = c • (c • μ) := mul_smul c c μ
+      _ = c • μ.map ι := by rw [hc]
+      _ = (c • μ).map ι := (MeasureTheory.Measure.map_smul c hι.aemeasurable).symm
+      _ = (μ.map ι).map ι := by rw [hc]
+      _ = μ := h1
+  obtain ⟨s, -, -, hs0, hs1⟩ :=
+    MeasureTheory.Measure.exists_subset_measure_lt_top (μ := μ) (s := Set.univ) (r := 0)
+      MeasurableSet.univ (MeasureTheory.Measure.measure_univ_pos.mpr h0)
+  have h3 : ((c * c : NNReal) : ENNReal) * μ s = 1 * μ s := by
+    have h := congrArg (fun ν : MeasureTheory.Measure X => ν s) h2
+    simpa [ENNReal.smul_def] using h
+  have h4 : ((c * c : NNReal) : ENNReal) = 1 :=
+    (ENNReal.mul_left_inj hs0.ne' hs1.ne).mp h3
+  have h5 : c * c = 1 := by exact_mod_cast h4
+  have h6 : c = 1 := by
+    have h : (c : ℝ) * c = 1 := by exact_mod_cast h5
+    have hc0 : (0 : ℝ) ≤ c := c.2
+    have h' : (c : ℝ) = 1 := by nlinarith
+    exact_mod_cast h'
+  rw [hc, h6, one_smul]
+end
+
+section -- merged from Development.AutomorphicArithmetic.IntegralCasts.CapelliIdentities.MeasurableMatrixInv
+theorem UpperTheory.measurable_matrix_inv :
+    ∀ n : ℕ, Measurable (fun x : Fin n → Fin n → ℂ => (Matrix.of.symm ((Matrix.of x : Matrix (Fin n) (Fin n) ℂ)⁻¹) : Fin n → Fin n → ℂ)) := by
+  intro n
+  have hc : Continuous (fun x : Fin n → Fin n → ℂ => (Matrix.of x : Matrix (Fin n) (Fin n) ℂ)) :=
+    continuous_id
+  have hdet : Measurable (fun x : Fin n → Fin n → ℂ =>
+      (Matrix.of x : Matrix (Fin n) (Fin n) ℂ).det) := hc.matrix_det.measurable
+  refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
+  have hadj : Measurable (fun x : Fin n → Fin n → ℂ =>
+      (Matrix.of x : Matrix (Fin n) (Fin n) ℂ).adjugate i j) :=
+    (hc.matrix_adjugate.matrix_elem i j).measurable
+  have h := hdet.inv.mul hadj
+  convert h using 1
+  funext x
+  simp only [Matrix.of_symm_apply, Matrix.inv_def, Matrix.smul_apply, Ring.inverse_eq_inv,
+    smul_eq_mul, Pi.mul_apply, Pi.inv_apply]
+end
+
+section -- merged from Development.AutomorphicArithmetic.IntegralCasts.CapelliIdentities.InvolutionMapCompactFinite
+theorem UpperTheory.involution_map_compact_finite :
+    ∀ (X : Type) [TopologicalSpace X] [T2Space X] [MeasurableSpace X] [OpensMeasurableSpace X] (μ : MeasureTheory.Measure X) (U : Set X) (ι : X → X), Measurable ι → IsClosed U → ContinuousOn ι U → (∀ x ∈ U, ι x ∈ U) → (∀ x ∈ U, ι (ι x) = x) → μ Uᶜ = 0 → (∀ K : Set X, IsCompact K → μ K < ⊤) → ∀ K : Set X, IsCompact K → (μ.map ι) K < ⊤ := by
+  intro X _ _ _ _ μ U ι hm hU hc hmaps hinv h0 hfin K hK
+  rw [MeasureTheory.Measure.map_apply hm hK.measurableSet]
+  have hcomp : IsCompact (ι '' (K ∩ U)) :=
+    (hK.inter_right hU).image_of_continuousOn (hc.mono Set.inter_subset_right)
+  have hsub : ι ⁻¹' K ⊆ ι '' (K ∩ U) ∪ Uᶜ := by
+    intro x hx
+    by_cases hxU : x ∈ U
+    · exact Or.inl ⟨ι x, ⟨hx, hmaps x hxU⟩, hinv x hxU⟩
+    · exact Or.inr hxU
+  calc μ (ι ⁻¹' K) ≤ μ (ι '' (K ∩ U) ∪ Uᶜ) := MeasureTheory.measure_mono hsub
+    _ ≤ μ (ι '' (K ∩ U)) + μ Uᶜ := MeasureTheory.measure_union_le _ _
+    _ = μ (ι '' (K ∩ U)) := by rw [h0, add_zero]
+    _ < ⊤ := hfin _ hcomp
+end
+
+open MeasureTheory Formalism.QuantumDeterminants Formalism.FourierDecayAlt.B Formalism.FourierDecayAlt.B2 in
+theorem UpperTheory.Reformulated.B.BlochKatoDuality.haarInvFromUnique :
+    Formalism.FourierDecayAlt.B2.HaarInvFromUnique := by
+  intro huniq k r U μ hU hμ
+  have hm : Measurable (invM : Mt k r → Mt k r) := UpperTheory.measurable_matrix_inv _
+  have hUc : IsClosed (X := Mt k r) U := hU.closed
+  have hmem : ∀ x : Mt k r, x ∈ U → invM x ∈ U := fun x hx => hU.inv_mem x hx
+  have hinv : ∀ x : Mt k r, x ∈ U → invM (invM x) = x := fun x hx =>
+    Matrix.nonsing_inv_nonsing_inv (Matrix.of x) (hU.unit x hx)
+  have hae : ∀ᵐ x ∂μ, (x : Mt k r) ∈ U := hμ.conc
+  have hcont : ContinuousOn (invM : Mt k r → Mt k r) U := by
+    intro x hx
+    obtain ⟨u, hu⟩ := hU.unit x hx
+    have h1 : ContinuousAt Ring.inverse (Matrix.of x : Mat k r).det := by
+      have h2 := NormedRing.inverse_continuousAt u
+      rw [hu] at h2
+      exact h2
+    exact (continuousAt_matrix_inv (Matrix.of x : Mat k r) h1).continuousWithinAt
+  have hfin := UpperTheory.involution_map_compact_finite (Mt k r) μ U invM hm hUc hcont hmem hinv hμ.conc hμ.finite_compact
+  have hconc : (μ.map invM) (Uᶜ : Set (Mat k r)) = 0 := by
+    have h : ∀ᵐ x ∂(μ.map invM), (x : Mt k r) ∈ U :=
+      (ae_map_iff hm.aemeasurable hUc.measurableSet).2 (hae.mono hmem)
+    exact h
+  have hleft : ∀ a ∈ U, (μ.map invM).map (lmulM a) = μ.map invM := by
+    intro a ha
+    have hl : Measurable (lmulM a : Mt k r → Mt k r) :=
+      Continuous.measurable (α := Mt k r) (γ := Mt k r)
+        (Continuous.matrix_mul (continuous_const (y := a)) (continuous_id (X := Mat k r)))
+    have hr : Measurable (rmulF a⁻¹ : Mt k r → Mt k r) :=
+      Continuous.measurable (α := Mt k r) (γ := Mt k r)
+        (Continuous.matrix_mul (continuous_id (X := Mat k r)) (continuous_const (y := a⁻¹)))
+    have he : (lmulM a ∘ invM : Mt k r → Mt k r) = invM ∘ rmulF a⁻¹ := by
+      funext x
+      change a * (Matrix.of x : Mat k r)⁻¹ = (Matrix.of x * a⁻¹ : Mat k r)⁻¹
+      rw [Matrix.mul_inv_rev, Matrix.nonsing_inv_nonsing_inv a (hU.unit a ha)]
+    rw [Measure.map_map hl hm, he, ← Measure.map_map hm hr, hμ.right _ (hU.inv_mem a ha)]
+  obtain ⟨c, hc⟩ := huniq k r U μ (μ.map invM) hU hμ hconc hleft hfin
+  haveI : IsFiniteMeasureOnCompacts μ := ⟨fun K hK => hμ.finite_compact K hK⟩
+  exact UpperTheory.map_involution_eq_self (Mt k r) μ invM c hm (hae.mono hinv) hc
+end
+

@@ -1,0 +1,15 @@
+module
+
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CasimirReductionTheory.OneParameterDerivatives.AdmissibleCasimirScalars.HcMultDSOfAll
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CasimirReductionTheory.OneParameterDerivatives.AdmissibleCasimirScalars.SmoothGeneratorAverages.ImInnerSelf
+public import Formalism.LocalToGlobal.SiegelLatticeTheory.CasimirReductionTheory.OneParameterDerivatives.AdmissibleCasimirScalars.SmoothGeneratorAverages.GenApplyEqZero
+
+@[expose] public section
+
+set_option autoImplicit false
+
+namespace Formalism.L2.SG.Pf.admitted
+
+theorem casScalar : CasScalarStatement := casScalar_of c1 c2 c3
+
+end Formalism.L2.SG.Pf.admitted

@@ -1,0 +1,10 @@
+module
+
+public import CompanionTheory.AutomorphicTheory.ProductFormulaTheory.SquareIntegrableSegments.SegmentReordering.CsOrderfree
+public import Development.WeilBound.CoreStatements.AutomorphicKernels.SquareIntegrableSegments.SegmentProductEquivalence.CsReorderord
+
+@[expose] public section
+
+namespace PositivityTheory.PfEss.Zc2
+export CompanionTheory.PfEss.Zc2 (irrGL_eq_of_isLSeg_same perm_of_univ_map_eq cs_orderfree)
+end PositivityTheory.PfEss.Zc2

@@ -1,0 +1,16 @@
+module
+
+public import CompanionTheory.RealGroups.GeneralUnitaryRepresentations.WhittakerModels.WhitCuspOfSegCuspGeneric
+public import Development.WeilBound.CoreStatements.TemperedRepresentationTheory.MirabolicDerivatives.SegmentCuspLines.ProdIrrFiniteLength
+public import Development.WeilBound.CoreStatements.TemperedRepresentationTheory.MirabolicDerivatives.LeibnizDerivatives.GenericProdIff
+public import Development.WeilBound.CoreStatements.TemperedRepresentationTheory.BernsteinZelevinskyGL.TopAdm
+public import Development.WeilBound.RepresentationTheoryGL.GenericUnitaryGL.WhittakerCuspidal.UnipBEqUnipotent
+
+@[expose] public section
+
+namespace PositivityTheory.rg.gu.whit
+export CompanionTheory.rg.gu.whit (
+  whitLeOne_of_dict rank_le_one_iff_dual rank_twJacquet_le_one_iff whitLeOne
+  whitRankIrr
+)
+end PositivityTheory.rg.gu.whit

@@ -1,0 +1,31 @@
+module
+
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.UnipotentVectorGroup
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.UnipotentLatticeLift
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.FourierCoefficientsOfVectorGroup
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.FourierCoefficientSupportHolds
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.CuspCoefficientQuantitativeHolds
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.SpanColsMul
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.FlowCoefficientDecayHolds
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.CountingExponentialSumHolds
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.IsotropicOutsideLineOfCovering
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.NonvanishingCoefficientPositivity
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.CoefficientIndexLowerBound
+public import ReciprocityTheory.ReductiveGroups.ArithmeticGeometry.FundamentalDomains.CoefficientHeightBoundOfLiftSupportPositivity
+
+@[expose] public section
+
+namespace ReciprocityTheory.ChartRestriction.G.FD
+
+variable {E : Type} [Field E] [NumberField E] [NumberField.IsCMField E]
+
+theorem flowCoefficientDecay : FlowCoefficientDecay (E := E) :=
+  flow_coefficient_decay_holds unipotent_vector_group unipotent_lattice_lift fourier_coefficients_holds fourier_coefficient_support_holds holomorphic_periodicity_extension
+
+theorem coefficientIndex_lowerBound : CoefficientIndexLowerBound (E := E) :=
+  coefficient_index_lower_bound unipotent_lattice_lift fourier_coefficient_support_holds nonvanishing_coefficient_positivity
+
+theorem coefficientHeight_bound : CoefficientHeightBound (E := E) :=
+  coefficient_height_bound_of_lift_support_positivity unipotent_lattice_lift fourier_coefficient_support_holds nonvanishing_coefficient_positivity
+
+end ReciprocityTheory.ChartRestriction.G.FD

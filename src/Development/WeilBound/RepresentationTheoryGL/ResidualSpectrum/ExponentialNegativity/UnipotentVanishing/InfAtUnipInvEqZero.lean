@@ -1,0 +1,526 @@
+module
+
+public import Development.WeilBound.RepresentationTheoryGL.ResidualSpectrum.ExponentialNegativity.L2DecayOfCountEscape
+
+@[expose] public section
+
+section -- merged from Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ExponentMemFinset
+open NumberField GroundTheory.Automorphic GroundTheory.Automorphic.AutomorphicForm
+open scoped NumberField.AdeleRing
+
+namespace GlobalTheory.CompanionTheory.Latexp
+
+open GroundTheory.Automorphic.Reduction in
+theorem detModule_tor_one (K : Type) [Field K] [NumberField K] (n : ℕ) :
+    (detModule K n (PositivityTheory.Rg.Rs.An.tor K fun _ : Fin n => (1 : ℝ)) : ℝ)
+      = Real.exp ((n : ℝ) * (Module.finrank ℚ K : ℝ)) := by
+  unfold PositivityTheory.Rg.Rs.An.tor
+  rw [CuspidalSpectrum.detModule_diagUnits_posIdele]
+  rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin, ← pow_mul, ← Real.exp_nat_mul]
+  simp
+
+open GroundTheory.Automorphic.Reduction in
+theorem detModule_lhs (K : Type) [Field K] [NumberField K] (n : ℕ) (γ₀ : GL (Fin n) K) (m : ℤ) :
+    (detModule K n (AdelicGLn.diagonal K n γ₀ * (PositivityTheory.Rg.Rs.An.tor K fun _ : Fin n => (1 : ℝ)) ^ m) : ℝ)
+      = Real.exp ((m : ℝ) * ((n : ℝ) * (Module.finrank ℚ K : ℝ))) := by
+  have h1 : detModule K n (AdelicGLn.diagonal K n γ₀) = 1 :=
+    mem_normOneGL_iff_detModule.1 (rationalGL_le_normOneGL ⟨γ₀, rfl⟩)
+  rw [map_mul, h1, one_mul, map_zpow]
+  have hv : ∀ (s : {r : ℝ // 0 < r}) (k : ℤ), ((s ^ k : {r : ℝ // 0 < r}) : ℝ) = (s : ℝ) ^ k := by
+    intro s k
+    have hinv : ∀ u : {r : ℝ // 0 < r}, ((u⁻¹ : {r : ℝ // 0 < r}) : ℝ) = (u : ℝ)⁻¹ := by
+      intro u
+      have h := congrArg Subtype.val (mul_inv_cancel u)
+      rw [Positive.val_mul, Positive.val_one] at h
+      exact eq_inv_of_mul_eq_one_right h
+    have hpow : ∀ (u : {r : ℝ // 0 < r}) (j : ℕ), ((u ^ j : {r : ℝ // 0 < r}) : ℝ) = (u : ℝ) ^ j := by
+      intro u j
+      induction j with
+      | zero => simp
+      | succ j ih => rw [pow_succ, pow_succ, Positive.val_mul, ih]
+    cases k with
+    | ofNat j => simp only [Int.ofNat_eq_natCast, zpow_natCast, hpow]
+    | negSucc j => rw [zpow_negSucc, zpow_negSucc, hinv, hpow]
+  rw [hv, detModule_tor_one, ← Real.rpow_intCast, ← Real.exp_mul, mul_comm]
+
+open GroundTheory.Automorphic.Reduction in
+theorem detModule_rhs (K : Type) [Field K] [NumberField K] (n r : ℕ) (X Y : UPos n r → 𝔸[K])
+    (a q : AdelicGLn.AdelicGL K n) :
+    detModule K n (unipGL X * a * q * a⁻¹ * (unipGL Y)⁻¹) = detModule K n q := by
+  have h1 : detModule K n (unipGL X) = 1 :=
+    mem_normOneGL_iff_detModule.1 (CuspidalSpectrum.unipGL_mem_normOneGL X)
+  have h2 : detModule K n (unipGL Y) = 1 :=
+    mem_normOneGL_iff_detModule.1 (CuspidalSpectrum.unipGL_mem_normOneGL Y)
+  simp only [map_mul, map_inv, h1, h2, inv_one, one_mul, mul_one]
+  rw [mul_comm (detModule K n a), mul_assoc, mul_inv_cancel, mul_one]
+
+end GlobalTheory.CompanionTheory.Latexp
+
+namespace GlobalTheory.CompanionTheory.Latexp
+
+open GroundTheory.Automorphic.Reduction in
+theorem exponent_mem_finset : ∀ (K : Type) [Field K] [NumberField K] (n r : ℕ), 0 < n → ∀ (Q : Set (AdelicGLn.AdelicGL K n)), IsCompact Q → ∃ M : Finset ℤ, ∀ (t : ℝ) (X Y : UPos n r → 𝔸[K]), ∀ q ∈ Q, ∀ (γ₀ : GL (Fin n) K) (m : ℤ), AdelicGLn.diagonal K n γ₀ * (PositivityTheory.Rg.Rs.An.tor K fun _ : Fin n => (1 : ℝ)) ^ m = unipGL X * PositivityTheory.Rg.Rs.An.aR K n r t * q * (PositivityTheory.Rg.Rs.An.aR K n r t)⁻¹ * (unipGL Y)⁻¹ → m ∈ M := by
+  intro K _ _ n r hn Q hQ
+  have hdc : Continuous fun g : AdelicGLn.AdelicGL K n => (detModule K n g : ℝ) :=
+    continuous_subtype_val.comp continuous_detModule
+  obtain ⟨a, b, ha, -, hab⟩ := Reduction.exists_pos_bounds hQ hdc (fun g _ => (detModule K n g).2)
+  have hN : 0 < (n : ℝ) * (Module.finrank ℚ K : ℝ) :=
+    mul_pos (Nat.cast_pos.2 hn) (Nat.cast_pos.2 Module.finrank_pos)
+  set N : ℝ := (n : ℝ) * (Module.finrank ℚ K : ℝ) with hNdef
+  refine ⟨Finset.Icc ⌊Real.log a / N⌋ ⌈Real.log b / N⌉, ?_⟩
+  intro t X Y q hq γ₀ m h
+  have h1 := congrArg (fun g => (detModule K n g : ℝ)) h
+  beta_reduce at h1
+  rw [detModule_lhs, detModule_rhs] at h1
+  obtain ⟨h2, h3⟩ := hab q hq
+  rw [← h1] at h2 h3
+  have h4 : Real.log a ≤ (m : ℝ) * N := (Real.log_le_iff_le_exp ha).2 h2
+  have h5 : (m : ℝ) * N ≤ Real.log b := by
+    have hb : 0 < b := lt_of_lt_of_le (Real.exp_pos _) h3
+    exact (Real.le_log_iff_exp_le hb).2 h3
+  rw [Finset.mem_Icc]
+  constructor
+  · have : Real.log a / N ≤ (m : ℝ) := (div_le_iff₀ hN).2 h4
+    exact Int.cast_le.1 ((Int.floor_le _).trans this)
+  · have : (m : ℝ) ≤ Real.log b / N := (le_div_iff₀ hN).2 h5
+    exact Int.cast_le.1 (this.trans (Int.le_ceil _))
+end GlobalTheory.CompanionTheory.Latexp
+end
+
+section -- merged from Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ExistsNcardEntrywiseBoxLe
+open NumberField IsDedekindDomain
+
+namespace GlobalTheory.CompanionTheory.Counting
+
+
+open GroundTheory.Automorphic.CuspidalSpectrum in
+theorem exists_ncard_entrywiseBox_le (K : Type) [Field K] [NumberField K] (n : ℕ)
+    (𝒦 : Set (FiniteAdeleRing (𝓞 K) K)) (h𝒦 : IsCompact 𝒦) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ T : Fin n → Fin n → ℝ, (∀ i j, 0 ≤ T i j) →
+      (setOf fun γ : GL (Fin n) K => (∀ i j,
+        algebraMap K (FiniteAdeleRing (𝓞 K) K) ((γ : Matrix (Fin n) (Fin n) K) i j) ∈ 𝒦 ∧
+        ∀ w : InfinitePlace K, w ((γ : Matrix (Fin n) (Fin n) K) i j) ≤ T i j)).Finite ∧
+      ((Set.ncard (setOf fun γ : GL (Fin n) K => (∀ i j,
+        algebraMap K (FiniteAdeleRing (𝓞 K) K) ((γ : Matrix (Fin n) (Fin n) K) i j) ∈ 𝒦 ∧
+        ∀ w : InfinitePlace K, w ((γ : Matrix (Fin n) (Fin n) K) i j) ≤ T i j)) : ℕ) : ℝ) ≤
+        ∏ i, ∏ j, C * (1 + T i j) ^ Module.finrank ℚ K := by
+  obtain ⟨m, hm, hint⟩ := GroundTheory.Automorphic.CuspidalSpectrum.exists_natCast_mul_integral_of_isCompact K h𝒦
+  obtain ⟨C₀, hC₀, hcount⟩ := GroundTheory.Automorphic.CuspidalSpectrum.exists_ncard_integers_le K
+  have hw : ∀ (w : InfinitePlace K) (x : K), w ((m : K) * x) = (m : ℝ) * w x := by
+    intro w x
+    rw [← w.norm_embedding_eq, map_mul, norm_mul, w.norm_embedding_eq, w.norm_embedding_eq, w.map_natCast]
+  have hm1 : (1 : ℝ) ≤ m := by exact_mod_cast hm
+  have hmK : (m : K) ≠ 0 := by exact_mod_cast hm.ne'
+  refine ⟨C₀ * (m : ℝ) ^ Module.finrank ℚ K, mul_nonneg hC₀ (by positivity), ?_⟩
+  intro T hT
+  have hA : ∀ p : Fin n × Fin n,
+      (((↑) : 𝓞 K → K) '' {z | ∀ w : InfinitePlace K, w (z : K) ≤ (m : ℝ) * T p.1 p.2}).Finite ∧
+      ((((↑) : 𝓞 K → K) '' {z | ∀ w : InfinitePlace K, w (z : K) ≤ (m : ℝ) * T p.1 p.2}).ncard : ℝ) ≤
+        C₀ * (1 + (m : ℝ) * T p.1 p.2) ^ Module.finrank ℚ K := by
+    intro p
+    obtain ⟨hf, hc⟩ := hcount ((m : ℝ) * T p.1 p.2) (mul_nonneg (by positivity) (hT p.1 p.2))
+    exact ⟨hf.image _, le_trans (by exact_mod_cast Set.ncard_image_le hf) hc⟩
+  let F : GL (Fin n) K → (Fin n × Fin n → K) := fun γ p => (m : K) * (γ : Matrix (Fin n) (Fin n) K) p.1 p.2
+  obtain ⟨t, ht⟩ : ∃ t : Finset (Fin n × Fin n → K), t = Fintype.piFinset fun p => (hA p).1.toFinset := ⟨_, rfl⟩
+  have key : ∀ γ : GL (Fin n) K, (∀ i j, algebraMap K (FiniteAdeleRing (𝓞 K) K) ((γ : Matrix (Fin n) (Fin n) K) i j) ∈ 𝒦 ∧
+      ∀ w : InfinitePlace K, w ((γ : Matrix (Fin n) (Fin n) K) i j) ≤ T i j) → F γ ∈ (t : Set (Fin n × Fin n → K)) := by
+    intro γ hγ
+    rw [Finset.mem_coe, ht, Fintype.mem_piFinset]
+    intro p
+    rw [Set.Finite.mem_toFinset]
+    obtain ⟨z, hz⟩ := hint _ (hγ p.1 p.2).1
+    refine ⟨z, fun w => ?_, hz⟩
+    rw [hz, hw]
+    exact mul_le_mul_of_nonneg_left ((hγ p.1 p.2).2 w) (by positivity)
+  have inj : ∀ γ γ' : GL (Fin n) K, F γ = F γ' → γ = γ' := by
+    intro γ γ' h
+    ext i j
+    exact mul_left_cancel₀ hmK (congrFun h (i, j))
+  refine ⟨?_, ?_⟩
+  · exact Set.Finite.of_finite_image ((t.finite_toSet).subset (Set.image_subset_iff.mpr fun γ hγ => key γ hγ))
+      (fun γ _ γ' _ h => inj γ γ' h)
+  · refine le_trans (Nat.cast_le.mpr (Set.ncard_le_ncard_of_injOn F (fun γ hγ => key γ hγ)
+      (fun γ _ γ' _ h => inj γ γ' h) t.finite_toSet)) ?_
+    rw [Set.ncard_coe_finset, ht, Fintype.card_piFinset, Nat.cast_prod, Fintype.prod_prod_type]
+    apply Finset.prod_le_prod₀ (fun _ _ => Finset.prod_nonneg fun _ _ => by positivity)
+    intro i _
+    apply Finset.prod_le_prod₀ (fun _ _ => by positivity)
+    intro j _
+    rw [← Set.ncard_eq_toFinset_card _ (hA (i, j)).1]
+    refine le_trans (hA (i, j)).2 ?_
+    rw [mul_assoc, ← mul_pow]
+    apply mul_le_mul_of_nonneg_left _ hC₀
+    apply pow_le_pow_left₀ (by nlinarith [hT i j])
+    nlinarith [hT i j]
+
+end GlobalTheory.CompanionTheory.Counting
+end
+
+section -- merged from Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ProdEntrywiseLe
+open Finset
+
+namespace GlobalTheory.CompanionTheory.EntrywiseCount
+
+theorem card_lt (n r : ℕ) (hr : r ≤ n) :
+    (univ.filter (fun i : Fin n => (i : ℕ) < r)).card = r := by
+  have h : (univ.filter (fun i : Fin n => (i : ℕ) < r)).card
+      = ((range n).filter (fun i => i < r)).card := by
+    rw [Finset.card_filter, Finset.card_filter]
+    exact Fin.sum_univ_eq_sum_range (fun i => if i < r then 1 else 0) n
+  rw [h]
+  have : (range n).filter (fun i => i < r) = range r := by
+    ext x
+    simp only [mem_filter, mem_range]
+    omega
+  rw [this, card_range]
+
+theorem card_ge (n r : ℕ) (hr : r ≤ n) :
+    (univ.filter (fun j : Fin n => r ≤ (j : ℕ))).card = n - r := by
+  have h := Finset.card_filter_add_card_filter_not (s := (univ : Finset (Fin n)))
+    (fun i : Fin n => (i : ℕ) < r)
+  rw [card_lt n r hr, Finset.card_univ, Fintype.card_fin] at h
+  simp only [not_lt] at h
+  omega
+
+theorem prod_indicator (n r : ℕ) (hr : r ≤ n) (E : ℝ) :
+    ∏ i : Fin n, ∏ j : Fin n, (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then E else 1)
+      = E ^ (r * (n - r)) := by
+  have inner : ∀ i : Fin n, ∏ j : Fin n, (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then E else 1)
+      = if (i : ℕ) < r then E ^ (n - r) else 1 := by
+    intro i
+    by_cases hi : (i : ℕ) < r
+    · simp only [hi, true_and, if_true]
+      rw [Finset.prod_ite, Finset.prod_const, Finset.prod_const_one, mul_one, card_ge n r hr]
+    · simp [hi]
+  simp only [inner]
+  rw [Finset.prod_ite, Finset.prod_const, Finset.prod_const_one, mul_one, card_lt n r hr,
+    ← pow_mul, mul_comm]
+
+theorem factor_le (d : ℕ) (C β t : ℝ) (p : Prop) [Decidable p]
+    (hC : 0 ≤ C) (hβ : 0 ≤ β) (ht : 0 ≤ t) :
+    C * (1 + β * (if p then Real.exp t else 1)) ^ d
+      ≤ (C * (1 + β) ^ d) * (if p then Real.exp ((d : ℝ) * t) else 1) := by
+  have hE : 1 ≤ Real.exp t := Real.one_le_exp ht
+  have hbase : 1 + β * (if p then Real.exp t else 1)
+      ≤ (1 + β) * (if p then Real.exp t else 1) := by
+    split_ifs
+    · nlinarith
+    · linarith
+  have hnn : 0 ≤ 1 + β * (if p then Real.exp t else 1) := by
+    split_ifs <;> positivity
+  have hpow := pow_le_pow_left₀ hnn hbase d
+  rw [mul_pow] at hpow
+  have hE' : (if p then Real.exp t else 1) ^ d = (if p then Real.exp ((d : ℝ) * t) else 1) := by
+    split_ifs
+    · rw [← Real.exp_nat_mul]
+    · simp
+  rw [hE'] at hpow
+  calc C * (1 + β * (if p then Real.exp t else 1)) ^ d
+      ≤ C * ((1 + β) ^ d * (if p then Real.exp ((d : ℝ) * t) else 1)) :=
+        mul_le_mul_of_nonneg_left hpow hC
+    _ = _ := by ring
+
+theorem prod_entrywise_le : ∀ (n r d : ℕ), r ≤ n → ∀ (C β t : ℝ), 0 ≤ C → 0 ≤ β → 0 ≤ t →
+    ∏ i : Fin n, ∏ j : Fin n,
+        C * (1 + β * (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp t else 1)) ^ d
+      ≤ C ^ (n * n) * (1 + β) ^ (d * (n * n))
+        * Real.exp ((d : ℝ) * ((r : ℝ) * ((n : ℝ) - r)) * t) := by
+  intro n r d hr C β t hC hβ ht
+  have hnn : ∀ (i j : Fin n), 0 ≤
+      C * (1 + β * (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp t else 1)) ^ d := by
+    intro i j
+    have : 0 ≤ (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp t else 1) := by
+      split_ifs <;> positivity
+    positivity
+  have step : ∏ i : Fin n, ∏ j : Fin n,
+        C * (1 + β * (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp t else 1)) ^ d
+      ≤ ∏ i : Fin n, ∏ j : Fin n, ((C * (1 + β) ^ d) *
+          (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp ((d : ℝ) * t) else 1)) := by
+    apply Finset.prod_le_prod₀
+    · intro i _
+      exact Finset.prod_nonneg (fun j _ => hnn i j)
+    · intro i _
+      apply Finset.prod_le_prod₀
+      · intro j _
+        exact hnn i j
+      · intro j _
+        exact factor_le d C β t _ hC hβ ht
+  refine step.trans (le_of_eq ?_)
+  simp only [Finset.prod_mul_distrib, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+  rw [prod_indicator n r hr, ← Real.exp_nat_mul, ← pow_mul]
+  have hp : (((1 + β) ^ d) ^ n) ^ n = (1 + β) ^ (d * (n * n)) := by
+    rw [← pow_mul, ← pow_mul]
+  have : (((r * (n - r) : ℕ) : ℝ)) * ((d : ℝ) * t) = (d : ℝ) * ((r : ℝ) * ((n : ℝ) - r)) * t := by
+    rw [Nat.cast_mul, Nat.cast_sub hr]
+    ring
+  rw [this]
+  rw [hp]
+
+end GlobalTheory.CompanionTheory.EntrywiseCount
+end
+
+noncomputable section
+
+open NumberField IsDedekindDomain Filter Topology
+open GroundTheory.Global GroundTheory.Automorphic GroundTheory.Automorphic.Reduction GroundTheory.Automorphic.AutomorphicForm
+  GroundTheory.Automorphic.CuspidalSpectrum
+open scoped NumberField.AdeleRing
+
+namespace PositivityTheory.Rg.Rs
+
+namespace count
+
+def box (K : Type) [Field K] [NumberField K] (n : ℕ) (𝒦 : Set (FiniteAdeleRing (𝓞 K) K))
+    (T : Fin n → Fin n → ℝ) : Set (GL (Fin n) K) :=
+  {γ | ∀ i j, algebraMap K (FiniteAdeleRing (𝓞 K) K) ((γ : Matrix (Fin n) (Fin n) K) i j) ∈ 𝒦 ∧
+    ∀ w : InfinitePlace K, w ((γ : Matrix (Fin n) (Fin n) K) i j) ≤ T i j}
+
+theorem exists_ncard_box_le (K : Type) [Field K] [NumberField K] (n : ℕ)
+    {𝒦 : Set (FiniteAdeleRing (𝓞 K) K)} (h𝒦 : IsCompact 𝒦) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ T : Fin n → Fin n → ℝ, (∀ i j, 0 ≤ T i j) →
+      (box K n 𝒦 T).Finite ∧ ((box K n 𝒦 T).ncard : ℝ) ≤ ∏ i, ∏ j, C * (1 + T i j) ^ Module.finrank ℚ K :=
+  GlobalTheory.CompanionTheory.Counting.exists_ncard_entrywiseBox_le K n 𝒦 h𝒦
+
+theorem prod_bound (n r d : ℕ) (hr : r ≤ n) (C β t : ℝ) (hC : 0 ≤ C) (hβ : 0 ≤ β) (ht : 0 ≤ t) :
+    ∏ i : Fin n, ∏ j : Fin n, C * (1 + β * (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp t else 1)) ^ d ≤
+      C ^ (n * n) * (1 + β) ^ (d * (n * n)) * Real.exp ((d : ℝ) * ((r : ℝ) * ((n : ℝ) - r)) * t) :=
+  GlobalTheory.CompanionTheory.EntrywiseCount.prod_entrywise_le n r d hr C β t hC hβ ht
+
+variable {K : Type} [Field K] [NumberField K] {n : ℕ}
+
+abbrev cen (K : Type) [Field K] [NumberField K] (n : ℕ) : AdelicGLn.AdelicGL K n := An.tor K fun _ : Fin n => (1 : ℝ)
+
+theorem cen_comm (g : AdelicGLn.AdelicGL K n) : cen K n * g = g * cen K n :=
+  scalarUnits_mul_comm (n := n) (posIdele (K := K) (Real.exp 1) (Real.exp_pos _)) g
+
+theorem cen_zpow_comm (m : ℤ) (g : AdelicGLn.AdelicGL K n) : cen K n ^ m * g = g * cen K n ^ m :=
+  Commute.zpow_left (cen_comm g) m
+
+theorem mem_lat {γ : AdelicGLn.AdelicGL K n} (hγ : γ ∈ An.lat K n) :
+    ∃ (γ₀ : GL (Fin n) K) (m : ℤ), γ = AdelicGLn.diagonal K n γ₀ * cen K n ^ m := by
+  have : (Subgroup.zpowers (cen K n)).Normal := ⟨fun x hx g => by
+    obtain ⟨k, rfl⟩ := Subgroup.mem_zpowers_iff.1 hx
+    rw [← cen_zpow_comm k g, mul_inv_cancel_right]
+    exact Subgroup.zpow_mem_zpowers _ k⟩
+  obtain ⟨y, hy, z, hz, rfl⟩ := Subgroup.mem_sup_of_normal_right.1 hγ
+  obtain ⟨γ₀, rfl⟩ := MonoidHom.mem_range.1 hy
+  obtain ⟨m, rfl⟩ := Subgroup.mem_zpowers_iff.1 hz
+  exact ⟨γ₀, m, rfl⟩
+
+theorem exists_finset_exp (r : ℕ) (hn : 0 < n) {Q : Set (AdelicGLn.AdelicGL K n)} (hQ : IsCompact Q) :
+    ∃ M : Finset ℤ, ∀ (t : ℝ) (X Y : UPos n r → 𝔸[K]), ∀ q ∈ Q, ∀ (γ₀ : GL (Fin n) K) (m : ℤ),
+      AdelicGLn.diagonal K n γ₀ * cen K n ^ m =
+        unipGL X * An.aR K n r t * q * (An.aR K n r t)⁻¹ * (unipGL Y)⁻¹ → m ∈ M :=
+  GlobalTheory.CompanionTheory.Latexp.exponent_mem_finset K n r hn Q hQ
+
+theorem exists_fin_bound (r : ℕ) {D : Set (UPos n r → 𝔸[K])} {Q : Set (AdelicGLn.AdelicGL K n)}
+    (hD : IsCompact D) (hQ : IsCompact Q) :
+    ∃ 𝒦 : Set (FiniteAdeleRing (𝓞 K) K), IsCompact 𝒦 ∧ ∀ t : ℝ, ∀ X ∈ D, ∀ Y ∈ D, ∀ q ∈ Q,
+      ∀ γ : GL (Fin n) K,
+      AdelicGLn.diagonal K n γ = unipGL X * An.aR K n r t * q * (An.aR K n r t)⁻¹ * (unipGL Y)⁻¹ →
+      ∀ i j, algebraMap K (FiniteAdeleRing (𝓞 K) K) ((γ : Matrix (Fin n) (Fin n) K) i j) ∈ 𝒦 := by
+  refine ⟨⋃ i : Fin n, ⋃ j : Fin n,
+    (fun p : (UPos n r → 𝔸[K]) × (UPos n r → 𝔸[K]) × AdelicGLn.AdelicGL K n =>
+      ((AdelicGLn.prodEquiv K n (unipGL p.1 * p.2.2 * (unipGL p.2.1)⁻¹)).2 :
+        Matrix (Fin n) (Fin n) (FiniteAdeleRing (𝓞 K) K)) i j) '' (D ×ˢ D ×ˢ Q), ?_, ?_⟩
+  · refine isCompact_iUnion fun i => isCompact_iUnion fun j => (hD.prod (hD.prod hQ)).image ?_
+    exact ((continuous_apply j).comp (continuous_apply i)).comp (Units.continuous_val.comp
+      (continuous_snd.comp ((AdelicGLn.prodEquiv K n).continuous.comp
+        (((continuous_unipGL.comp continuous_fst).mul (continuous_snd.comp continuous_snd)).mul
+          (continuous_unipGL.comp (continuous_fst.comp continuous_snd)).inv))))
+  · intro t X hX Y hY q hq γ hγ i j
+    have hA : (AdelicGLn.prodEquiv K n (An.aR K n r t)).2 = 1 :=
+      prodEquiv_diagUnits_posIdele_snd _ _
+    have e1 : algebraMap K (FiniteAdeleRing (𝓞 K) K) ((γ : Matrix (Fin n) (Fin n) K) i j) =
+        ((AdelicGLn.prodEquiv K n (unipGL X * An.aR K n r t * q * (An.aR K n r t)⁻¹ * (unipGL Y)⁻¹)).2 :
+          Matrix (Fin n) (Fin n) (FiniteAdeleRing (𝓞 K) K)) i j := by
+      rw [← hγ, AdelicGLn.prodEquiv_apply_snd, AdelicGLn.diagonal_apply]
+      rfl
+    rw [e1]
+    refine Set.mem_iUnion₂.2 ⟨i, j, (X, Y, q), ⟨hX, hY, hq⟩, ?_⟩
+    simp only [map_mul, map_inv, Prod.snd_mul, Prod.snd_inv, hA, mul_one, inv_one]
+
+theorem norm_entry_le (w : InfinitePlace K) (U q V : AdelicGLn.AdelicGL K n) (x : Fin n → ℝ)
+    {β₁ β₂ β₃ L : ℝ} (i j : Fin n)
+    (h1 : ∀ a b, ‖(infAt w U : Matrix (Fin n) (Fin n) w.Completion) a b‖ ≤ β₁)
+    (h2 : ∀ a b, ‖(infAt w q : Matrix (Fin n) (Fin n) w.Completion) a b‖ ≤ β₂)
+    (h3 : ∀ a b, ‖(infAt w V : Matrix (Fin n) (Fin n) w.Completion) a b‖ ≤ β₃)
+    (hβ₁ : 0 ≤ β₁) (hβ₂ : 0 ≤ β₂) (hβ₃ : 0 ≤ β₃) (hL0 : 0 ≤ L)
+    (hL : ∀ l m, (infAt w U : Matrix (Fin n) (Fin n) w.Completion) i l ≠ 0 →
+      (infAt w V : Matrix (Fin n) (Fin n) w.Completion) m j ≠ 0 → Real.exp (x l) / Real.exp (x m) ≤ L) :
+    ‖(infAt w (U * An.tor K x * q * (An.tor K x)⁻¹ * V) : Matrix (Fin n) (Fin n) w.Completion) i j‖ ≤
+      (n : ℝ) ^ 2 * (β₁ * (L * β₂) * β₃) := by
+  have hρ : ∀ l, 0 < Real.exp (x l) := fun l => Real.exp_pos _
+  set d : Fin n → w.Completion := fun l =>
+    ((posRealToUnits w ⟨Real.exp (x l) ^ w.mult, pow_pos (hρ l) _⟩ : (w.Completion)ˣ) : w.Completion)
+  set d' : Fin n → w.Completion := fun l =>
+    (((posRealToUnits w ⟨Real.exp (x l) ^ w.mult, pow_pos (hρ l) _⟩)⁻¹ : (w.Completion)ˣ) : w.Completion)
+  have hd : ∀ l, ‖d l‖ = Real.exp (x l) := fun l => norm_posRealToUnits w (hρ l)
+  have hd' : ∀ l, ‖d' l‖ = (Real.exp (x l))⁻¹ := fun l => by
+    simp only [d', Units.val_inv_eq_inv_val, norm_inv]
+    rw [norm_posRealToUnits w (hρ l)]
+  set B := (infAt w U : Matrix (Fin n) (Fin n) w.Completion)
+  set B' := (infAt w V : Matrix (Fin n) (Fin n) w.Completion)
+  set Qm := (infAt w q : Matrix (Fin n) (Fin n) w.Completion)
+  have hmat : (infAt w (U * An.tor K x * q * (An.tor K x)⁻¹ * V) : Matrix (Fin n) (Fin n) w.Completion) =
+      B * (Matrix.diagonal d * Qm * Matrix.diagonal d') * B' := by
+    change (infAt w (U * (diagUnits n fun i => posIdele (K := K) (Real.exp (x i)) (hρ i)) * q *
+      (diagUnits n fun i => posIdele (K := K) (Real.exp (x i)) (hρ i))⁻¹ * V) :
+        Matrix (Fin n) (Fin n) w.Completion) = _
+    rw [infAt_mul, infAt_mul, infAt_mul, infAt_mul, infAt_inv w (diagUnits n _),
+      infAt_diagUnits_posIdele, ← map_inv (diagUnits n)]
+    simp only [Units.val_mul, coe_diagUnits, Pi.inv_apply, mul_assoc]
+    rfl
+  have hE : ∀ l m, (Matrix.diagonal d * Qm * Matrix.diagonal d') l m = d l * Qm l m * d' m := by
+    intro l m
+    rw [Matrix.mul_diagonal, Matrix.diagonal_mul]
+  have hterm : ∀ l m, ‖B i l * (Matrix.diagonal d * Qm * Matrix.diagonal d') l m * B' m j‖ ≤
+      β₁ * (L * β₂) * β₃ := by
+    intro l m
+    by_cases hb : B i l = 0
+    · rw [hb, zero_mul, zero_mul, norm_zero]; exact mul_nonneg (mul_nonneg hβ₁ (mul_nonneg hL0 hβ₂)) hβ₃
+    by_cases hb' : B' m j = 0
+    · rw [hb', mul_zero, norm_zero]; exact mul_nonneg (mul_nonneg hβ₁ (mul_nonneg hL0 hβ₂)) hβ₃
+    rw [hE, norm_mul, norm_mul, norm_mul, norm_mul, hd, hd']
+    have hr := hL l m hb hb'
+    have e : Real.exp (x l) * ‖Qm l m‖ * (Real.exp (x m))⁻¹ = Real.exp (x l) / Real.exp (x m) * ‖Qm l m‖ := by
+      ring
+    rw [e]
+    have h4 : Real.exp (x l) / Real.exp (x m) * ‖Qm l m‖ ≤ L * β₂ :=
+      mul_le_mul hr (h2 l m) (norm_nonneg _) hL0
+    exact mul_le_mul (mul_le_mul (h1 i l) h4 (by positivity) hβ₁) (h3 m j) (norm_nonneg _)
+      (mul_nonneg hβ₁ (mul_nonneg hL0 hβ₂))
+  rw [hmat, Matrix.mul_apply]
+  have hsum : (∑ m, (B * (Matrix.diagonal d * Qm * Matrix.diagonal d')) i m * B' m j) =
+      ∑ m, ∑ l, B i l * (Matrix.diagonal d * Qm * Matrix.diagonal d') l m * B' m j := by
+    refine Finset.sum_congr rfl fun m _ => ?_
+    rw [Matrix.mul_apply, Finset.sum_mul]
+  rw [hsum]
+  calc ‖∑ m, ∑ l, B i l * (Matrix.diagonal d * Qm * Matrix.diagonal d') l m * B' m j‖
+      ≤ ∑ m : Fin n, ∑ l : Fin n, β₁ * (L * β₂) * β₃ :=
+        (norm_sum_le _ _).trans (Finset.sum_le_sum fun m _ =>
+          (norm_sum_le _ _).trans (Finset.sum_le_sum fun l _ => hterm l m))
+    _ = (n : ℝ) ^ 2 * (β₁ * (L * β₂) * β₃) := by
+        simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+        ring
+
+theorem infAt_unip_eq_zero (w : InfinitePlace K) (r : ℕ) (X : UPos n r → 𝔸[K]) (a b : Fin n)
+    (h : ¬ (a = b ∨ ((a : ℕ) < r ∧ r ≤ (b : ℕ)))) :
+    (infAt w (unipGL X) : Matrix (Fin n) (Fin n) w.Completion) a b = 0 := by
+  have h1 : a ≠ b := fun e => h (Or.inl e)
+  have h2 : ¬ ((a : ℕ) < r ∧ r ≤ (b : ℕ)) := fun e => h (Or.inr e)
+  rw [infAt_apply, coe_unipGL, unipMatrix, Matrix.add_apply, Matrix.one_apply_ne h1, blockEntry_apply,
+    dite_eq_right h2, add_zero]
+  rfl
+
+theorem infAt_unip_inv_eq_zero (w : InfinitePlace K) (r : ℕ) (X : UPos n r → 𝔸[K]) (a b : Fin n)
+    (h : ¬ (a = b ∨ ((a : ℕ) < r ∧ r ≤ (b : ℕ)))) :
+    (infAt w (unipGL X)⁻¹ : Matrix (Fin n) (Fin n) w.Completion) a b = 0 := by
+  have h1 : a ≠ b := fun e => h (Or.inl e)
+  have h2 : ¬ ((a : ℕ) < r ∧ r ≤ (b : ℕ)) := fun e => h (Or.inr e)
+  rw [infAt_apply, coe_unipGL_inv, unipMatrix, Matrix.add_apply, Matrix.one_apply_ne h1, blockEntry_apply,
+    dite_eq_right h2, add_zero]
+  rfl
+
+theorem exists_inf_bound (r : ℕ) {D : Set (UPos n r → 𝔸[K])} {Q : Set (AdelicGLn.AdelicGL K n)}
+    (hD : IsCompact D) (hQ : IsCompact Q) :
+    ∃ β : ℝ, 0 ≤ β ∧ ∀ t : ℝ, 0 ≤ t → ∀ X ∈ D, ∀ Y ∈ D, ∀ q ∈ Q, ∀ γ : GL (Fin n) K,
+      AdelicGLn.diagonal K n γ = unipGL X * An.aR K n r t * q * (An.aR K n r t)⁻¹ * (unipGL Y)⁻¹ →
+      ∀ i j, ∀ w : InfinitePlace K, w ((γ : Matrix (Fin n) (Fin n) K) i j) ≤
+        β * (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp t else 1) := by
+  obtain ⟨β₁, hβ₁0, hβ₁⟩ := exists_norm_infAt_entry_le (hD.image (continuous_unipGL (K := K) (n := n) (r := r)))
+  obtain ⟨β₂, hβ₂0, hβ₂⟩ := exists_norm_infAt_entry_le hQ
+  obtain ⟨β₃, hβ₃0, hβ₃⟩ :=
+    exists_norm_infAt_entry_le (hD.image ((continuous_unipGL (K := K) (n := n) (r := r)).inv))
+  refine ⟨(n : ℝ) ^ 2 * (β₁ * β₂ * β₃), by positivity, ?_⟩
+  intro t ht X hX Y hY q hq γ hγ i j w
+  have e1 : w ((γ : Matrix (Fin n) (Fin n) K) i j) =
+      ‖(infAt w (unipGL X * An.aR K n r t * q * (An.aR K n r t)⁻¹ * (unipGL Y)⁻¹) :
+        Matrix (Fin n) (Fin n) w.Completion) i j‖ := by
+    rw [infAt_apply, ← hγ, AdelicGLn.diagonal_apply, ← GroundTheory.Global.norm_algebraMap_apply]
+    rfl
+  rw [e1]
+  set L : ℝ := if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp t else 1 with hLdef
+  have hL0 : 0 ≤ L := by rw [hLdef]; split_ifs <;> positivity
+  have key := norm_entry_le w (unipGL X) q (unipGL Y)⁻¹ (fun l : Fin n => if (l : ℕ) < r then t else 0)
+    (L := L) i j (hβ₁ _ ⟨X, hX, rfl⟩ w) (hβ₂ q hq w) (hβ₃ _ ⟨Y, hY, rfl⟩ w) hβ₁0 hβ₂0 hβ₃0 hL0 ?_
+  · refine le_trans key (le_of_eq ?_)
+    ring
+  · intro l m hl hm
+    have hl' : l = i ∨ ((i : ℕ) < r ∧ r ≤ (l : ℕ)) := by
+      by_contra h
+      exact hl (infAt_unip_eq_zero w r X i l (fun h' => h (h'.elim (fun e => Or.inl e.symm) Or.inr)))
+    have hm' : m = j ∨ ((m : ℕ) < r ∧ r ≤ (j : ℕ)) := by
+      by_contra h
+      exact hm (infAt_unip_inv_eq_zero w r Y m j h)
+    rw [← Real.exp_sub, hLdef]
+    by_cases hij : (i : ℕ) < r ∧ r ≤ (j : ℕ)
+    · rw [if_pos hij]
+      refine Real.exp_le_exp.2 ?_
+      split_ifs <;> linarith
+    · rw [if_neg hij]
+      refine Real.exp_le_one_iff.2 ?_
+      rcases hl' with rfl | ⟨h1, h2⟩ <;> rcases hm' with rfl | ⟨h3, h4⟩ <;> split_ifs <;>
+        first | linarith | (exfalso; omega)
+
+end count
+
+theorem count_holds : An.Count := by
+  intro K _ _ n r hr hrn D Q hD hQ
+  classical
+  set c := count.cen K n with hc
+  obtain ⟨M, hM⟩ := count.exists_finset_exp (K := K) r (by omega) hQ
+  set Q' : Set (AdelicGLn.AdelicGL K n) := ⋃ m ∈ M, (fun q => c ^ (-m) * q) '' Q with hQ'_def
+  have hQ' : IsCompact Q' := M.isCompact_biUnion fun m _ => hQ.image (continuous_const.mul continuous_id)
+  obtain ⟨𝒦, h𝒦, hfinb⟩ := count.exists_fin_bound r hD hQ'
+  obtain ⟨β, hβ, hinfb⟩ := count.exists_inf_bound r hD hQ'
+  obtain ⟨C, hC, hbox⟩ := count.exists_ncard_box_le K n h𝒦
+  set d := Module.finrank ℚ K
+  refine ⟨M.card * (C ^ (n * n) * (1 + β) ^ (d * (n * n))), fun t ht => ?_⟩
+  set T : Fin n → Fin n → ℝ := fun i j => β * (if (i : ℕ) < r ∧ r ≤ (j : ℕ) then Real.exp t else 1) with hT
+  obtain ⟨hfin, hcard⟩ := hbox T (fun i j => by simp only [T]; split_ifs <;> positivity)
+  set B := hfin.toFinset
+  set g : ℤ × GL (Fin n) K → AdelicGLn.AdelicGL K n := fun p => AdelicGLn.diagonal K n p.2 * c ^ p.1
+  set S := {γ : An.lat K n | ∃ X ∈ D, ∃ Y ∈ D, ∃ q ∈ Q,
+      (γ : AdelicGLn.AdelicGL K n) = unipGL X * An.aR K n r t * q * (An.aR K n r t)⁻¹ * (unipGL Y)⁻¹}
+  have hsub : Subtype.val '' S ⊆ (((M ×ˢ B).image g : Finset _) : Set (AdelicGLn.AdelicGL K n)) := by
+    rintro _ ⟨γ, ⟨X, hX, Y, hY, q, hq, hγ⟩, rfl⟩
+    obtain ⟨γ₀, m, hγm⟩ := count.mem_lat γ.2
+    have hm : m ∈ M := hM t X Y q hq γ₀ m (hγm ▸ hγ)
+    have h0 : AdelicGLn.diagonal K n γ₀ =
+        unipGL X * An.aR K n r t * (c ^ (-m) * q) * (An.aR K n r t)⁻¹ * (unipGL Y)⁻¹ := by
+      have e1 : AdelicGLn.diagonal K n γ₀ = (γ : AdelicGLn.AdelicGL K n) * c ^ (-m) := by
+        rw [hγm, mul_assoc, ← zpow_add, add_neg_cancel, zpow_zero, mul_one]
+      rw [e1, hγ]
+      have e2 := count.cen_zpow_comm (-m) (q * (An.aR K n r t)⁻¹ * (unipGL Y)⁻¹)
+      simp only [mul_assoc] at e2 ⊢
+      rw [e2]
+    have hq' : c ^ (-m) * q ∈ Q' := Set.mem_biUnion hm ⟨q, hq, rfl⟩
+    have hB : γ₀ ∈ B := by
+      rw [Set.Finite.mem_toFinset]
+      intro i j
+      exact ⟨hfinb t X hX Y hY _ hq' γ₀ h0 i j, fun w => hinfb t ht X hX Y hY _ hq' γ₀ h0 i j w⟩
+    rw [Finset.coe_image]
+    exact ⟨(m, γ₀), Finset.mem_coe.2 (Finset.mem_product.2 ⟨hm, hB⟩), hγm.symm⟩
+  have hB : (B.card : ℝ) ≤ C ^ (n * n) * (1 + β) ^ (d * (n * n)) * Real.exp (2 * An.rho K n r * t) := by
+    rw [← Set.ncard_eq_toFinset_card _ hfin]
+    refine hcard.trans ((count.prod_bound n r d hrn.le C β t hC hβ ht).trans (le_of_eq ?_))
+    congr 2
+    simp only [An.rho, d]
+    ring
+  have hnat : (((M ×ˢ B).image g).card : ℝ) ≤
+      M.card * (C ^ (n * n) * (1 + β) ^ (d * (n * n))) * Real.exp (2 * An.rho K n r * t) := by
+    calc (((M ×ˢ B).image g).card : ℝ) ≤ ((M ×ˢ B).card : ℝ) := by exact_mod_cast Finset.card_image_le
+      _ = M.card * B.card := by rw [Finset.card_product, Nat.cast_mul]
+      _ ≤ M.card * (C ^ (n * n) * (1 + β) ^ (d * (n * n)) * Real.exp (2 * An.rho K n r * t)) := by gcongr
+      _ = _ := by ring
+  calc S.encard = (Subtype.val '' S).encard := (Subtype.val_injective.encard_image S).symm
+    _ ≤ ((((M ×ˢ B).image g : Finset _) : Set (AdelicGLn.AdelicGL K n))).encard := Set.encard_le_encard hsub
+    _ = (((M ×ˢ B).image g).card : ℕ∞) := Set.encard_coe_eq_coe_finsetCard _
+    _ ≤ _ := by
+      have := Nat.le_ceil (M.card * (C ^ (n * n) * (1 + β) ^ (d * (n * n))) * Real.exp (2 * An.rho K n r * t))
+      have h2 : ((M ×ˢ B).image g).card ≤ ⌈M.card * (C ^ (n * n) * (1 + β) ^ (d * (n * n))) * Real.exp (2 * An.rho K n r * t)⌉₊ := by
+        exact_mod_cast hnat.trans this
+      exact_mod_cast h2
+
+end PositivityTheory.Rg.Rs

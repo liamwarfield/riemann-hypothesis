@@ -1,0 +1,26 @@
+module
+
+public import Mathlib
+public import Development.AbelianVarietyTheory.Definitions.GaloisGeometry.HeckeCharEqOfLAdicRealisation
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.SixthDecomposition
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.IsPotentiallySemistableCoefficientFieldEnlarge
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.ExistsIrreducibleConstituentsCharpolyProductStatement
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.AbsIrreducibleConstituentRanksUniqueOfCharpolyStatement
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.EigencharacterOfSummandCharZeroStatement
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.ValuationRingModelStatement
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.StringRankOneLengthAndMultisetSumSingletonStatement
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.ResidueCountOfSsRank
+public import Development.AbelianVarietyTheory.Proofs.SatakeParameters.NatCastMemOfPrimeDvdAbsNorm
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.CuspidalGaloisUnramified
+public import Development.AutomorphicArithmetic.ThetaCorrespondence.ThetaPairLifts.ThirdPlaceSeries.PrvG6OfAdm
+
+@[expose] public section
+
+set_option synthInstance.maxHeartbeats 200000
+
+section
+open Formalism.BasicNotions Formalism.ConjugateSelfDual Formalism.MainNotions Formalism.MainNotions.N Polynomial NumberField IsDedekindDomain ReciprocityTheory.Gal GlobalTheory.StringRepresentationDecomposition
+set_option maxHeartbeats 1000000 in
+theorem _root_.GlobalTheory.T.prvG6_of_admissible' : ∀ D : D7, _root_.Formalism.MainNotions.SumRepresentations.AdmissibleDatum D → RbEx D → SumRepresentations.ConclusionG6 D := by
+  first | exact @_root_.GlobalTheory.ClosingSixth.conclusionG6_of_adm_alt | exact _root_.GlobalTheory.ClosingSixth.conclusionG6_of_adm_alt | (intros; apply _root_.GlobalTheory.ClosingSixth.conclusionG6_of_adm_alt <;> assumption)
+end

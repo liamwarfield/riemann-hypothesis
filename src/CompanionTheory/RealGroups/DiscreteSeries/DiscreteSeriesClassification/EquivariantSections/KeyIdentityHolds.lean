@@ -1,0 +1,22 @@
+module
+
+public import Mathlib
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.LowDegreeAlgebraFacts
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.HolomorphicFunctionFacts
+public import CompanionTheory.RealGroups.DiscreteSeries.DiscreteSeriesClassification.RhoRepresentations.EquivSection
+public import CompanionTheory.RealGroups.DiscreteSeries.DiscreteSeriesClassification.RhoRepresentations.RhoRep
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.SubPairRight
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.ActionEquivarianceStatement
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.PairingIsoOfComponentIsos
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.TransferStatement
+public import Development.AutomorphicSpectrum.Proofs.BlockDecomposition.KeyPropositionOfComponents
+
+@[expose] public section
+
+namespace CompanionTheory.RgDs.K
+
+theorem key_identity_holds : CompanionTheory.RgDs.Key :=
+  GlobalTheory.T.key_proposition_of_components GlobalTheory.T.low_degree_algebra_facts GlobalTheory.T.holomorphic_function_facts (CompanionTheory.RgDs.K.equivariant_section_holds) (CompanionTheory.RgDs.K.rho_representation_holds) GlobalTheory.T.action_equivariance_statement GlobalTheory.T.torus_restriction_representation
+    GlobalTheory.T.torus_weight_decomposition GlobalTheory.T.transfer_statement GlobalTheory.T.compact_exhaustion_statement (GlobalTheory.T.beta_weight_of_torus_facts GlobalTheory.T.holomorphic_function_facts GlobalTheory.T.torus_restriction_representation GlobalTheory.T.torus_weight_decomposition)
+
+end CompanionTheory.RgDs.K

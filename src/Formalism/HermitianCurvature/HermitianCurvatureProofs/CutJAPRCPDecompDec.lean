@@ -1,0 +1,671 @@
+module
+
+public import Formalism.HermitianCurvature.HermitianCurvatureProofs.CornerBlockActionInvariant
+
+@[expose] public section
+
+section -- merged from Formalism.HermitianCurvature.HermitianCurvatureProofs.CutJAPRCPDecompNu
+section -- merged from Formalism.HermitianCurvature.HermitianCurvatureProofs.CutJAPRCPDecompPS
+open Formalism.REAL Formalism.QuantumDeterminants Formalism.FourierDecayAlt Formalism.FourierDecayAlt.Q NumberField
+open scoped ComplexConjugate Matrix
+
+namespace Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.CP.Dc
+
+open Formalism.FourierDecayAlt.P.B2x3 Formalism.FourierDecayAlt.P.SettingConstruction Formalism.FourierDecayAlt.P.TheSec Formalism.FourierDecayAlt.B2
+
+noncomputable section
+
+section ps
+
+variable {TT : ℝ}
+
+lemma gg_eval (ζ : ℂ) : gg TT ζ = MvPolynomial.eval ![ζ, conj ζ, sig TT ζ]
+    (MvPolynomial.X 0 * MvPolynomial.X 1 - MvPolynomial.C (TT : ℂ)) := by
+  unfold Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.gg
+  simp only [MvPolynomial.eval_sub, MvPolynomial.eval_mul, MvPolynomial.eval_X, MvPolynomial.eval_C,
+    Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons, Complex.mul_conj]
+  push_cast
+  ring
+
+lemma ps_const (c : ℂ) : PS TT (fun _ => c) := ⟨0, MvPolynomial.C c, fun ζ _ => by simp⟩
+
+lemma ps_id : PS TT (fun ζ => ζ) := ⟨0, MvPolynomial.X 0, fun ζ _ => by simp⟩
+
+lemma ps_conj : PS TT (fun ζ => conj ζ) := ⟨0, MvPolynomial.X 1, fun ζ _ => by simp⟩
+
+lemma ps_sig : PS TT (fun ζ => sig TT ζ) := ⟨0, MvPolynomial.X 2, fun ζ _ => by simp⟩
+
+lemma ps_add {f g : ℂ → ℂ} (hf : PS TT f) (hg : PS TT g) : PS TT (fun ζ => f ζ + g ζ) := by
+  obtain ⟨m, p, hp⟩ := hf
+  obtain ⟨n, q, hq⟩ := hg
+  refine ⟨m + n, (MvPolynomial.X 0 * MvPolynomial.X 1 - MvPolynomial.C (TT : ℂ)) ^ n * p + (MvPolynomial.X 0 * MvPolynomial.X 1 - MvPolynomial.C (TT : ℂ)) ^ m * q, fun ζ hζ => ?_⟩
+  rw [MvPolynomial.eval_add, MvPolynomial.eval_mul, MvPolynomial.eval_mul, MvPolynomial.eval_pow,
+    MvPolynomial.eval_pow, ← gg_eval, ← hp ζ hζ, ← hq ζ hζ]
+  ring
+
+lemma ps_mul {f g : ℂ → ℂ} (hf : PS TT f) (hg : PS TT g) : PS TT (fun ζ => f ζ * g ζ) := by
+  obtain ⟨m, p, hp⟩ := hf
+  obtain ⟨n, q, hq⟩ := hg
+  refine ⟨m + n, p * q, fun ζ hζ => ?_⟩
+  rw [MvPolynomial.eval_mul, ← hp ζ hζ, ← hq ζ hζ]
+  ring
+
+lemma sig_sq {ζ : ℂ} (hζ : TT < Complex.normSq ζ) : sig TT ζ * sig TT ζ = gg TT ζ := by
+  unfold Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.gg Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.sig
+  rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by linarith)]
+
+lemma sig_ne {ζ : ℂ} (hζ : TT < Complex.normSq ζ) : sig TT ζ ≠ 0 := by
+  unfold Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.sig
+  exact Complex.ofReal_ne_zero.mpr (Real.sqrt_ne_zero'.mpr (by linarith))
+
+lemma ps_sigInv : PS TT (fun ζ => (sig TT ζ)⁻¹) := by
+  refine ⟨1, MvPolynomial.X 2, fun ζ hζ => ?_⟩
+  rw [pow_one, ← sig_sq hζ, mul_assoc, mul_inv_cancel₀ (sig_ne hζ), mul_one]
+  simp
+
+end ps
+
+end
+
+end Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.CP.Dc
+end
+
+open Formalism.REAL Formalism.QuantumDeterminants Formalism.FourierDecayAlt Formalism.FourierDecayAlt.Q NumberField
+open scoped ComplexConjugate Matrix
+
+namespace Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.CP.Dc
+
+open Formalism.FourierDecayAlt.P.B2x3 Formalism.FourierDecayAlt.P.SettingConstruction Formalism.FourierDecayAlt.P.TheSec Formalism.FourierDecayAlt.B2
+
+noncomputable section
+
+set_option linter.unusedSimpArgs false
+
+variable {k : ℕ}
+
+def Su (k : ℕ) (i j : Fin (k + 1)) : Mb k := Matrix.single i j 1
+
+lemma Su_mul (i j j' m : Fin (k + 1)) : Su k i j * Su k j' m = if j = j' then Su k i m else 0 := by
+  unfold Su
+  split_ifs with h
+  · subst h
+    rw [Matrix.single_mul_single_same, mul_one]
+  · rw [Matrix.single_mul_single_of_ne _ _ _ _ h]
+
+def nuG (k : ℕ) (v s w : ℂ) : Mb k :=
+  1 + (v - 1) • Su k 0 0 + s • (Su k 0 (Fin.last k) + Su k (Fin.last k) 0) + (w - 1) • Su k (Fin.last k) (Fin.last k)
+
+lemma nu_eq (w s : ℂ) : nu k w s = nuG k (star w) s w := by
+  unfold nu nuG Su
+  simp only [Matrix.single_eq_single_vecMulVec_single, Matrix.add_vecMulVec, Matrix.smul_vecMulVec]
+  module
+
+lemma dnu_eq (a b c : ℂ) : dnu k a b c =
+    a • Su k 0 0 + b • (Su k 0 (Fin.last k) + Su k (Fin.last k) 0) + c • Su k (Fin.last k) (Fin.last k) := rfl
+
+lemma nuG_mul (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (v s w : ℂ) (hw : w * v - s * s = 1) :
+    nuG k v s w * nuG k w (-s) v = 1 := by
+  simp only [nuG, mul_add, add_mul, Matrix.smul_mul, Matrix.mul_smul, one_mul, mul_one, Su_mul, h0, h0.symm, if_true,
+    if_false, smul_zero, add_zero, zero_add]
+  linear_combination (norm := module) hw • (Su k 0 0 + Su k (Fin.last k) (Fin.last k))
+
+lemma conj_corner_matrix_unit (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (v s w : ℂ) :
+    nuG k w (-s) v * Su k 0 0 * nuG k v s w = (w * v) • Su k 0 0 + (w * s) • Su k 0 (Fin.last k) -
+      (s * v) • Su k (Fin.last k) 0 - (s * s) • Su k (Fin.last k) (Fin.last k) := by
+  simp only [nuG, mul_add, add_mul, Matrix.smul_mul, Matrix.mul_smul, one_mul, mul_one, Su_mul, h0, h0.symm, if_true,
+    if_false, smul_zero, add_zero, zero_add]
+  module
+
+lemma conj0m (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (v s w : ℂ) (m : Fin (k + 1)) (hm0 : m ≠ 0) (hml : m ≠ Fin.last k) :
+    nuG k w (-s) v * Su k 0 m * nuG k v s w = w • Su k 0 m - s • Su k (Fin.last k) m := by
+  simp only [nuG, mul_add, add_mul, Matrix.smul_mul, Matrix.mul_smul, one_mul, mul_one, Su_mul, h0, h0.symm, hm0, hml,
+    hm0.symm, hml.symm, if_true, if_false, smul_zero, add_zero, zero_add]
+  module
+
+lemma conjm0 (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (v s w : ℂ) (m : Fin (k + 1)) (hm0 : m ≠ 0) (hml : m ≠ Fin.last k) :
+    nuG k w (-s) v * Su k m 0 * nuG k v s w = v • Su k m 0 + s • Su k m (Fin.last k) := by
+  simp only [nuG, mul_add, add_mul, Matrix.smul_mul, Matrix.mul_smul, one_mul, mul_one, Su_mul, h0, h0.symm, hm0, hml,
+    hm0.symm, hml.symm, if_true, if_false, smul_zero, add_zero, zero_add]
+  module
+
+lemma nuI_dnu (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (v s w a b c : ℂ) :
+    nuG k w (-s) v * dnu k a b c = (w * a - s * b) • Su k 0 0 + (w * b - s * c) • Su k 0 (Fin.last k) +
+      (-s * a + v * b) • Su k (Fin.last k) 0 + (-s * b + v * c) • Su k (Fin.last k) (Fin.last k) := by
+  simp only [nuG, dnu_eq, mul_add, add_mul, Matrix.smul_mul, Matrix.mul_smul, one_mul, mul_one, Su_mul, h0, h0.symm, if_true,
+    if_false, smul_zero, add_zero, zero_add]
+  module
+
+lemma unit0l (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (v s w c p : ℂ) (hs : s ≠ 0) (hc : c ≠ 0) (hv : v ≠ 0)
+    (hw : w * v - s * s = 1) (hp : 2 * s * p = -c * v) :
+    Su k 0 (Fin.last k) = (-(v / (2 * s))) • Su k 0 0 + nuG k w (-s) v * ((v / (2 * s)) • Su k 0 0) * nuG k v s w +
+      (-(s / c)) • (nuG k w (-s) v * dnu k 0 p (-c)) := by
+  have hw' : w = (1 + s * s) / v := by field_simp; linear_combination hw
+  have hp' : p = -c * v / (2 * s) := by field_simp; linear_combination hp
+  subst hw' hp'
+  rw [Matrix.mul_smul, Matrix.smul_mul, conj_corner_matrix_unit h0, nuI_dnu h0]
+  match_scalars <;> field_simp <;> ring
+
+lemma unitl0 (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (v s w c q : ℂ) (hs : s ≠ 0) (hc : c ≠ 0) (hv : v ≠ 0)
+    (hw : w * v - s * s = 1) (hq : 2 * s * q = -c * w) :
+    Su k (Fin.last k) 0 = (w / (2 * s)) • Su k 0 0 + nuG k w (-s) v * ((-(w / (2 * s))) • Su k 0 0) * nuG k v s w +
+      (-(s / c)) • (nuG k w (-s) v * dnu k (-c) q 0) := by
+  have hw' : w = (1 + s * s) / v := by field_simp; linear_combination hw
+  subst hw'
+  have hq' : q = -c * ((1 + s * s) / v) / (2 * s) := by field_simp; field_simp at hq; linear_combination hq
+  subst hq'
+  rw [Matrix.mul_smul, Matrix.smul_mul, conj_corner_matrix_unit h0, nuI_dnu h0]
+  match_scalars <;> field_simp <;> ring
+
+lemma unitll (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (v s w c p q : ℂ) (hs : s ≠ 0) (hc : c ≠ 0) (hv : v ≠ 0)
+    (hw : w * v - s * s = 1) (hp : 2 * s * p = -c * v) (hq : 2 * s * q = -c * w) :
+    Su k (Fin.last k) (Fin.last k) = nuG k w (-s) v * Su k 0 0 * nuG k v s w +
+      (-(w / c)) • (nuG k w (-s) v * dnu k 0 p (-c)) + (v / c) • (nuG k w (-s) v * dnu k (-c) q 0) := by
+  have hw' : w = (1 + s * s) / v := by field_simp; linear_combination hw
+  subst hw'
+  have hp' : p = -c * v / (2 * s) := by field_simp; linear_combination hp
+  have hq' : q = -c * ((1 + s * s) / v) / (2 * s) := by field_simp; field_simp at hq; linear_combination hq
+  subst hp' hq'
+  rw [conj_corner_matrix_unit h0, nuI_dnu h0, nuI_dnu h0]
+  match_scalars <;> field_simp <;> ring
+
+end
+
+end Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.CP.Dc
+end
+
+section -- merged from Formalism.HermitianCurvature.HermitianCurvatureProofs.CutJAPRCPDecompDer
+open Formalism.REAL Formalism.QuantumDeterminants Formalism.FourierDecayAlt Formalism.FourierDecayAlt.Q NumberField
+open scoped ComplexConjugate Matrix
+
+namespace Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.CP.Dc
+
+open Formalism.FourierDecayAlt.P.B2x3 Formalism.FourierDecayAlt.P.SettingConstruction Formalism.FourierDecayAlt.P.TheSec Formalism.FourierDecayAlt.B2
+
+noncomputable section
+
+variable {k r : ℕ}
+
+lemma single_apply_mul (a b i j : Fin (k + 1)) :
+    (Matrix.single a b (1 : ℂ)) i j = (Pi.single a 1 : Fin (k + 1) → ℂ) i * (Pi.single b 1 : Fin (k + 1) → ℂ) j := by
+  rw [Matrix.single_apply, Pi.single_apply, Pi.single_apply]
+  by_cases hi : i = a
+  · by_cases hj : j = b
+    · subst hi
+      subst hj
+      simp
+    · simp [hj, Ne.symm hj]
+  · simp [hi, Ne.symm hi]
+
+lemma nu_lin (w s : ℂ) :
+    nu k w s = (1 - Matrix.single 0 0 1 - Matrix.single (Fin.last k) (Fin.last k) 1) + star w • Matrix.single 0 0 1 +
+      s • (Matrix.single 0 (Fin.last k) 1 + Matrix.single (Fin.last k) 0 1) +
+      w • Matrix.single (Fin.last k) (Fin.last k) 1 := by
+  ext i j
+  rw [nu_apply]
+  simp only [Matrix.add_apply, Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul, single_apply_mul]
+  ring
+
+def aa (r : ℕ) (G G' X : Mb k) : Q.Mx k r := e0 k r (G * X * G')
+
+lemma aa_add (G G' X Y : Mb k) : aa r G G' (X + Y) = aa r G G' X + aa r G G' Y := by
+  simp only [aa, e0, Matrix.mul_add, Matrix.add_mul]
+
+lemma aa_smul (G G' X : Mb k) (c : ℂ) : aa r G G' (c • X) = c • aa r G G' X := by
+  simp only [aa, e0, Matrix.mul_smul, Matrix.smul_mul]
+
+lemma mu0_eq_corner_entry_expansion (z z' : Fin (2 * r + k + 1) → ℂ) (w : ℂ) :
+    mu0 k r z z' w =
+      (aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z'))
+          (1 - Matrix.single 0 0 1 - Matrix.single (Fin.last k) (Fin.last k) 1) + (1 - Em k r * (Em k r)ᵀ)) +
+        star (wZ (Tz k r z) (Tz k r z') w) •
+          aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z')) (Matrix.single 0 0 1) +
+        sZ (Tz k r z) (Tz k r z') w •
+          aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z'))
+            (Matrix.single 0 (Fin.last k) 1 + Matrix.single (Fin.last k) 0 1) +
+        wZ (Tz k r z) (Tz k r z') w •
+          aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z'))
+            (Matrix.single (Fin.last k) (Fin.last k) 1) := by
+  have h : mu0 k r z z' w = embWb k r (gA k (wbPart k r z) (Tz k r z) *
+      nu k (wZ (Tz k r z) (Tz k r z') w) (sZ (Tz k r z) (Tz k r z') w) * gB k (wbPart k r z') (Tz k r z')) := rfl
+  rw [h, emb_eq, nu_lin]
+  have h2 : ∀ X : Mb k, Em k r * (gA k (wbPart k r z) (Tz k r z) * X * gB k (wbPart k r z') (Tz k r z')) * (Em k r)ᵀ =
+      aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z')) X := fun X => rfl
+  rw [h2, aa_add, aa_add, aa_add, aa_smul, aa_smul, aa_smul]
+  abel
+
+lemma dZ_lin (f1 f2 f3 : ℂ → ℂ) (a0 a1 a2 a3 ζ : ℂ) (h1 : DifferentiableAt ℝ f1 ζ) (h2 : DifferentiableAt ℝ f2 ζ)
+    (h3 : DifferentiableAt ℝ f3 ζ) :
+    NF.dZ (fun w => a0 + f1 w * a1 + f2 w * a2 + f3 w * a3) ζ =
+        NF.dZ f1 ζ * a1 + NF.dZ f2 ζ * a2 + NF.dZ f3 ζ * a3 ∧
+      NF.dZb (fun w => a0 + f1 w * a1 + f2 w * a2 + f3 w * a3) ζ =
+        NF.dZb f1 ζ * a1 + NF.dZb f2 ζ * a2 + NF.dZb f3 ζ * a3 := by
+  have h : HasFDerivAt (fun w => a0 + f1 w * a1 + f2 w * a2 + f3 w * a3)
+      (0 + a1 • fderiv ℝ f1 ζ + a2 • fderiv ℝ f2 ζ + a3 • fderiv ℝ f3 ζ) ζ :=
+    (((hasFDerivAt_const a0 ζ).add (h1.hasFDerivAt.mul_const a1)).add (h2.hasFDerivAt.mul_const a2)).add
+      (h3.hasFDerivAt.mul_const a3)
+  unfold NF.dZ NF.dZb
+  rw [h.fderiv]
+  simp only [add_apply, zero_apply, smul_apply, smul_eq_mul]
+  constructor <;> ring
+
+lemma wZ_has (T T' : ℝ) (ζ : ℂ) :
+    HasFDerivAt (wZ T T') ((-(kap T T')⁻¹) • (ContinuousLinearMap.id ℝ ℂ)) ζ :=
+  (hasFDerivAt_id ζ).const_mul (-(kap T T')⁻¹)
+
+lemma wZ_d (T T' : ℝ) (ζ : ℂ) : NF.dZ (wZ T T') ζ = -(kap T T')⁻¹ ∧ NF.dZb (wZ T T') ζ = 0 := by
+  unfold NF.dZ NF.dZb
+  rw [(wZ_has T T' ζ).fderiv]
+  simp only [smul_apply, ContinuousLinearMap.id_apply, smul_eq_mul]
+  constructor
+  · linear_combination ((1 / 2 : ℂ) * (kap T T')⁻¹) * Complex.I_mul_I
+  · linear_combination (-(1 / 2 : ℂ) * (kap T T')⁻¹) * Complex.I_mul_I
+
+lemma kap_star (T T' : ℝ) : star (kap T T') = kap T T' := Complex.conj_ofReal _
+
+lemma wZs_has (T T' : ℝ) (ζ : ℂ) :
+    HasFDerivAt (fun w => star (wZ T T' w))
+      ((Complex.conjCLE : ℂ →L[ℝ] ℂ).comp ((-(kap T T')⁻¹) • (ContinuousLinearMap.id ℝ ℂ))) ζ :=
+  (Complex.conjCLE : ℂ →L[ℝ] ℂ).hasFDerivAt.comp ζ (wZ_has T T' ζ)
+
+lemma wZs_d (T T' : ℝ) (ζ : ℂ) :
+    NF.dZ (fun w => star (wZ T T' w)) ζ = 0 ∧ NF.dZb (fun w => star (wZ T T' w)) ζ = -(kap T T')⁻¹ := by
+  unfold NF.dZ NF.dZb
+  rw [(wZs_has T T' ζ).fderiv]
+  have hk : conj (kap T T') = kap T T' := kap_star T T'
+  simp only [ContinuousLinearMap.comp_apply, smul_apply, ContinuousLinearMap.id_apply, smul_eq_mul,
+    ContinuousLinearEquiv.coe_coe, Complex.conjCLE_apply, map_mul, map_neg, map_inv₀, hk, map_one, Complex.conj_I]
+  constructor
+  · linear_combination (-(1 / 2 : ℂ) * (kap T T')⁻¹) * Complex.I_mul_I
+  · linear_combination ((1 / 2 : ℂ) * (kap T T')⁻¹) * Complex.I_mul_I
+
+lemma normSq_has (ζ : ℂ) :
+    HasFDerivAt (fun w : ℂ => Complex.normSq w)
+      ((ζ.re • Complex.reCLM + ζ.re • Complex.reCLM) + (ζ.im • Complex.imCLM + ζ.im • Complex.imCLM)) ζ := by
+  have h := (Complex.reCLM.hasFDerivAt (x := ζ)).mul (Complex.reCLM.hasFDerivAt (x := ζ))
+  have h' := (Complex.imCLM.hasFDerivAt (x := ζ)).mul (Complex.imCLM.hasFDerivAt (x := ζ))
+  have h2 := h.add h'
+  refine h2.congr_of_eventuallyEq (Filter.Eventually.of_forall fun w => ?_)
+  simp [Complex.normSq_apply]
+
+lemma sr_facts (T T' : ℝ) (hT : 0 < T) (hT' : 0 < T') (ζ : ℂ) (hζ : T * T' < Complex.normSq ζ) :
+    0 < Complex.normSq ζ / (T * T') - 1 ∧
+      Real.sqrt (Complex.normSq ζ / (T * T') - 1) * (Real.sqrt T * Real.sqrt T') = Real.sqrt (Complex.normSq ζ - T * T') ∧
+      0 < Real.sqrt (Complex.normSq ζ - T * T') ∧ 0 < Real.sqrt T * Real.sqrt T' ∧
+      (Real.sqrt T * Real.sqrt T') * (Real.sqrt T * Real.sqrt T') = T * T' := by
+  have hTT : 0 < T * T' := mul_pos hT hT'
+  have hne : T * T' ≠ 0 := hTT.ne'
+  have hs : Real.sqrt T * Real.sqrt T' = Real.sqrt (T * T') := (Real.sqrt_mul hT.le T').symm
+  have h1 : 0 < Complex.normSq ζ / (T * T') - 1 := sub_pos.mpr ((one_lt_div hTT).mpr hζ)
+  refine ⟨h1, ?_, Real.sqrt_pos.mpr (sub_pos.mpr hζ),
+    mul_pos (Real.sqrt_pos.mpr hT) (Real.sqrt_pos.mpr hT'), ?_⟩
+  · rw [hs, ← Real.sqrt_mul h1.le]
+    congr 1
+    rw [sub_mul, div_mul_cancel₀ _ hne, one_mul]
+  · rw [hs, Real.mul_self_sqrt hTT.le]
+
+lemma sZ_has (T T' : ℝ) (hT : 0 < T) (hT' : 0 < T') (ζ : ℂ) (hζ : T * T' < Complex.normSq ζ) :
+    HasFDerivAt (sZ T T')
+      ((Complex.ofRealCLM).comp ((1 / (2 * Real.sqrt (Complex.normSq ζ / (T * T') - 1))) •
+        ((T * T')⁻¹ • ((ζ.re • Complex.reCLM + ζ.re • Complex.reCLM) + (ζ.im • Complex.imCLM + ζ.im • Complex.imCLM))))) ζ := by
+  have h0 := (sr_facts T T' hT hT' ζ hζ).1
+  have h1 : HasFDerivAt (fun w : ℂ => Complex.normSq w / (T * T') - 1)
+      ((T * T')⁻¹ • ((ζ.re • Complex.reCLM + ζ.re • Complex.reCLM) + (ζ.im • Complex.imCLM + ζ.im • Complex.imCLM))) ζ := by
+    have := ((normSq_has ζ).const_mul (T * T')⁻¹).sub_const 1
+    refine this.congr_of_eventuallyEq (Filter.Eventually.of_forall fun w => ?_)
+    show Complex.normSq w / (T * T') - 1 = (T * T')⁻¹ * Complex.normSq w - 1
+    rw [div_eq_inv_mul]
+  exact (Complex.ofRealCLM.hasFDerivAt).comp ζ (h1.sqrt h0.ne')
+
+lemma sZ_d (T T' : ℝ) (hT : 0 < T) (hT' : 0 < T') (ζ : ℂ) (hζ : T * T' < Complex.normSq ζ) :
+    NF.dZ (sZ T T') ζ = (2 * kap T T')⁻¹ * conj ζ * (sig (T * T') ζ)⁻¹ ∧
+      NF.dZb (sZ T T') ζ = (2 * kap T T')⁻¹ * ζ * (sig (T * T') ζ)⁻¹ := by
+  obtain ⟨h0, h1, h2, h3, h4⟩ := sr_facts T T' hT hT' ζ hζ
+  unfold NF.dZ NF.dZb
+  rw [(sZ_has T T' hT hT' ζ hζ).fderiv]
+  simp only [ContinuousLinearMap.comp_apply, smul_apply, add_apply, Complex.reCLM_apply, Complex.imCLM_apply,
+    Complex.ofRealCLM_apply, Complex.one_re, Complex.one_im, Complex.I_re, Complex.I_im, smul_eq_mul, mul_one, mul_zero,
+    add_zero, zero_add]
+  unfold kap sig
+  rw [← h1]
+  set sr := Real.sqrt (Complex.normSq ζ / (T * T') - 1) with hsr
+  set κ := Real.sqrt T * Real.sqrt T' with hκ
+  have hs0 : (sr : ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.2 h0).ne'
+  have hk0 : (κ : ℂ) ≠ 0 := by exact_mod_cast h3.ne'
+  have hc : conj ζ = (ζ.re : ℂ) - (ζ.im : ℂ) * Complex.I := by
+    apply Complex.ext <;> simp
+  have hz : ζ = (ζ.re : ℂ) + (ζ.im : ℂ) * Complex.I := (Complex.re_add_im ζ).symm
+  rw [← h4, hc]
+  constructor
+  · push_cast
+    field_simp
+    ring
+  · conv_rhs => rw [hz]
+    push_cast
+    field_simp
+    ring
+
+theorem dmu_both (k r : ℕ) (z z' : Fin (2 * r + k + 1) → ℂ) (hT : 0 < Tz k r z) (hT' : 0 < Tz k r z') (ζ : ℂ)
+    (hζ : Tz k r z * Tz k r z' < Complex.normSq ζ) :
+    (Matrix.of fun i j => NF.dZ (fun w => mu0 k r z z' w i j) ζ) =
+        e0 k r (gA k (wbPart k r z) (Tz k r z) *
+          dnu k 0 ((2 * kap (Tz k r z) (Tz k r z'))⁻¹ * conj ζ * (sig (Tz k r z * Tz k r z') ζ)⁻¹)
+            (-(kap (Tz k r z) (Tz k r z'))⁻¹) * gB k (wbPart k r z') (Tz k r z')) ∧
+      (Matrix.of fun i j => NF.dZb (fun w => mu0 k r z z' w i j) ζ) =
+        e0 k r (gA k (wbPart k r z) (Tz k r z) *
+          dnu k (-(kap (Tz k r z) (Tz k r z'))⁻¹) ((2 * kap (Tz k r z) (Tz k r z'))⁻¹ * ζ * (sig (Tz k r z * Tz k r z') ζ)⁻¹)
+            0 * gB k (wbPart k r z') (Tz k r z')) := by
+  have hR : ∀ a b c : ℂ, e0 k r (gA k (wbPart k r z) (Tz k r z) * dnu k a b c * gB k (wbPart k r z') (Tz k r z')) =
+      a • aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z')) (Matrix.single 0 0 1) +
+        b • aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z'))
+            (Matrix.single 0 (Fin.last k) 1 + Matrix.single (Fin.last k) 0 1) +
+        c • aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z'))
+            (Matrix.single (Fin.last k) (Fin.last k) 1) := by
+    intro a b c
+    show aa r _ _ (dnu k a b c) = _
+    unfold dnu
+    rw [aa_add, aa_add, aa_smul, aa_smul, aa_smul]
+  have hL : ∀ i j, (fun w => mu0 k r z z' w i j) = fun w =>
+      (aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z'))
+          (1 - Matrix.single 0 0 1 - Matrix.single (Fin.last k) (Fin.last k) 1) + (1 - Em k r * (Em k r)ᵀ) : Q.Mx k r) i j +
+        star (wZ (Tz k r z) (Tz k r z') w) *
+          aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z')) (Matrix.single 0 0 1) i j +
+        sZ (Tz k r z) (Tz k r z') w *
+          aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z'))
+            (Matrix.single 0 (Fin.last k) 1 + Matrix.single (Fin.last k) 0 1) i j +
+        wZ (Tz k r z) (Tz k r z') w *
+          aa r (gA k (wbPart k r z) (Tz k r z)) (gB k (wbPart k r z') (Tz k r z'))
+            (Matrix.single (Fin.last k) (Fin.last k) 1) i j := by
+    intro i j
+    funext w
+    rw [mu0_eq_corner_entry_expansion]
+    simp only [Matrix.add_apply, Matrix.smul_apply, smul_eq_mul]
+  have hd := fun a0 a1 a2 a3 => dZ_lin (fun w => star (wZ (Tz k r z) (Tz k r z') w)) (sZ (Tz k r z) (Tz k r z'))
+    (wZ (Tz k r z) (Tz k r z')) a0 a1 a2 a3 ζ (wZs_has _ _ ζ).differentiableAt
+    (sZ_has _ _ hT hT' ζ hζ).differentiableAt (wZ_has _ _ ζ).differentiableAt
+  constructor
+  · ext i j
+    rw [Matrix.of_apply, hL, (hd _ _ _ _).1, hR, (wZs_d _ _ ζ).1, (sZ_d _ _ hT hT' ζ hζ).1, (wZ_d _ _ ζ).1]
+    simp only [Matrix.add_apply, Matrix.smul_apply, smul_eq_mul]
+  · ext i j
+    rw [Matrix.of_apply, hL, (hd _ _ _ _).2, hR, (wZs_d _ _ ζ).2, (sZ_d _ _ hT hT' ζ hζ).2, (wZ_d _ _ ζ).2]
+    simp only [Matrix.add_apply, Matrix.smul_apply, smul_eq_mul]
+
+theorem dmu_eq (k r : ℕ) (z z' : Fin (2 * r + k + 1) → ℂ) (hT : 0 < Tz k r z) (hT' : 0 < Tz k r z') (ζ : ℂ)
+    (hζ : Tz k r z * Tz k r z' < Complex.normSq ζ) :
+    (Matrix.of fun i j => NF.dZ (fun w => mu0 k r z z' w i j) ζ) =
+        e0 k r (gA k (wbPart k r z) (Tz k r z) *
+          dnu k 0 ((2 * kap (Tz k r z) (Tz k r z'))⁻¹ * conj ζ * (sig (Tz k r z * Tz k r z') ζ)⁻¹)
+            (-(kap (Tz k r z) (Tz k r z'))⁻¹) * gB k (wbPart k r z') (Tz k r z')) :=
+  (dmu_both k r z z' hT hT' ζ hζ).1
+
+theorem dmub_eq (k r : ℕ) (z z' : Fin (2 * r + k + 1) → ℂ) (hT : 0 < Tz k r z) (hT' : 0 < Tz k r z') (ζ : ℂ)
+    (hζ : Tz k r z * Tz k r z' < Complex.normSq ζ) :
+    (Matrix.of fun i j => NF.dZb (fun w => mu0 k r z z' w i j) ζ) =
+        e0 k r (gA k (wbPart k r z) (Tz k r z) *
+          dnu k (-(kap (Tz k r z) (Tz k r z'))⁻¹) ((2 * kap (Tz k r z) (Tz k r z'))⁻¹ * ζ * (sig (Tz k r z * Tz k r z') ζ)⁻¹)
+            0 * gB k (wbPart k r z') (Tz k r z')) :=
+  (dmu_both k r z z' hT hT' ζ hζ).2
+
+theorem sZ_eq (T T' : ℝ) (hT : 0 < T) (hT' : 0 < T') (ζ : ℂ) (hζ : T * T' < Complex.normSq ζ) :
+    sZ T T' ζ = (kap T T')⁻¹ * sig (T * T') ζ := by
+  obtain ⟨_, h1, _, h3, _⟩ := sr_facts T T' hT hT' ζ hζ
+  unfold sZ kap sig
+  rw [← h1]
+  have key : ∀ sr κ : ℝ, 0 < κ → ((sr : ℝ) : ℂ) = ((κ : ℝ) : ℂ)⁻¹ * ((sr * κ : ℝ) : ℂ) := by
+    intro sr κ h
+    have h0 : (κ : ℂ) ≠ 0 := by exact_mod_cast h.ne'
+    push_cast
+    field_simp
+  exact key _ _ h3
+
+end
+
+end Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.CP.Dc
+end
+
+open Formalism.REAL Formalism.QuantumDeterminants Formalism.FourierDecayAlt Formalism.FourierDecayAlt.Q NumberField
+open scoped ComplexConjugate Matrix
+
+namespace Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.CP.Dc
+
+open Formalism.FourierDecayAlt.P.B2x3 Formalism.FourierDecayAlt.P.SettingConstruction Formalism.FourierDecayAlt.P.TheSec Formalism.FourierDecayAlt.B2
+
+noncomputable section
+
+variable {k : ℕ}
+
+section ann
+
+variable {T T' : ℝ}
+
+lemma kap_ne (hT : 0 < T) (hT' : 0 < T') : kap T T' ≠ 0 := by
+  unfold kap
+  exact_mod_cast (mul_pos (Real.sqrt_pos.2 hT) (Real.sqrt_pos.2 hT')).ne'
+
+lemma kap_sq (hT : 0 < T) (hT' : 0 < T') : kap T T' * kap T T' = ((T * T' : ℝ) : ℂ) := by
+  unfold kap
+  rw [← Complex.ofReal_mul, mul_mul_mul_comm, Real.mul_self_sqrt hT.le, Real.mul_self_sqrt hT'.le]
+
+lemma wZ_eq (ζ : ℂ) : wZ T T' ζ = -(kap T T')⁻¹ * ζ := rfl
+
+lemma wZ_star (ζ : ℂ) : star (wZ T T' ζ) = -(kap T T')⁻¹ * conj ζ := by
+  rw [wZ_eq, star_mul', star_neg, star_inv₀, kap_star]
+  rfl
+
+lemma zeta_ne (hT : 0 < T) (hT' : 0 < T') {ζ : ℂ} (hζ : T * T' < Complex.normSq ζ) : ζ ≠ 0 := by
+  intro h
+  rw [h, map_zero] at hζ
+  exact absurd hζ (not_lt.2 (mul_pos hT hT').le)
+
+lemma ws_rel (hT : 0 < T) (hT' : 0 < T') {ζ : ℂ} (hζ : T * T' < Complex.normSq ζ) :
+    wZ T T' ζ * star (wZ T T' ζ) - sZ T T' ζ * sZ T T' ζ = 1 := by
+  have hk := kap_ne hT hT'
+  have h1 := sig_sq hζ
+  have h2 := kap_sq hT hT'
+  have h3 : gg (T * T') ζ = ζ * conj ζ - ((T * T' : ℝ) : ℂ) := by
+    rw [Complex.mul_conj]; unfold gg; push_cast; ring
+  rw [wZ_star, wZ_eq, sZ_eq T T' hT hT' ζ hζ]
+  have h4 : ζ * conj ζ - sig (T * T') ζ * sig (T * T') ζ = kap T T' * kap T T' := by rw [h1, h3, h2]; ring
+  field_simp
+  linear_combination h4
+
+lemma nuI_eq (ζ : ℂ) : nuI k T T' ζ = nuG k (wZ T T' ζ) (-sZ T T' ζ) (star (wZ T T' ζ)) := by
+  unfold nuI
+  rw [nu_eq, star_star]
+
+lemma nuI_mul (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (hT : 0 < T) (hT' : 0 < T') {ζ : ℂ}
+    (hζ : T * T' < Complex.normSq ζ) : nuI k T T' ζ * nu k (wZ T T' ζ) (sZ T T' ζ) = 1 := by
+  rw [nuI_eq, nu_eq]
+  have h := nuG_mul h0 (wZ T T' ζ) (-sZ T T' ζ) (star (wZ T T' ζ)) (by linear_combination ws_rel hT hT' hζ)
+  rwa [neg_neg] at h
+
+end ann
+
+def PSL (k : ℕ) (TT : ℝ) (C : ℂ → Mb k) : Prop := (∀ i j, PS TT (fun ζ => C ζ i j)) ∧ ∀ ζ, InL k (C ζ)
+
+lemma psl_smul {TT : ℝ} {f : ℂ → ℂ} (hf : PS TT f) {A : Mb k} (hA : InL k A) : PSL k TT (fun ζ => f ζ • A) := by
+  refine ⟨fun i j => ?_, fun ζ i => ⟨?_, ?_⟩⟩
+  · exact ps_mul hf (ps_const (A i j))
+  · show f ζ * A i (Fin.last k) = 0
+    rw [(hA i).1, mul_zero]
+  · show f ζ * A (Fin.last k) i = 0
+    rw [(hA i).2, mul_zero]
+
+lemma psl_add {TT : ℝ} {C D : ℂ → Mb k} (hC : PSL k TT C) (hD : PSL k TT D) : PSL k TT (fun ζ => C ζ + D ζ) := by
+  refine ⟨fun i j => ps_add (hC.1 i j) (hD.1 i j), fun ζ i => ⟨?_, ?_⟩⟩
+  · show C ζ i (Fin.last k) + D ζ i (Fin.last k) = 0
+    rw [(hC.2 ζ i).1, (hD.2 ζ i).1, add_zero]
+  · show C ζ (Fin.last k) i + D ζ (Fin.last k) i = 0
+    rw [(hC.2 ζ i).2, (hD.2 ζ i).2, add_zero]
+
+lemma psl_csmul {TT : ℝ} (c : ℂ) {C : ℂ → Mb k} (hC : PSL k TT C) : PSL k TT (fun ζ => c • C ζ) := by
+  refine ⟨fun i j => ps_mul (ps_const c) (hC.1 i j), fun ζ i => ⟨?_, ?_⟩⟩
+  · show c * C ζ i (Fin.last k) = 0
+    rw [(hC.2 ζ i).1, mul_zero]
+  · show c * C ζ (Fin.last k) i = 0
+    rw [(hC.2 ζ i).2, mul_zero]
+
+def Dec (k : ℕ) (T T' : ℝ) (M : Mb k) : Prop :=
+  ∃ (C₁ C₂ : ℂ → Mb k) (β₁ β₂ : ℂ → ℂ), PSL k (T * T') C₁ ∧ PSL k (T * T') C₂ ∧ PS (T * T') β₁ ∧ PS (T * T') β₂ ∧
+    ∀ ζ : ℂ, T * T' < Complex.normSq ζ →
+      M = C₁ ζ + nuI k T T' ζ * C₂ ζ * nu k (wZ T T' ζ) (sZ T T' ζ) + β₁ ζ • H1 k T T' ζ + β₂ ζ • H2 k T T' ζ
+
+variable {T T' : ℝ}
+
+lemma dec_mk (M : Mb k) (f₁ f₂ β₁ β₂ : ℂ → ℂ) (A₁ A₂ : Mb k) (hA₁ : InL k A₁) (hA₂ : InL k A₂) (h1 : PS (T * T') f₁)
+    (h2 : PS (T * T') f₂) (h3 : PS (T * T') β₁) (h4 : PS (T * T') β₂)
+    (h : ∀ ζ : ℂ, T * T' < Complex.normSq ζ →
+      M = f₁ ζ • A₁ + nuI k T T' ζ * (f₂ ζ • A₂) * nu k (wZ T T' ζ) (sZ T T' ζ) + β₁ ζ • H1 k T T' ζ +
+        β₂ ζ • H2 k T T' ζ) : Dec k T T' M :=
+  ⟨_, _, β₁, β₂, psl_smul h1 hA₁, psl_smul h2 hA₂, h3, h4, h⟩
+
+lemma dec_add {M N : Mb k} (hM : Dec k T T' M) (hN : Dec k T T' N) : Dec k T T' (M + N) := by
+  obtain ⟨C₁, C₂, β₁, β₂, a1, a2, a3, a4, a5⟩ := hM
+  obtain ⟨D₁, D₂, γ₁, γ₂, b1, b2, b3, b4, b5⟩ := hN
+  refine ⟨_, _, _, _, psl_add a1 b1, psl_add a2 b2, ps_add a3 b3, ps_add a4 b4, fun ζ hζ => ?_⟩
+  conv_lhs => rw [a5 ζ hζ, b5 ζ hζ]
+  rw [Matrix.mul_add, Matrix.add_mul, add_smul, add_smul]
+  abel
+
+lemma dec_smul (c : ℂ) {M : Mb k} (hM : Dec k T T' M) : Dec k T T' (c • M) := by
+  obtain ⟨C₁, C₂, β₁, β₂, a1, a2, a3, a4, a5⟩ := hM
+  refine ⟨_, _, _, _, psl_csmul c a1, psl_csmul c a2, ps_mul (ps_const c) a3, ps_mul (ps_const c) a4, fun ζ hζ => ?_⟩
+  conv_lhs => rw [a5 ζ hζ]
+  rw [Matrix.mul_smul, Matrix.smul_mul, smul_add, smul_add, smul_add, smul_smul, smul_smul]
+
+lemma inL_Su {a b : Fin (k + 1)} (ha : a ≠ Fin.last k) (hb : b ≠ Fin.last k) : InL k (Su k a b) := by
+  intro i
+  unfold Su
+  constructor
+  · rw [Matrix.single_apply, if_neg (fun h => hb h.2)]
+  · rw [Matrix.single_apply, if_neg (fun h => ha h.1)]
+
+lemma inL_zero : InL k (0 : Mb k) := fun _ => ⟨rfl, rfl⟩
+
+lemma ps_zero {TT : ℝ} : PS TT (fun _ => (0 : ℂ)) := ps_const 0
+
+lemma dec_LL {a b : Fin (k + 1)} (ha : a ≠ Fin.last k) (hb : b ≠ Fin.last k) : Dec k T T' (Su k a b) :=
+  dec_mk _ (fun _ => 1) (fun _ => 0) (fun _ => 0) (fun _ => 0) (Su k a b) 0 (inL_Su ha hb) inL_zero (ps_const 1) ps_zero
+    ps_zero ps_zero (fun ζ _ => by simp)
+
+lemma dec_lm (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (hT : 0 < T) (hT' : 0 < T') (m : Fin (k + 1)) (hm0 : m ≠ 0)
+    (hml : m ≠ Fin.last k) : Dec k T T' (Su k (Fin.last k) m) := by
+  refine dec_mk _ (fun ζ => (-1 : ℂ) * (ζ * (sig (T * T') ζ)⁻¹)) (fun ζ => (-kap T T') * (sig (T * T') ζ)⁻¹) (fun _ => 0)
+    (fun _ => 0) (Su k 0 m) (Su k 0 m) (inL_Su h0 hml) (inL_Su h0 hml) (ps_mul (ps_const _) (ps_mul ps_id ps_sigInv))
+    (ps_mul (ps_const _) ps_sigInv) ps_zero ps_zero (fun ζ hζ => ?_)
+  have hk := kap_ne hT hT'
+  have hs := sig_ne hζ
+  rw [Matrix.mul_smul, Matrix.smul_mul, nuI_eq, nu_eq, conj0m h0 _ _ _ m hm0 hml, sZ_eq T T' hT hT' ζ hζ, wZ_eq]
+  match_scalars <;> field_simp <;> ring
+
+lemma dec_ml (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (hT : 0 < T) (hT' : 0 < T') (m : Fin (k + 1)) (hm0 : m ≠ 0)
+    (hml : m ≠ Fin.last k) : Dec k T T' (Su k m (Fin.last k)) := by
+  refine dec_mk _ (fun ζ => conj ζ * (sig (T * T') ζ)⁻¹) (fun ζ => kap T T' * (sig (T * T') ζ)⁻¹) (fun _ => 0)
+    (fun _ => 0) (Su k m 0) (Su k m 0) (inL_Su hml h0) (inL_Su hml h0) (ps_mul ps_conj ps_sigInv)
+    (ps_mul (ps_const _) ps_sigInv) ps_zero ps_zero (fun ζ hζ => ?_)
+  have hk := kap_ne hT hT'
+  have hs := sig_ne hζ
+  rw [Matrix.mul_smul, Matrix.smul_mul, nuI_eq, nu_eq, conjm0 h0 _ _ _ m hm0 hml, sZ_eq T T' hT hT' ζ hζ, wZ_star]
+  match_scalars <;> field_simp <;> ring
+
+section plane
+
+variable (h0 : (0 : Fin (k + 1)) ≠ Fin.last k) (hT : 0 < T) (hT' : 0 < T')
+include h0 hT hT'
+
+lemma plane_facts {ζ : ℂ} (hζ : T * T' < Complex.normSq ζ) :
+    sZ T T' ζ ≠ 0 ∧ (kap T T')⁻¹ ≠ 0 ∧ star (wZ T T' ζ) ≠ 0 ∧
+      2 * sZ T T' ζ * ((2 * kap T T')⁻¹ * conj ζ * (sig (T * T') ζ)⁻¹) = -(kap T T')⁻¹ * star (wZ T T' ζ) ∧
+      2 * sZ T T' ζ * ((2 * kap T T')⁻¹ * ζ * (sig (T * T') ζ)⁻¹) = -(kap T T')⁻¹ * wZ T T' ζ := by
+  have hk := kap_ne hT hT'
+  have hs := sig_ne hζ
+  have hz := zeta_ne hT hT' hζ
+  have hzc : conj ζ ≠ 0 := by simpa using hz
+  refine ⟨?_, inv_ne_zero hk, ?_, ?_, ?_⟩
+  · rw [sZ_eq T T' hT hT' ζ hζ]; exact mul_ne_zero (inv_ne_zero hk) hs
+  · rw [wZ_star]; exact mul_ne_zero (neg_ne_zero.2 (inv_ne_zero hk)) hzc
+  · rw [sZ_eq T T' hT hT' ζ hζ, wZ_star]; field_simp
+  · rw [sZ_eq T T' hT hT' ζ hζ, wZ_eq]; field_simp
+
+lemma dec_0l : Dec k T T' (Su k 0 (Fin.last k)) := by
+  refine dec_mk _ (fun ζ => (2⁻¹ : ℂ) * (conj ζ * (sig (T * T') ζ)⁻¹)) (fun ζ => (-2⁻¹ : ℂ) * (conj ζ * (sig (T * T') ζ)⁻¹))
+    (fun ζ => (-1 : ℂ) * sig (T * T') ζ) (fun _ => 0) (Su k 0 0) (Su k 0 0) (inL_Su h0 h0) (inL_Su h0 h0)
+    (ps_mul (ps_const _) (ps_mul ps_conj ps_sigInv)) (ps_mul (ps_const _) (ps_mul ps_conj ps_sigInv))
+    (ps_mul (ps_const _) ps_sig) ps_zero (fun ζ hζ => ?_)
+  obtain ⟨f1, f2, f3, f4, f5⟩ := plane_facts h0 hT hT' hζ
+  have hk := kap_ne hT hT'
+  have hs := sig_ne hζ
+  have key := unit0l h0 _ _ _ _ _ f1 f2 f3 (ws_rel hT hT' hζ) f4
+  have e1 : -(star (wZ T T' ζ) / (2 * sZ T T' ζ)) = (2⁻¹ : ℂ) * (conj ζ * (sig (T * T') ζ)⁻¹) := by
+    rw [sZ_eq T T' hT hT' ζ hζ, wZ_star]; field_simp
+  have e2 : star (wZ T T' ζ) / (2 * sZ T T' ζ) = (-2⁻¹ : ℂ) * (conj ζ * (sig (T * T') ζ)⁻¹) := by
+    rw [sZ_eq T T' hT hT' ζ hζ, wZ_star]; field_simp
+  have e3 : -(sZ T T' ζ / (kap T T')⁻¹) = (-1 : ℂ) * sig (T * T') ζ := by
+    rw [sZ_eq T T' hT hT' ζ hζ]; field_simp
+  rw [e1, e2, e3, ← nuI_eq, ← nu_eq] at key
+  rw [zero_smul, add_zero]
+  exact key
+
+lemma decomposition_lower_corner_unit : Dec k T T' (Su k (Fin.last k) 0) := by
+  refine dec_mk _ (fun ζ => (-2⁻¹ : ℂ) * (ζ * (sig (T * T') ζ)⁻¹)) (fun ζ => (2⁻¹ : ℂ) * (ζ * (sig (T * T') ζ)⁻¹))
+    (fun _ => 0) (fun ζ => (-1 : ℂ) * sig (T * T') ζ) (Su k 0 0) (Su k 0 0) (inL_Su h0 h0) (inL_Su h0 h0)
+    (ps_mul (ps_const _) (ps_mul ps_id ps_sigInv)) (ps_mul (ps_const _) (ps_mul ps_id ps_sigInv))
+    ps_zero (ps_mul (ps_const _) ps_sig) (fun ζ hζ => ?_)
+  obtain ⟨f1, f2, f3, f4, f5⟩ := plane_facts h0 hT hT' hζ
+  have hk := kap_ne hT hT'
+  have hs := sig_ne hζ
+  have key := unitl0 h0 _ _ _ _ _ f1 f2 f3 (ws_rel hT hT' hζ) f5
+  have e1 : wZ T T' ζ / (2 * sZ T T' ζ) = (-2⁻¹ : ℂ) * (ζ * (sig (T * T') ζ)⁻¹) := by
+    rw [sZ_eq T T' hT hT' ζ hζ, wZ_eq]; field_simp
+  have e2 : -(wZ T T' ζ / (2 * sZ T T' ζ)) = (2⁻¹ : ℂ) * (ζ * (sig (T * T') ζ)⁻¹) := by
+    rw [sZ_eq T T' hT hT' ζ hζ, wZ_eq]; field_simp
+  have e3 : -(sZ T T' ζ / (kap T T')⁻¹) = (-1 : ℂ) * sig (T * T') ζ := by
+    rw [sZ_eq T T' hT hT' ζ hζ]; field_simp
+  rw [e2, e1, e3, ← nuI_eq, ← nu_eq] at key
+  rw [zero_smul, add_zero]
+  exact key
+
+lemma dec_ll : Dec k T T' (Su k (Fin.last k) (Fin.last k)) := by
+  refine dec_mk _ (fun _ => 0) (fun _ => 1) (fun ζ => ζ) (fun ζ => (-1 : ℂ) * conj ζ) (Su k 0 0) (Su k 0 0)
+    (inL_Su h0 h0) (inL_Su h0 h0) ps_zero (ps_const 1) ps_id (ps_mul (ps_const _) ps_conj) (fun ζ hζ => ?_)
+  obtain ⟨f1, f2, f3, f4, f5⟩ := plane_facts h0 hT hT' hζ
+  have hk := kap_ne hT hT'
+  have key := unitll h0 _ _ _ _ _ _ f1 f2 f3 (ws_rel hT hT' hζ) f4 f5
+  have e1 : -(wZ T T' ζ / (kap T T')⁻¹) = ζ := by rw [wZ_eq]; field_simp
+  have e2 : star (wZ T T' ζ) / (kap T T')⁻¹ = (-1 : ℂ) * conj ζ := by rw [wZ_star]; field_simp
+  rw [e1, e2, ← nuI_eq, ← nu_eq] at key
+  rw [zero_smul, zero_add, one_smul]
+  exact key
+
+lemma dec_unit (a b : Fin (k + 1)) : Dec k T T' (Su k a b) := by
+  by_cases ha : a = Fin.last k
+  · subst ha
+    by_cases hb : b = Fin.last k
+    · subst hb; exact dec_ll h0 hT hT'
+    · by_cases hb0 : b = 0
+      · subst hb0; exact decomposition_lower_corner_unit h0 hT hT'
+      · exact dec_lm h0 hT hT' b hb0 hb
+  · by_cases hb : b = Fin.last k
+    · subst hb
+      by_cases ha0 : a = 0
+      · subst ha0; exact dec_0l h0 hT hT'
+      · exact dec_ml h0 hT hT' a ha0 ha
+    · exact dec_LL ha hb
+
+lemma dec_all (M : Mb k) : Dec k T T' M := by
+  have hz : Dec k T T' (0 : Mb k) := by
+    have := dec_smul (T := T) (T' := T') 0 (dec_LL (k := k) h0 h0)
+    rwa [zero_smul] at this
+  rw [Matrix.matrix_eq_sum_single M]
+  refine Finset.sum_induction _ _ (fun _ _ => dec_add) hz fun i _ => ?_
+  refine Finset.sum_induction _ _ (fun _ _ => dec_add) hz fun j _ => ?_
+  have : Matrix.single i j (M i j) = M i j • Su k i j := by
+    unfold Su; rw [Matrix.smul_single, smul_eq_mul, mul_one]
+  rw [this]
+  exact dec_smul _ (dec_unit h0 hT hT' i j)
+
+end plane
+
+end
+
+end Formalism.FourierDecayAlt.P.CutMP.JA.SSn.Rep.Core.TC.PR.CP.Dc
